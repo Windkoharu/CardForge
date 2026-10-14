@@ -1,0 +1,42 @@
+CardForge 卡锻 · NOTICE — 第三方素材与权利边界
+=================================================
+
+本项目的 MIT 许可证（见 LICENSE）**只覆盖原创代码与文档**。
+以下随包内容不在 MIT 授权范围内，各自受其来源条款约束：
+
+1. 卡框与图标素材（data/assets/frame/、data/assets/icons/ 等）
+   来源：kooriookami/yugioh-card（MIT，署名见 data/assets/NOTICE.txt）。
+   注意：素材仓库本身是 MIT，但卡框设计的美术版权归 Konami；
+   商业发行前请自行评估，必要时替换为自有设计。
+
+2. 字体复刻件（data/assets/ygo-*.ttf、ygo-*.woff2）
+   官方游戏王字体为商业字体，此处复刻件仅供本地预览与个人学习。
+   任何商业发行请替换为 OFL 字体：Cinzel、EB Garamond、思源宋体、
+   霞鹜文楷（LXGW WenKai）、Noto Serif KR。渲染层按
+   「OFL → 内置素材字体 → 系统 CJK」三层回退，替换无需改代码。
+
+3. 官方卡池数据（vendor/data/cards_zh.cdb）
+   卡牌文本与卡号数据版权归 Konami。本仓库收录仅为查重与撞号检查，
+   程序对其只读（验收含前后 sha256 一致）。如权利人要求，可整目录移除，
+   程序将如实降级（跳过查重），不影响其余功能。
+
+4. ygopro 脚本库（vendor/scripts/）
+   来自 ygopro 社区脚本库，供 Lua API 白名单抽取与对局验证运行库使用；
+   遵循其上游仓库的许可条款。
+
+5. 对决引擎（vendor/engine/，本仓库不含）
+   ocgcore 由 ProjectIgnition（EDOPro）项目维护（AGPL-3.0）。
+   因体积与许可原因不随本仓库分发；获取方式见 README「对局引擎」一节。
+   本程序通过进程外调用使用它，不构成对其的再分发。
+
+6. 出图模型（不随包分发）
+   各模型许可差异极大（animagine / qwen_image 可商用；pony 等禁止商业化）。
+   选型前请核对 cardforge/art/profiles.py 各档案 notes。
+
+7. 「游戏王 / Yu-Gi-Oh!」及相关名称、卡面美术为 Konami 商标与版权物。
+   本项目为非官方个人学习/研究工具，与 Konami、Studio Dice 无任何关联。
+
+DIY 卡内容归属
+--------------
+用户在 workspace/ 中创作的卡（规格、卡文、Lua、卡图）归创作者本人；
+若模仿真实卡的名称/美术用于公开发行，责任在创作者。
