@@ -1,0 +1,25 @@
+﻿CARDFORGE_DATA = D:\游戏王DIY设计\_probe\psct\_no_such_data
+DATA 存在？False
+lexicon.available() = False
+sources = {'terms': '内置兜底表（不可读（FileNotFoundError））', 'terms_meta': {}, 'patterns': '内置兜底表（不可读（FileNotFoundError））'}
+内置兜底术语条数 = 208
+  act_search               从卡组把…加入手卡 | デッキから…手札に加える | add ... from your Deck to your hand
+  race_dragon              龙族 | ドラゴン | Dragon
+  attr_dark                暗属性 | 闇 | DARK
+  zone_graveyard           墓地 | 墓地 | Graveyard
+  psct_then                那之后 | その後 | then
+  psct_hopt_name_each      这个卡名的①②的效果1回合各能使用1次。 | このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。 | You can only use each effect of "X" once per turn.
+ko 回落 = ('add ... from your Deck to your hand', 'en')
+conjunction('then','ja') = その後
+hopt('hopt_name_use','zh_cn') = 这个卡名的①②的效果1回合各能使用1次。
+── zh_cn（used=zh_cn，source=monster）
+①：这张卡召唤成功时才能发动。从卡组把1只龙族怪兽加入手卡。
+这个卡名的①的效果1回合只能使用1次。
+── ja（used=ja，source=monster）
+①：このカードが召喚に成功した時に発動できる。デッキからドラゴン族モンスター１体を手札に加える。
+このカード名の①の効果は１ターンに１度しか使用できない。
+── en（used=en，source=monster）
+① When this card is Normal Summoned: You can add 1 Dragon monster from your Deck to your hand.
+You can only use this effect of "Fallback Dragon" once per turn.
+类型行 = 【龙族／炎属性／效果】 | 【ドラゴン族／炎／効果】 | [Dragon / FIRE / Effect]
+RESULT: OK（无 data/lexicons 也能生成三语卡文）

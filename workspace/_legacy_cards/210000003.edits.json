@@ -1,0 +1,14 @@
+[
+  {
+    "ts": 1791802261.6532602,
+    "action": "edit",
+    "preset": "fx",
+    "preset_label": "加魔法特效",
+    "instruction": "在 <image_1> 的画面上叠加以下魔法特效：暗紫色的诅咒能量与环绕的破碎符咒。特效要自然融入原有光照与透视，不遮挡人物面部与关键轮廓，保持人物身份、姿势、服装与构图完全不变。",
+    "resolution": "standard",
+    "version": 1,
+    "inline": true,
+    "style_ref": null,
+    "history": "210000003-1.png"
+  }
+]

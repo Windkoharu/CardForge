@@ -1,0 +1,62 @@
+/* ══════════════════════════════════════════════════════════════════
+   CardForge 主题变量
+   ──────────────────────────────────────────────────────────────────
+   色彩取自卡面本身：暗棕台布 + 黄铜边框 + 卡纸米色。
+   语义色只有一个约定：绿=真跑过、琥珀=降级、红=拦截、蓝=进行中。
+   降级用琥珀而不是灰色，是为了让「这部分没跑」看起来是**状态**而不是「坏了」。
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  --bg:            #16130f;
+  --bg-raised:     #1f1b16;
+  --bg-panel:      #241f19;
+  --bg-input:      #14110d;
+  --line:          #3a3226;
+  --line-strong:   #57492f;
+  --brass:         #c9a227;
+  --brass-soft:    #8a7130;
+  --paper:         #efe4c9;
+  --ink:           #d9cdb4;
+  --ink-dim:       #9c917c;
+  --ink-faint:     #6e665a;
+
+  --pass:   #4caf7d;
+  --warn:   #d9a13b;
+  --fail:   #d05a52;
+  --run:    #5b9fd6;
+  --skip:   #b08b4f;
+
+  --r-sm: 4px;  --r-md: 8px;  --r-lg: 14px;
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 18px; --sp-5: 26px; --sp-6: 38px;
+
+  --font-ui: "Segoe UI Variable", "Segoe UI", system-ui, "PingFang SC",
+             "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-zh: "Source Han Serif SC", "Noto Serif CJK SC", "SimSun-ExtB",
+             "STSong", "Noto Serif SC", serif;
+  --font-code: "Cascadia Mono", Consolas, "JetBrains Mono", "Sarasa Mono SC",
+               "Courier New", monospace;
+
+  --rail-w: 250px;
+  --drawer-w: 380px;
+  --companion-w: 296px;
+  --top-h: 58px;
+
+  /* ── 星奏·艾莉娅（立绘陪伴栏）──────────────────────────────
+     出自立绘本身的色：发梢的暖金、卡形吊坠的光、星尘蓝。 */
+  --aria-gold:   #e8c463;
+  --aria-glow:   rgba(232, 196, 99, .16);
+  --aria-shadow: rgba(0, 0, 0, .55);
+
+  --shadow: 0 6px 24px rgba(0,0,0,.45);
+  --shadow-lift: 0 10px 34px rgba(0,0,0,.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* 打印卡面时只看卡，不看界面 */
+@media print {
+  .topbar, .rail, .drawer, .side-actions, .inline-tools, .issue-bar { display: none !important; }
+  body { background: #fff; }
+}

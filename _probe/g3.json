@@ -1,0 +1,25 @@
+{
+  "gate": "G3",
+  "status": "fail",
+  "summary": "2 项拦截、0 项告警（{\"duels\": 1, \"turns\": 3}）",
+  "took_ms": 49,
+  "degraded": "",
+  "issues": [
+    {
+      "gate": "G3",
+      "code": "G3_DUEL_ERROR",
+      "level": "ERROR",
+      "message": "实跑报错：同一状态重复 4 次（MSG_select_chain，回合 3），按死循环正常收尾",
+      "hint": "回到脚本层修正",
+      "waived": false
+    },
+    {
+      "gate": "G3",
+      "code": "G3_DUEL_FAIL",
+      "level": "ERROR",
+      "message": "整局对战未能正常完成",
+      "hint": "检查脚本是否有死循环或非法结算",
+      "waived": false
+    }
+  ]
+}

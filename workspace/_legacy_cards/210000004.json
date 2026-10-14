@@ -1,0 +1,24 @@
+{
+  "id": 210000004,
+  "name": "焰刃的余烬法师",
+  "frame": "effect",
+  "level": 4,
+  "attribute": "炎",
+  "race": "魔法师族",
+  "atk": 1600,
+  "def": 1200,
+  "archetype": "焰刃",
+  "setcode": "0x3001",
+  "text": "①：这张卡召唤成功时才能发动。从卡组把1张「焰刃」卡加入手卡。这个效果1回合只能使用1次。",
+  "race_bits": 2,
+  "attr_bits": 4,
+  "type_bits": 33,
+  "effect_tier": 1,
+  "detected_effects": [
+    "search"
+  ],
+  "_lua": "--[[ 焰刃的余烬法师\n     CardForge 自动生成 · 模板档:tier1/search\n     效果：从卡组把卡加入手卡\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t-- 效果 1：从卡组把卡加入手卡（这张卡召唤成功时）\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)\n\te1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te1:SetCode(EVENT_SUMMON_SUCCESS)\n\te1:SetProperty(EFFECT_FLAG_DELAY)\n\te1:SetRange(LOCATION_MZONE)\n\te1:SetCountLimit(1,id)\n\te1:SetTarget(e1_searchtg)\n\te1:SetOperation(e1_searchop)\n\tc:RegisterEffect(e1)\nend\n\n-- ①：这张卡召唤成功时才能发动。从卡组把1张「焰刃」卡加入手卡。这个效果1回合只能使用1次。\nlocal e1_thfilter=function(c) return c:IsSetCard(0x3001) and c:IsAbleToHand() end\nfunction e1_thtg(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(e1_thfilter,tp,LOCATION_DECK,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)\nend\nfunction e1_thop(e,tp,eg,ep,ev,re,r,rp)\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)\n\tlocal g=Duel.SelectMatchingCard(tp,e1_thfilter,tp,LOCATION_DECK,0,1,1,nil)\n\tif g:GetCount()>0 then\n\t\tDuel.SendtoHand(g,nil,REASON_EFFECT)\n\t\tDuel.ConfirmCards(1-tp,g)\n\tend\nend\n",
+  "_strings": [
+    "①：这张卡召唤成功时才能发动。从卡组把1张「焰刃」卡加入手卡。这个效果1回合只能使用1次。"
+  ]
+}

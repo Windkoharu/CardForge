@@ -1,0 +1,94 @@
+{
+  "root": "data\\assets",
+  "exists": true,
+  "files": 87,
+  "digest": "e06d085c0b41b3e0",
+  "categories": {
+    "frame": {
+      "present": 16,
+      "total": 16,
+      "missing": []
+    },
+    "attribute": {
+      "present": 9,
+      "total": 9,
+      "missing": []
+    },
+    "icon": {
+      "present": 6,
+      "total": 6,
+      "missing": []
+    },
+    "star": {
+      "present": 2,
+      "total": 2,
+      "missing": []
+    },
+    "arrow": {
+      "present": 16,
+      "total": 16,
+      "missing": []
+    },
+    "rare": {
+      "present": 9,
+      "total": 9,
+      "missing": []
+    },
+    "laser": {
+      "present": 4,
+      "total": 4,
+      "missing": []
+    },
+    "stamp": {
+      "present": 1,
+      "total": 1,
+      "missing": []
+    },
+    "copyright": {
+      "present": 6,
+      "total": 6,
+      "missing": []
+    },
+    "stat": {
+      "present": 2,
+      "total": 2,
+      "missing": []
+    },
+    "mask": {
+      "present": 2,
+      "total": 2,
+      "missing": []
+    },
+    "bleed": {
+      "present": 1,
+      "total": 1,
+      "missing": []
+    },
+    "back": {
+      "present": 1,
+      "total": 1,
+      "missing": []
+    },
+    "font": {
+      "present": 12,
+      "total": 12,
+      "missing": []
+    }
+  },
+  "missing": [],
+  "requested_missing": [],
+  "unexpected": [],
+  "skipped": [
+    "NOTICE.txt",
+    "_cache/copyright_en-black.svg.png",
+    "_cache/copyright_jp-black.svg.png",
+    "_cache/copyright_sc-black.svg.png",
+    "_contact_sheet.png",
+    "_mask_vis.png",
+    "_pend_frame_view.png",
+    "_sheet_frames.png",
+    "_sheet_other.png",
+    "_sheet_rare.png"
+  ],
+  "image_cache": 0
+}

@@ -1,0 +1,54 @@
+从 repo 读出 2 张卡：['集成效果怪', '集成通常怪']
+
+── 1. 按 cli.py 的真实取键方式调用 build() ──
+  res['cards'] = 2
+  res['dir']   = D:\游戏王DIY设计\_probe\pool_export\_tmp\integ_out
+  res['stats'] = {'cards': 2, 'pics': 0, 'field_pics': 0, 'scripts': 1, 'langs': 'zh_cn', 'cdbs': 'CardForge.cdb, CardForge-zh-CN.cdb', 'pending_pics': 2, 'issues_error': 0, 'issues_warn': 2}
+  [PASS] cli.py 用的 res['cards'] 存在且是整数  —— 2
+  [PASS] cli.py 用的 res['dir'] 存在且是包根（含 expansions/）  —— D:\游戏王DIY设计\_probe\pool_export\_tmp\integ_out
+  [PASS] cli.py 用的 res['stats'] 是 dict
+  [PASS] 原生键没被别名顶掉（n_cards/pack_dir 仍在）
+  cli.py 会这样打印（逐个 stats 项）：
+      cards: 2
+      pics: 0
+      field_pics: 0
+      scripts: 1
+      langs: zh_cn
+      cdbs: CardForge.cdb, CardForge-zh-CN.cdb
+      pending_pics: 2
+      issues_error: 0
+      issues_warn: 2
+
+── 2. pipeline/gates.g5_export(res['dir']) 真跑一遍 ──
+  gate     = G5
+  status   = pass
+  summary  = 全部通过
+  degraded = ''
+  has_error= False
+  issues(3)：
+      [INFO ] G5_PIC_PENDING         卡 210000000 的卡图待补（manifest 已标记）
+      [INFO ] G5_PIC_PENDING         卡 210000001 的卡图待补（manifest 已标记）
+      [INFO ] G5_STRINGS_MISSING     包里没有 strings.conf
+  [PASS] g5_export 能消费 verify() 的返回
+  [PASS] gates 能按对象/字典两种方式读到 Issue 字段
+  [PASS] status 不是 fail（无 ERROR）  —— pass
+
+── 3. 按 cli.py 的取键方式调用 install() ──
+  r['target'] = D:\游戏王DIY设计\_probe\pool_export\_tmp\integ\FakeEDOPro
+  r['copied'] 的类型 = list，长度 4
+  r['copied_count'] = 4   r['count'] = 4
+  cli.py 现在会打印：已安装到 D:\游戏王DIY设计\_probe\pool_export\_tmp\integ\FakeEDOPro，复制 ['CardForge-zh-CN.cdb', 'CardForge.cdb', 'README.txt', 'script/c210000000.lua'] 个文件
+  → 改成 r.get('copied_count') 后会打印：已安装到 D:\游戏王DIY设计\_probe\pool_export\_tmp\integ\FakeEDOPro，复制 4 个文件
+  [PASS] r['target'] 存在
+  [PASS] r['copied'] 是复制清单（列表）  —— ['CardForge-zh-CN.cdb', 'CardForge.cdb', 'README.txt', 'script/c210000000.lua']
+  [PASS] r['copied_count'] 是数量 4  —— 4
+  [PASS] install ok
+
+── 4. install(pack) 无 target 时的返回（cli.py 只取 target/copied）──
+  ok=False  error='没找到 EDOPro 安装目录'  target=''
+  [PASS] 无 target 时也有 target 键（空串）
+  [PASS] 无 target 时 ok=False 且给 hint
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过
+════════════════════════════════════════════════════════════════════

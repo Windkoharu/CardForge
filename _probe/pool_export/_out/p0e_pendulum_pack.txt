@@ -1,0 +1,39 @@
+=== 全部灵摆卡的 level 列解码（前 20 张）＋ desc 头对照 ===
+  灵摆卡总数 = 399
+  左右刻度不对称（byte3 != byte2）的卡数 = 0
+
+  ── 不对称样本（用 desc 的 ←L 【灵摆】 R→ 反推高低位顺序）──
+
+  ── 对称样本前 8 张 ──
+    id=41546     level列=0x06060008 (scale=6, level=8)  desc头='←6 【灵摆】 6→'  DD 魔导贤者 托马斯
+    id=368382    level列=0x06060005 (scale=6, level=5)  desc头='←6 【灵摆】 6→'  雾动机龙·腕龙
+    id=645794    level列=0x05050004 (scale=5, level=4)  desc头='←5 【灵摆】 5→'  威风妖怪·蛤蟆
+    id=1186447   level列=0x01010005 (scale=1, level=5)  desc头='←1 【灵摆】 1→'  星读之魔术师-星占之魔术士
+    id=1186448   level列=0x01010005 (scale=1, level=5)  desc头='←1 【灵摆】 1→'  星读之魔术师-星占之魔术士
+    id=1580833   level列=0x03030004 (scale=3, level=4)  desc头='←3 【灵摆】 3→'  雾动机龙·剑龙
+    id=2254222   level列=0x04040005 (scale=4, level=5)  desc头='←4 【灵摆】 4→'  疾行机人 辉翼同调士
+    id=2396042   level列=0x05050004 (scale=5, level=4)  desc头='←5 【灵摆】 5→'  迪隆的钢铁骑兵
+
+=== 一致性校验：byte3/byte2 是否等于 desc 里的 ←L / R→ ===
+  可解析 desc 头的卡 = 398
+  (level>>24)&0xFF == desc 左侧刻度 ←L 的卡数 = 398
+  (level>>16)&0xFF == desc 右侧刻度 R→ 的卡数 = 398
+  → 结论：level 列 = (lscale<<24)|(rscale<<16)|(level or rank)
+
+=== 非灵摆怪兽的 level 列（确认没有被打包）===
+    id=15862758  level列=13 type=0x800021 混沌虚数No.1000 梦幻虚光神 原数天灵·原数天地
+    id=71222868  level列=13 type=0x800021 急袭猛禽-起翼叛逆猎鹰
+  非灵摆怪兽里 level>12 的数量 = 2
+  非灵摆怪兽 level 最大值 = 13
+
+=== XYZ 灵摆（rank 在低 16 位吗）===
+    id=3594985   level列=0x05050004 scale=5 rank=4 威风妖怪·龙
+        desc头='←5 【灵摆】 5→'
+    id=18897163  level列=0x01010008 scale=1 rank=8 DDD 超死伟王 黑地狱终末神
+        desc头='←1 【灵摆】 1→'
+    id=30095833  level列=0x04040007 scale=4 rank=7 霸王黑龙 异色眼叛逆超量龙
+        desc头='←4 【灵摆】 4→'
+    id=39943352  level列=0x03030004 scale=3 rank=4 液状巨人 胀流大太郎
+        desc头='←3 【灵摆】 3→'
+    id=45627618  level列=0x04040007 scale=4 rank=7 霸王黑龙 异色眼叛逆龙
+        desc头='←4 【灵摆】 4→'

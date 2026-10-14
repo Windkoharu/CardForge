@@ -1,0 +1,66 @@
+{
+  "kind": "cards",
+  "key": "210000011",
+  "version": 1,
+  "ts": "2026-10-13T06:24:55.097729",
+  "note": "migrate schema v0 → v2",
+  "digest": "d23c5a52167641e9",
+  "path": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_repo\\cards\\210000011\\spec.json",
+  "payload": {
+    "id": 210000011,
+    "name": "星奏の指揮者 アリア",
+    "frame": "effect",
+    "attribute": "光",
+    "race": "魔法师族",
+    "level": 4,
+    "atk": 1600,
+    "dfd": 1200,
+    "archetype": "星奏",
+    "setcode": "0x1001",
+    "text_i18n": {
+      "zh_cn": "①：这张卡召唤成功时才能发动。从卡组把 1 张「星奏」卡加入手卡。②：1回合1次，自己主要阶段才能发动。从手卡把 1 只「星奏」怪兽特殊召唤。"
+    },
+    "render": {
+      "rarity": "common",
+      "fullart": {
+        "mode": "none",
+        "bleed_top": 0.0,
+        "bleed_bottom": 0.0,
+        "panel_opacity": 0.86,
+        "name_stroke": 1.6,
+        "fade_px": 0.0
+      },
+      "lang_name": "zh_cn",
+      "lang_text": "zh_cn",
+      "lang_flavor": "zh_cn",
+      "art_fit": "cover",
+      "art_offset_y": 0.0,
+      "art_scale": 1.0,
+      "art_ring": 0.0,
+      "font_scale_name": 1.0,
+      "font_scale_text": 1.0,
+      "text_align": "left",
+      "psct_bold": true,
+      "show_password": true,
+      "show_copyright": true,
+      "show_stamp20": false,
+      "show_laser": true,
+      "preview_width": 480,
+      "output_size": "edopro"
+    },
+    "lua": "--[[ 星奏の指揮者 アリア\n     CardForge 自动生成 · 模板档:tier1/search+ssummon\n     效果：从卡组把卡加入手卡、从手卡·卡组特殊召唤\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t-- 效果 1：从卡组把卡加入手卡（这张卡召唤成功时）\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)\n\te1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te1:SetCode(EVENT_SUMMON_SUCCESS)\n\te1:SetProperty(EFFECT_FLAG_DELAY)\n\te1:SetRange(LOCATION_MZONE)\n\te1:SetTarget(e1_searchtg)\n\te1:SetOperation(e1_searchop)\n\tc:RegisterEffect(e1)\n\t-- 效果 2：从手卡·卡组特殊召唤（起动效果）\n\tlocal e2=Effect.CreateEffect(c)\n\te2:SetDescription(aux.Stringid(id,1))\n\te2:SetCategory(CATEGORY_SPECIAL_SUMMON)\n\te2:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_IGNITION)\n\te2:SetRange(LOCATION_MZONE)\n\te2:SetTarget(e2_ssummontg)\n\te2:SetOperation(e2_ssummonop)\n\tc:RegisterEffect(e2)\nend\n\n-- ①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。\nlocal e1_thfilter=function(c) return c:IsSetCard(0x1001) and c:IsAbleToHand() end\nfunction e1_thtg(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(e1_thfilter,tp,LOCATION_DECK,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)\nend\nfunction e1_thop(e,tp,eg,ep,ev,re,r,rp)\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)\n\tlocal g=Duel.SelectMatchingCard(tp,e1_thfilter,tp,LOCATION_DECK,0,1,1,nil)\n\tif g:GetCount()>0 then\n\t\tDuel.SendtoHand(g,nil,REASON_EFFECT)\n\t\tDuel.ConfirmCards(1-tp,g)\n\tend\nend\n\n-- ②：1回合1次，自己主要阶段才能发动。从手卡把1只「星奏」怪兽特殊召唤。\nlocal e2_ssfilter=function(c) return c:IsSetCard(0x1001) and c:IsMonster() and c:IsCanBeSpecialSummoned(e,0,tp,false,false) end\nfunction e2_sstg(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0\n\t\tand Duel.IsExistingMatchingCard(e2_ssfilter,tp,LOCATION_HAND,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_HAND)\nend\nfunction e2_ssop(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)\n\tlocal g=Duel.SelectMatchingCard(tp,e2_ssfilter,tp,LOCATION_HAND,0,1,1,nil)\n\tif g:GetCount()>0 then\n\t\tDuel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)\n\tend\nend\n",
+    "strings": [
+      "①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。",
+      "②：1回合1次，自己主要阶段才能发动。从手卡把1只「星奏」怪兽特殊召唤。"
+    ],
+    "created": "2026-10-13T06:24:55.097375",
+    "updated": "2026-10-13T06:24:55.097380",
+    "schema_version": 2,
+    "effects": [],
+    "race_bits": 2,
+    "attr_bits": 16,
+    "type_bits": 33,
+    "link_bits": 0,
+    "def_value": 1200
+  }
+}

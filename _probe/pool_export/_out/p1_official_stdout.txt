@@ -1,0 +1,129 @@
+官方卡池 = D:\游戏王DIY设计\vendor\data\cards_zh.cdb
+存在 = True  大小 = 11.08 MB
+查询前 sha256 = ce88389d5f37a040dca16fee139442bd…
+
+PRAGMA table_info(datas):
+  cid name       type     notnull  pk
+    0 id         INTEGER        0   1
+    1 ot         INTEGER        0   0
+    2 alias      INTEGER        0   0
+    3 setcode    INTEGER        0   0
+    4 type       INTEGER        0   0
+    5 atk        INTEGER        0   0
+    6 def        INTEGER        0   0
+    7 level      INTEGER        0   0
+    8 race       INTEGER        0   0
+    9 attribute  INTEGER        0   0
+   10 category   INTEGER        0   0
+  → COUNT(*) = 15019
+PRAGMA table_info(texts):
+  cid name       type     notnull  pk
+    0 id         INTEGER        0   1
+    1 name       TEXT           0   0
+    2 desc       TEXT           0   0
+    3 str1       TEXT           0   0
+    4 str2       TEXT           0   0
+    5 str3       TEXT           0   0
+    6 str4       TEXT           0   0
+    7 str5       TEXT           0   0
+    8 str6       TEXT           0   0
+    9 str7       TEXT           0   0
+   10 str8       TEXT           0   0
+   11 str9       TEXT           0   0
+   12 str10      TEXT           0   0
+   13 str11      TEXT           0   0
+   14 str12      TEXT           0   0
+   15 str13      TEXT           0   0
+   16 str14      TEXT           0   0
+   17 str15      TEXT           0   0
+   18 str16      TEXT           0   0
+  → COUNT(*) = 15019
+sqlite_master 里的表 = ['texts', 'datas', 'card_fts', 'card_fts_data', 'card_fts_idx', 'card_fts_docsize', 'card_fts_config']
+FTS5 虚拟表 = CREATE VIRTUAL TABLE card_fts USING fts5(name, desc, content='texts', content_rowid='id', tokenize='unicode61')
+
+pool.path      = D:\游戏王DIY设计\vendor\data\cards_zh.cdb
+pool.available = True
+pool.count()   = 15019
+检测到的 FTS5 表 = 'card_fts'
+warnings       = []
+
+── search('星奏') ──
+  返回 0 条  →  []
+── search('青眼') ──
+  返回 5 条
+    id=71039903 name=太古的白石 matched=['fts'] atk=600 def=500
+    id=36734924 name=青色眼睛的巫女 matched=['fts'] atk=0 def=0
+    id=50371210 name=光之引导 matched=['fts'] atk=0 def=0
+    id=56532353 name=真青眼究极龙 matched=['fts'] atk=4500 def=3800
+    id=67886895 name=苍之深渊 渊眼白龙 matched=['fts'] atk=0 def=0
+── search('水精鳞', limit=3) ──
+    id=23899727 name=水精鳞-深渊琳德 matched=['fts']
+    id=69293721 name=水精鳞-深渊昆德 matched=['fts']
+    id=96682430 name=水精鳞-深渊希德 matched=['fts']
+
+── 对照：FTS5 / LIKE 各自命中数（证明 FTS 是 token 精确、LIKE 是子串）──
+  q='星奏'         name_LIKE=0    desc_LIKE=0    FTS_MATCH=0    → search() 返回 0 条（并集）
+  q='青眼'         name_LIKE=44   desc_LIKE=61   FTS_MATCH=27   → search() 返回 50 条（并集）
+  q='青眼白龙'       name_LIKE=20   desc_LIKE=42   FTS_MATCH=60   → search() 返回 50 条（并集）
+  q='水精鳞'        name_LIKE=20   desc_LIKE=27   FTS_MATCH=31   → search() 返回 31 条（并集）
+  q='密码'         name_LIKE=4    desc_LIKE=1    FTS_MATCH=0    → search() 返回 5 条（并集）
+
+── archetype_hits（字段名查重）──
+  field='星奏'       命中 0 条
+  field='青眼'       命中 3 条
+      id=2129638 where=name+desc name=青眼双爆裂龙
+        excerpt=青眼双爆裂龙
+      id=9433350 where=name name=罪 青眼白龙
+        excerpt=罪 青眼白龙
+      id=11443677 where=name name=青眼暴君龙
+        excerpt=青眼暴君龙
+  field='焰刃'       命中 0 条
+  field='水精鳞'      命中 3 条
+      id=282886 where=name+desc name=水精鳞-深渊象鼻鱼兵
+        excerpt=水精鳞-深渊象鼻鱼兵
+      id=21767650 where=name name=水精鳞-深渊鲵鱼兵
+        excerpt=水精鳞-深渊鲵鱼兵
+      id=21954587 where=name name=水精鳞-巨齿深渊鲨
+        excerpt=水精鳞-巨齿深渊鲨
+  field='Cipher'   命中 0 条
+
+── 卡号 ──
+  all_ids()          = 15019 个
+  id_taken(89631139) = True   # 青眼白龙（官方）
+  id_taken(210000000)= False  # DIY 起始号
+  next_free_id()               = 210000000
+  next_free_id(483)            = 484   # 483 是官方最小 id
+  alloc_ids(3)                 = [210000000, 210000001, 210000002]
+  alloc_ids(3, start=99995595) = [99995596, 99995597, 99995598]  # 官方最大 id 附近
+
+── setcode_used（逐槽位打包匹配）──
+  setcode=0x1001   官方占用 0 张
+  setcode=0x74     官方占用 21 张  例：['水精鳞-深渊象鼻鱼兵', '海皇精 深渊莱茵', '水精鳞-深渊鲵鱼兵']
+  setcode=0xDD     官方占用 46 张  例：['青眼双爆裂龙', '罪 青眼白龙', '青眼暴君龙']
+  setcode=0x6E     官方占用 65 张  例：['DD 魔导贤者 托马斯', '魔导皇圣 特莉丝', '魔导骑士 防御者']
+  setcode_used('0x0') = []   # 0 视为未使用
+
+── name_exists / text_of ──
+  name_exists('青眼白龙') = id=89631139 name=青眼白龙
+  name_exists('星奏·艾莉娅') = None
+  text_of(89631139) = name='青眼白龙' desc='以高攻击力著称的传说之龙。任何对手都能粉碎，其破坏力不可估量。' strings 非空数=0
+
+── 只读性证明 ──
+  写语句被拒：OperationalError: attempt to write a readonly database
+  DELETE 被拒：OperationalError: attempt to write a readonly database
+查询后 sha256 = ce88389d5f37a040dca16fee139442bd…
+文件未被改动 = True
+
+── 卡池缺失时的降级（不抛异常）──
+  available = False
+  count     = 0
+  search    = []
+  hits      = []
+  next_free = 210000000
+  setcode   = []
+  text_of   = None
+  id_taken  = False
+  warnings  = ['官方卡池文件不存在：D:\\游戏王DIY设计\\vendor\\data\\不存在的卡池.cdb']
+  describe  = {'path': 'D:\\游戏王DIY设计\\vendor\\data\\不存在的卡池.cdb', 'exists': False, 'available': False, 'count': 0, 'fts': '', 'warnings': ['官方卡池文件不存在：D:\\游戏王DIY设计\\vendor\\data\\不存在的卡池.cdb']}
+
+describe() = {'path': 'D:\\游戏王DIY设计\\vendor\\data\\cards_zh.cdb', 'exists': True, 'available': True, 'count': 15019, 'fts': 'card_fts', 'warnings': []}

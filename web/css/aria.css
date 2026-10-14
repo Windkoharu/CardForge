@@ -1,0 +1,244 @@
+/* ══════════════════════════════════════════════════════════════════
+   星奏·艾莉娅 —— 立绘陪伴栏 / 欢迎态 / 气泡
+   ──────────────────────────────────────────────────────────────────
+   设计约定（docs/04 与 docs/01 §5.5）：
+   · 静态立绘 + CSS 表情交叉淡入 + 呼吸微动效，不做 Live2D；
+   · 气泡文字一律来自内核（/api/assistant/line 与 /api/assistant/gate-line），
+     这一层只负责显示，不生成任何结论；
+   · 六种表情：guide / working / alert / pass / think / surprise。
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ══════════════ 陪伴栏骨架 ══════════════ */
+.companion {
+  position: relative;
+  display: flex; flex-direction: column;
+  border-left: 1px solid var(--line);
+  background:
+    radial-gradient(420px 260px at 50% 0%, var(--aria-glow), transparent 70%),
+    linear-gradient(180deg, #1c1712, #15110d);
+  overflow: hidden;
+}
+.companion::before {                      /* 顶部一点点星光尘 */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at 22% 12%, #e8c46355, transparent 60%),
+    radial-gradient(1.6px 1.6px at 74% 8%, #5b9fd655, transparent 60%),
+    radial-gradient(1.6px 1.6px at 58% 22%, #e8c46344, transparent 60%),
+    radial-gradient(2px 2px at 34% 30%, #ffffff22, transparent 60%);
+}
+
+/* ══════════════ 立绘舞台 ══════════════ */
+.aria-stage {
+  position: relative; flex: 1 1 auto; min-height: 0;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 10px 10px 0;
+  /* 立绘底部向快捷指令区渐隐，避免被硬切 */
+  mask-image: linear-gradient(180deg, #000 0%, #000 82%, transparent 99%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 82%, transparent 99%);
+}
+.aria-body {                              /* 呼吸动画挂在这一层（img 有自己的 transform） */
+  position: relative; width: 100%; max-width: 265px;
+  animation: aria-breath 5.2s ease-in-out infinite;
+}
+@keyframes aria-breath {
+  0%, 100% { transform: translateY(0)    scale(1); }
+  50%      { transform: translateY(-5px) scale(1.004); }
+}
+.aria-figure { position: relative; cursor: pointer; outline: none; }
+.aria-figure::after {                     /* 脚下一小圈光 */
+  content: ""; position: absolute; left: 50%; bottom: -6px; width: 62%; height: 16px;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(closest-side, var(--aria-glow), transparent 78%);
+  pointer-events: none;
+}
+.aria-img {
+  position: absolute; left: 50%; bottom: 0; width: 100%;
+  transform: translateX(-50%);
+  opacity: 0; transition: opacity .55s ease;
+  filter: drop-shadow(0 14px 26px var(--aria-shadow));
+  pointer-events: none;
+}
+.aria-img.is-on { opacity: 1; }
+.aria-img:first-child { position: relative; }
+.aria-figure:hover .aria-img.is-on { filter: drop-shadow(0 14px 30px var(--aria-shadow)) brightness(1.045); }
+.aria-figure:focus-visible { outline: 1px dashed var(--brass-soft); outline-offset: 4px; border-radius: 8px; }
+
+/* ══════════════ 气泡 ══════════════ */
+.aria-bubble {
+  position: absolute; left: 12px; right: 12px; top: 6px; z-index: 5;
+  background: linear-gradient(180deg, #2b241b, #241d15);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--brass);
+  border-radius: 10px 10px 10px 3px;
+  box-shadow: var(--shadow);
+  padding: 10px 26px 10px 12px;
+  font-size: 12.5px; line-height: 1.7; color: var(--ink);
+  animation: aria-pop .28s ease;
+}
+@keyframes aria-pop { from { opacity: 0; transform: translateY(-6px); } }
+.aria-bubble .who {
+  display: block; font-size: 10px; letter-spacing: .12em; color: var(--aria-gold);
+  margin-bottom: 2px;
+}
+.aria-bubble b { color: var(--paper); }
+.aria-bubble .state-chip {
+  display: inline-block; font: 600 9.5px/1 var(--font-code); letter-spacing: .08em;
+  border: 1px solid var(--line-strong); border-radius: 99px;
+  padding: 2px 7px; margin-left: 6px; vertical-align: 1px;
+  color: var(--ink-dim);
+}
+.aria-bubble[data-state="working"] .state-chip { color: var(--run);  border-color: #5b9fd655; }
+.aria-bubble[data-state="alert"]   .state-chip { color: var(--fail); border-color: #d05a5255; }
+.aria-bubble[data-state="pass"]    .state-chip { color: var(--pass); border-color: #4caf7d55; }
+.aria-bubble[data-state="guide"]   .state-chip { color: var(--brass); border-color: var(--brass-soft); }
+.aria-bubble .close {
+  position: absolute; top: 4px; right: 6px; border: 0; background: transparent;
+  color: var(--ink-faint); cursor: pointer; font-size: 11px; padding: 2px 4px;
+}
+.aria-bubble .close:hover { color: var(--paper); }
+.aria-bubble.working::after {            /* 工作中：省略号跑马灯 */
+  content: "…"; animation: aria-dots 1.2s steps(4) infinite; color: var(--run);
+}
+@keyframes aria-dots { 0% { opacity: .2; } 50% { opacity: 1; } 100% { opacity: .2; } }
+
+/* ══════════════ 快捷指令 / 人格 / 底部 ══════════════ */
+.aria-quick {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 8px 12px 2px; position: relative; z-index: 2;
+}
+.aria-quick button {
+  font-size: 11px; padding: 4px 10px; border-radius: 99px; cursor: pointer;
+  border: 1px dashed var(--line-strong); background: #00000033; color: var(--ink-dim);
+}
+.aria-quick button:hover { color: var(--paper); border-style: solid; border-color: var(--brass-soft); }
+
+.aria-foot {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px 10px; position: relative; z-index: 2;
+}
+.aria-persona { display: flex; gap: 3px; flex: 1; }
+.aria-persona button {
+  flex: 1; font-size: 10.5px; padding: 4px 2px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: #0000002e; color: var(--ink-dim);
+  cursor: pointer; white-space: nowrap;
+}
+.aria-persona button.is-active {
+  border-color: var(--brass-soft); color: var(--paper); background: #c9a22714;
+}
+.aria-open {
+  flex: 0 0 auto; font-size: 11px; padding: 4px 10px; cursor: pointer;
+  border-radius: var(--r-sm); border: 1px solid var(--brass-soft);
+  background: #c9a2271a; color: var(--paper);
+}
+.aria-open:hover { background: #c9a2272e; }
+
+/* 窄屏：陪伴栏收起，改由顶栏按钮打开抽屉 */
+@media (max-width: 1180px) {
+  .companion { display: none; }
+}
+
+/* ══════════════ 欢迎态（工坊大门）══════════════ */
+.studio-hero {
+  position: relative; border-radius: var(--r-lg); overflow: hidden;
+  border: 1px solid var(--line-strong); min-height: 420px;
+  display: flex; align-items: stretch;
+  background: #0d0b09;
+  box-shadow: var(--shadow-lift);
+}
+.studio-hero .hero-banner {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: 62% 32%;
+}
+.studio-hero .hero-shade {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, #14110dd9 0%, #14110d99 34%, transparent 62%),
+              linear-gradient(0deg, #14110daa, transparent 46%);
+}
+.hero-copy {
+  position: relative; z-index: 1; max-width: 460px;
+  padding: var(--sp-6) var(--sp-6) var(--sp-5);
+  display: flex; flex-direction: column; gap: var(--sp-3); justify-content: center;
+}
+.hero-copy h1 {
+  margin: 0; font: 700 30px/1.25 var(--font-zh); color: var(--paper);
+  letter-spacing: .06em;
+}
+.hero-copy h1 small {
+  display: block; font: 600 11px/1 var(--font-code); color: var(--brass);
+  letter-spacing: .34em; margin-top: 8px; text-transform: uppercase;
+}
+.hero-copy p { margin: 0; color: var(--ink-dim); font-size: 13.5px; line-height: 1.9; }
+.hero-copy .hero-quote {
+  border-left: 2px solid var(--brass-soft); padding-left: 10px;
+  color: var(--ink); font-family: var(--font-zh);
+}
+.hero-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); }
+.hero-note { font-size: 11.5px; color: var(--ink-faint); }
+.hero-who {
+  position: absolute; right: 14px; bottom: 10px; z-index: 1;
+  font-size: 10.5px; letter-spacing: .14em; color: #efe4c9aa;
+}
+
+/* ══════════════ 抽屉里的艾莉娅 ══════════════ */
+.drawer-head .head-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--brass-soft); background: #0d0b09; object-fit: cover;
+  box-shadow: 0 0 14px var(--aria-glow);
+}
+.drawer-head .head-text { display: flex; flex-direction: column; line-height: 1.3; }
+.btn-avatar {
+  width: 18px; height: 18px; border-radius: 50%; vertical-align: -4px;
+  margin-right: 6px; border: 1px solid var(--brass-soft);
+}
+.msg.bot .avatar {
+  width: 22px; height: 22px; border-radius: 50%; object-fit: cover;
+  border: 1px solid var(--line-strong); flex: 0 0 auto; margin-top: 2px;
+}
+.msg.bot { display: flex; gap: 6px; align-items: flex-start; }
+.msg.bot .col { min-width: 0; }
+
+/* ══════════════ 顶部横幅条（顶栏下的一条装饰）══════════════ */
+.topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-soft) 30%,
+              var(--brass) 50%, var(--brass-soft) 70%, transparent);
+  opacity: .55;
+}
+
+/* ══════════════ 启动进度面板（页面侧，与终端进度条同源）══════════════ */
+.boot-overlay {
+  position: fixed; inset: 0; z-index: 90;
+  display: grid; place-items: center;
+  background: radial-gradient(720px 430px at 50% 38%, #241f19, #131009 72%);
+  opacity: 0; transition: opacity .35s ease;
+}
+.boot-overlay.is-on { opacity: 1; }
+.boot-overlay.is-done { opacity: 0; pointer-events: none; }
+.boot-card {
+  width: min(430px, 86vw); text-align: center;
+  border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+  background: linear-gradient(180deg, #221c15, #1a1510);
+  box-shadow: var(--shadow-lift); padding: 26px 26px 22px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.boot-avatar {
+  width: 68px; height: 68px; border-radius: 50%;
+  border: 1px solid var(--brass-soft); box-shadow: 0 0 22px var(--aria-glow);
+}
+.boot-title { font: 600 14px/1 var(--font-zh); color: var(--paper); letter-spacing: .1em; }
+.boot-bar { width: 100%; height: 6px; border-radius: 3px; background: #00000066; overflow: hidden; }
+.boot-bar .boot-fill {
+  display: block; height: 100%; width: 6%;
+  background: linear-gradient(90deg, var(--brass-soft), var(--brass), var(--aria-gold));
+  transition: width .45s ease;
+}
+.boot-overlay.is-failed .boot-bar .boot-fill { background: var(--fail); }
+.boot-step { font-size: 12px; color: var(--ink-dim); min-height: 18px; }
+.boot-err {
+  margin-top: 6px; font-size: 12px; color: var(--ink); text-align: left;
+  border-left: 3px solid var(--fail); padding-left: 10px; line-height: 1.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aria-body { animation: none; }
+}

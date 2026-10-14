@@ -1,0 +1,54 @@
+==============================================================================
+【自测 3】Krea 2 真出图（832×1216 / 8 步 / cfg 1.0，无 LoRA）
+==============================================================================
+ok        : True
+took_ms   : 36037 (36.04 s)
+images    : ['D:\\游戏王DIY设计\\workspace\\.cache\\art\\d3e6edc3\\_probe_烬霞_970001_00005_.png']
+profile   : krea2 | Krea 2 Turbo（本机首选） | chain = krea2
+model     : krea2_turbo_bf16.safetensors | clip = qwen3vl_4b_fp8_scaled.safetensors | vae = qwen_image_vae.safetensors
+size      : 832 x 1216 | steps = 8 | cfg = 1.0 | sampler = euler | scheduler = simple
+seed      : 777001 | prompt_id = d3e6edc3-559c-40f6-9383-4267249ab9a7
+fingerprint: f9ae17cbf4532ad2
+warnings  : []
+
+--- 实际正向提示词 ---
+A highly atmospheric anime illustration in a cinematic key-visual style, rendered with clean lineart and soft cel shading, painted for a trading card artwork., warm red and orange palette, embers, heat haze, cel shading, flat colors, clean lineart, backlighting, rim light, silhouette edges, dramatic lighting, cinematic lighting. The subject of the artwork is: giant, enormous, massive, obsidian scales, black scales, glossy scales, elder dragon, ancient dragon, wings spread wide, spread wings, dragon horns, horns, burning, aflame, golden flames, gold fire, chest, on its chest, magma cracks, lava cracks, glowing fissures, vertical, upright, red glow, crimson light, standing on, planted on, collapsing, crumbling, shattering, floating stone platform, shattered floating rock. It is depicted as dragon, scales, large wings, solo, 1monster, warm red and orange palette, embers, heat haze. The creature is a fusion monster wreathed in a violet aura, with two distinct energies visibly merging and spiralling around its body. The composition is a single centred subject framed for a tall trading-card artwork window (aspect ratio 0.6857), with the whole figure inside the frame and generous empty space left at the top and bottom edges. Lighting is dramatic and cinematic, with a strong rim light separating the subject from the background, volumetric haze in the air and a vibrant, high-contrast colour finish. The frame contains absolutely no text, no lettering, no numbers, no signature, no watermark and no logo; there is no card border, no frame and no UI overlay; only one single subject is shown, centred, with clean empty space around it.
+
+--- 实际负向提示词（cfg=1 时不生效，仅记录）---
+text, watermark, signature, username, logo, artist name, border, frame, letterboxed, multiple views, character sheet, lowres, worst quality, low quality, blurry, jpeg artifacts, copyright name, web address, url, speech bubble, caption, card, card (medium), trading card, reference sheet, collage, split screen, 2girls, 2boys, multiple characters, cropped, out of frame ...
+
+--- 提示词 notes ---
+["由系列「_probe_烬霞」推导风格前缀；把它写进 ArtRequest.series_context['series_style'] 即可在后续卡上完全冻结。\n主体描述里这些中文词没命中内置词典，**已被丢弃**（不会进提示词，因为提示词必须是英文）。请把它们换成更常见的词，或直接写英文标签：瞳孔发\n档案 krea2 的 cfg=1.0（蒸馏少步模型）→ **负向提示词基本不生效**（那一遍前向不跑）。已把「不要文字/水印/边框、只要单主体居中」改写成**正向描述**追加到末尾；negative 字段仍返回，供你把 cfg 调高时使用。\n负向共 32 个词，但在 cfg=1.0 下不参与计算。\n提示词范式：natural（自然语言长句）\n系列一致性：把下面这段写进 series_context['series_style'] 可以完全冻结整个系列的画风 —— 这是零额外模型、见效最快的一致性手段（照调研结论约占 60% 效果）。"]
+
+--- 节点结构 ---
+  [  1] UNETLoader                   {"unet_name": "krea2_turbo_bf16.safetensors", "weight_dtype": "default"}
+  [  2] CLIPLoader                   {"clip_name": "qwen3vl_4b_fp8_scaled.safetensors", "type": "krea2", "device": "default"}
+  [  3] VAELoader                    {"vae_name": "qwen_image_vae.safetensors"}
+  [  4] ModelSamplingFlux            {"max_shift": 1.15, "base_shift": 0.5, "width": 832, "height": 1216, "model": "<-1"}
+  [  5] CLIPTextEncode               {"text": "A highly atmospheric anime illustration in a cinematic key-visual style, rendered with clean lineart and soft cel shading, painted for a trading card artwork., warm red and orange palette, embers, heat haze, cel shading, flat colors, clean lineart, backlighting, rim light, silhouette edges, dramatic lighting, cinematic lighting. The subject of the artwork is: giant, enormous, massive, obsidian scales, black scales, glossy scales, elder dragon, ancient dragon, wings spread wide, spread wings, dragon horns, horns, burning, aflame, golden flames, gold fire, chest, on its chest, magma cracks, lava cracks, glowing fissures, vertical, upright, red glow, crimson light, standing on, planted on, collapsing, crumbling, shattering, floating stone platform, shattered floating rock. It is depicted as dragon, scales, large wings, solo, 1monster, warm red and orange palette, embers, heat haze. The creature is a fusion monster wreathed in a violet aura, with two distinct energies visibly merging and spiralling around its body. The composition is a single centred subject framed for a tall trading-card artwork window (aspect ratio 0.6857), with the whole figure inside the frame and generous empty space left at the top and bottom edges. Lighting is dramatic and cinematic, with a strong rim light separating the subject from the background, volumetric haze in the air and a vibrant, high-contrast colour finish. The frame contains absolutely no text, no lettering, no numbers, no signature, no watermark and no logo; there is no card border, no frame and no UI overlay; only one single subject is shown, centred, with clean empty space around it.", "clip": "<-2"}
+  [  6] CLIPTextEncode               {"text": "text, watermark, signature, username, logo, artist name, border, frame, letterboxed, multiple views, character sheet, lowres, worst quality, low quality, blurry, jpeg artifacts, copyright name, web address, url, speech bubble, caption, card, card (medium), trading card, reference sheet, collage, split screen, 2girls, 2boys, multiple characters, cropped, out of frame", "clip": "<-2"}
+  [  7] ConditioningZeroOut          {"conditioning": "<-6"}
+  [  8] CFGGuider                    {"cfg": 1.0, "model": "<-4", "positive": "<-5", "negative": "<-7"}
+  [  9] RandomNoise                  {"noise_seed": 777001}
+  [ 10] KSamplerSelect               {"sampler_name": "euler"}
+  [ 11] BasicScheduler               {"scheduler": "simple", "steps": 8, "denoise": 1.0, "model": "<-4"}
+  [ 12] EmptyLatentImage             {"width": 832, "height": 1216, "batch_size": 1}
+  [ 13] SamplerCustomAdvanced        {"noise": "<-9", "guider": "<-8", "sampler": "<-10", "sigmas": "<-11", "latent_image": "<-12"}
+  [ 14] VAEDecode                    {"samples": "<-13", "vae": "<-3"}
+  [ 15] SaveImage                    {"filename_prefix": "cardforge/_probe_烬霞_970001", "images": "<-14"}
+
+入库结果：
+   {"card_id": 970001, "archetype": "_probe_烬霞", "versions": 5, "version": 5, "current": "v5.png"}
+
+==============================================================================
+【自测 4】同一提示词 + 风格 LoRA krea2_flat_cel_anime.safetensors:0.8
+==============================================================================
+ok        : True
+took_ms   : 36038 (36.04 s)
+images    : ['D:\\游戏王DIY设计\\workspace\\.cache\\art\\12a4a7f2\\_probe_烬霞_970001_00006_.png']
+loras     : ['krea2_flat_cel_anime.safetensors:0.8']
+nodes     : 16 节点
+  LoraLoaderModelOnly -> {"lora_name": "krea2_flat_cel_anime.safetensors", "strength_model": 0.8, "model": ["1", 0]}
+像素差统计: {"mean_abs": 30.7742, "max_abs": 216, "pct_changed": 80.6, "identical": false, "rmse": 40.9269}
+并排图    : D:\游戏王DIY设计\workspace\pics\art\_probe_烬霞\970001\_compare\v1_vs_v2.png
+差异热力图: D:\游戏王DIY设计\workspace\pics\art\_probe_烬霞\970001\_compare\v1_vs_v2_diff.png

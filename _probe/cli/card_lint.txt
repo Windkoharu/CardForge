@@ -1,0 +1,6 @@
+{
+  "error": "SpecError",
+  "message": "找不到卡片 None",
+  "hint": "",
+  "detail": {}
+}

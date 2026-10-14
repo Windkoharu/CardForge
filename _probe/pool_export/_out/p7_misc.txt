@@ -1,0 +1,132 @@
+── 1. open_cdb / ensure_schema ──
+  open_cdb(create=True) → 文件存在=True
+  datas 列 = ['id', 'ot', 'alias', 'setcode', 'type', 'atk', 'def', 'level', 'race', 'attribute', 'category']
+  texts 列 = ['id', 'name', 'desc', 'str1', 'str2', 'str3', 'str4', 'str5', 'str6', 'str7', 'str8', 'str9', 'str10', 'str11', 'str12', 'str13', 'str14', 'str15', 'str16']
+  [PASS] datas 列与官方一致
+  [PASS] texts 列与官方一致
+  [PASS] 新建 cdb 卡数 = 0
+  再 open 一次（幂等，不重建）
+  [PASS] 重复 open 不报错且列不变
+  [PASS] create=False 且文件不存在 → 抛 EnvError  —— EnvError: 卡池文件不存在：D:\游戏王DIY设计\_probe\pool_export\_tmp\misc\不存在.cdb（建议：确认路径，或改用 open_cdb(path, create=True) 新建一个空卡池。）
+  [PASS] open_cdb_ro 对不存在的文件抛 EnvError（不会把它建出来）
+  [PASS] 确实没被建出来
+
+── 2. ensure_schema 补齐缺列的旧 cdb ──
+  补列前 datas 列 = ['id', 'ot', 'setcode']
+  补列后 datas 列 = ['id', 'ot', 'setcode', 'alias', 'type', 'atk', 'def', 'level', 'race', 'attribute', 'category']
+  补列后 texts 列 = ['id', 'name', 'desc', 'str1', 'str2', 'str3', 'str4', 'str5', 'str6', 'str7', 'str8', 'str9', 'str10', 'str11', 'str12', 'str13', 'str14', 'str15', 'str16']
+  官方规范顺序     = ['id', 'ot', 'alias', 'setcode', 'type', 'atk', 'def', 'level', 'race', 'attribute', 'category']
+  [PASS] datas 的列名齐全（顺序可能因 ALTER 追加而不同，EDOPro 按列名取值）  —— ['id', 'ot', 'setcode', 'alias', 'type', 'atk', 'def', 'level', 'race', 'attribute', 'category']
+  [PASS] texts 的列名齐全  —— ['id', 'name', 'desc', 'str1', 'str2', 'str3', 'str4', 'str5', 'str6', 'str7', 'str8', 'str9', 'str10', 'str11', 'str12', 'str13', 'str14', 'str15', 'str16']
+  [PASS] id 仍是第一列且是主键
+  [PASS] 已有数据没被重建丢掉  —— <sqlite3.Row object at 0x000002012D642DA0>
+
+── 3. upsert / read / list / iter / delete ──
+  [PASS] 重复 upsert 3 次仍只有 1 行
+  [PASS] texts 也只有 1 行
+  read_card → {'id': 210000000, 'ot': 3, 'setcode': 4097, 'type': 33, 'atk': 1500, 'def': 1000, 'level': 4, 'race': 4, 'attribute': 16, 'category': 0, 'name': '幂等测试'}
+  desc='①：测试。'  strings=['①：一', '②：二', '③：三', '']
+  [PASS] strings 定长 16
+  [PASS] str1..3 正确
+  [PASS] str4..16 为空
+  [PASS] read_card 不存在的卡 → None
+  list_cards() = [{'id': 210000000, 'ot': 3, 'setcode': 4097, 'type': 33, 'atk': 1500, 'def': 1000, 'level': 4, 'race': 4, 'attribute': 16, 'category': 0, 'name': '幂等测试'}]
+  [PASS] list_cards 带 name
+  [PASS] list_cards(limit=0) 不限
+  [PASS] list_cards(limit=-1) 也不限
+  [PASS] iter_cards 能迭代
+  [PASS] 同文件换语言会覆盖文本（证明多语言必须分 cdb）  —— name='べきとうテスト'
+  [PASS] texts 覆盖 name/desc/str5  —— '覆盖名' '覆盖文' '第五'
+  [PASS] 未覆盖的 str1 保留
+  [PASS] delete_card_row 删得掉
+  [PASS] 删完 count=0
+  [PASS] 删不存在的返回 False
+  [PASS] 卡号为 0 → 抛 SpecError  —— SpecError: 卡号为 0，无法写入卡池（建议：先给 CardSpec 分配一个卡号（pool.official.next_free_id）。）
+
+── 4. export_multilang：suffix_map 覆盖 + 行数 ──
+  files = {'(base)': 'ML.cdb', 'zh_cn': 'ML-zh-CN.cdb', 'ja': 'ML-ja.cdb', 'en': 'ML-en.cdb'}
+  rows  = {'': 3, 'zh_cn': 3, 'ja': 3, 'en': 3}
+  [PASS] 生成 4 个文件（base + 3 语言）  —— {'': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\ml\\ML.cdb', 'zh_cn': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\ml\\ML-zh-CN.cdb', 'ja': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\ml\\ML-ja.cdb', 'en': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\ml\\ML-en.cdb'}
+  [PASS] 每个文件 3 行  —— {'': 3, 'zh_cn': 3, 'ja': 3, 'en': 3}
+  [PASS] base 用 langs[0] 的文本
+  [PASS] en 包是英文文本  —— ('Card 1',)
+  suffix_map 覆盖 → ['ML2-JP-custom.cdb']
+  [PASS] suffix_map 生效
+  [PASS] base=False 不生成基础包
+  [PASS] 未知语言抛 SpecError
+
+── 5. official.read / alloc_ids / describe ──
+  official.read(89631139) → keys 数 = 29  name='青眼白龙' level=8
+  [PASS] read 返回完整 datas+texts  —— 3000
+  [PASS] read 不存在的卡 → None
+  [PASS] alloc_ids(0) = []
+  [PASS] alloc_ids 数量正确
+  alloc_ids(3, start=89631138) = [89631138, 89631156, 89631157]（89631139 是青眼白龙，其后若干号也被官方占用）
+  [PASS] alloc_ids 返回的全部是空位  —— [89631138, 89631156, 89631157]
+  [PASS] alloc_ids 跳过了 89631139  —— [89631138, 89631156, 89631157]
+  describe() = {'path': 'D:\\游戏王DIY设计\\vendor\\data\\cards_zh.cdb', 'exists': True, 'available': True, 'count': 15019, 'fts': 'card_fts', 'warnings': []}
+  [PASS] describe 含 fts  —— card_fts
+  [PASS] setcode_used('不是十六进制') 返回 []
+
+── 6. repo：rollback 失败分支 / snapshots 元信息 ──
+  snapshots = [{'version': 1, 'ts': '2026-10-13T06:24:55.769865', 'note': '', 'digest': '39c18b6407ba0139', 'path': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\cards\\210000900\\spec.json', 'bytes': 1402, 'file': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\.history\\cards\\210000900\\v1.json'}, {'version': 2, 'ts': '2026-10-13T06:24:55.783316', 'note': '加强', 'digest': '054147db9db20977', 'path': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\cards\\210000900\\spec.json', 'bytes': 1408, 'file': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\.history\\cards\\210000900\\v2.json'}]
+  [PASS] 快照含 version/ts/note/digest/path/bytes/file
+  [PASS] 两个快照
+  rollback(version=99) → {'ok': False, 'error': '没有 v99 快照（cards/210000900）', 'hint': '可用版本：[1, 2]'}
+  [PASS] 不存在的版本返回 ok=False + 可用版本提示  —— {'ok': False, 'error': '没有 v99 快照（cards/210000900）', 'hint': '可用版本：[1, 2]'}
+  [PASS] 未知 kind 返回 ok=False  —— {'ok': False, 'error': '未知仓库类型：nope', 'hint': '可用：cards, archetypes, decks'}
+  [PASS] rollback v2 后 atk = 2000
+  [PASS] rollback 追加了 v3
+  [PASS] snapshots 对不存在的对象返回 []
+  [PASS] load_card 不存在的卡 → None
+  [PASS] delete_card 不存在的卡 → False
+  [PASS] save_card(卡号 0) → SpecError
+  [PASS] save_archetype(空名字) → SpecError
+  [PASS] save_deck(空名字) → SpecError
+  [PASS] list_cards 在空工作区返回 []
+  [PASS] list_archetypes 在空工作区返回 []
+  [PASS] list_decks 在空工作区返回 []
+
+── 7. expansions：空输入 / 不存在的包 ──
+  build([]) → ok=False  issues=['G5_NO_CARDS']
+  [PASS] 空输入 ok=False 且报 G5_NO_CARDS
+  verify(不存在) → [('G5_PACK_MISSING', 'ERROR')]
+  [PASS] verify 对不存在的包返回 G5_PACK_MISSING ERROR
+  verify(空包) → [('G5_CDB_MISSING', 'ERROR')]
+  [PASS] verify 对只有 expansions/ 的包报 G5_CDB_MISSING  —— ['G5_CDB_MISSING']
+  pack_stats(不存在) = {'ok': False, 'pack_dir': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\misc\\根本没有这个包', 'error': '没有 expansions/ 目录'}
+  [PASS] pack_stats 对不存在的包返回 ok=False
+  needs_script 逐卡种：
+    normal             needs_script=False type_bits=0x11
+    normal_pendulum    needs_script=False type_bits=0x1000011
+    token              needs_script=False type_bits=0x4011
+    effect             needs_script=True  type_bits=0x21
+    ritual             needs_script=True  type_bits=0xA1
+    fusion             needs_script=True  type_bits=0x61
+    synchro            needs_script=True  type_bits=0x2021
+    xyz                needs_script=True  type_bits=0x800021
+    link               needs_script=True  type_bits=0x4000021
+    pendulum           needs_script=True  type_bits=0x1000021
+    spell              needs_script=True  type_bits=0x2
+    trap               needs_script=True  type_bits=0x4
+    skill              needs_script=True  type_bits=0x4
+  [PASS] 通常怪/通常灵摆/衍生物不需要脚本
+  [PASS] 效果怪/魔陷需要脚本
+
+── 8. ydk：空卡组 / 只有额外 / to_text-from_text 往返 ──
+  [PASS] from_text('') → 三段皆空
+  [PASS] 只读 #extra 段
+  [PASS] to_text → from_text 往返
+  [PASS] 空 text 的 to_text 仍有三段标记
+  empty to_text = '#created by CardForge 2.0\n#main\n#extra\n!side\n'
+
+── 9. strings：全空输入 ──
+  [PASS] render() 只留首行注释  —— '# CardForge 自动生成 —— DIY 系列名 / 计数器名\n'
+  [PASS] render(header='') 无首行
+  [PASS] parse('') 结构完整
+  [PASS] !setname 缺名字也不炸
+  [PASS] !counter 缺键也不炸
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过
+════════════════════════════════════════════════════════════════════

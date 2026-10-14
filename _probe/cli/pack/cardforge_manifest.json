@@ -1,0 +1,44 @@
+{
+  "generator": "CardForge 2.0",
+  "ts": "2026-10-13T17:27:19",
+  "name": "校验包",
+  "langs": [
+    "zh_cn"
+  ],
+  "cdbs": {
+    "": "_probe\\cli\\pack\\expansions\\校验包.cdb",
+    "zh_cn": "_probe\\cli\\pack\\expansions\\校验包-zh-CN.cdb"
+  },
+  "card_ids": [
+    210000011
+  ],
+  "pending_pics": [
+    210000011
+  ],
+  "cards": [
+    {
+      "id": 210000011,
+      "name": "星奏的见习指挥",
+      "frame": "effect",
+      "archetype": "星奏",
+      "setcode": "0x1001",
+      "needs_script": true,
+      "has_script": true,
+      "has_pic": false
+    }
+  ],
+  "skipped": [
+    {
+      "kind": "pic",
+      "id": 210000011,
+      "name": "星奏的见习指挥",
+      "reason": "卡图不存在"
+    }
+  ],
+  "stats": {
+    "n_cards": 1,
+    "n_pics": 0,
+    "n_field_pics": 0,
+    "n_scripts": 1
+  }
+}

@@ -1,0 +1,19 @@
+﻿── zh_cn (used=zh_cn, lines=5/8) ──
+①：这张卡召唤成功时才能发动。从卡组把1张「苍岚」卡加入手卡。
+②：1回合1次，自己主要阶段，把1张手卡丢弃，以自己墓地的1张「苍岚」卡为对象才能发动。从墓地把1张「苍岚」卡特殊召唤。
+这个卡名的①的效果1回合只能使用1次。
+notes=["效果种类「search」按官方写法不取对象，target 已用作范围描述（如需取对象请设 params['targeting']=True）"]
+
+── ja (used=ja, lines=6/8) ──
+①：このカードが召喚に成功した時に発動できる。デッキから「苍岚」カード１枚を手札に加える。
+②：１ターンに１度、自分メインフェイズに、手札１枚を捨て、自分の墓地の「苍岚」カード１枚を対象として発動できる。墓地から「苍岚」カード１枚を特殊召喚する。
+このカード名の①の効果は１ターンに１度しか使用できない。
+notes=["效果种类「search」按官方写法不取对象，target 已用作范围描述（如需取对象请设 params['targeting']=True）", '字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）']
+
+── en (used=en, lines=4/8) ──
+① When this card is Normal Summoned: You can add 1 "苍岚" card from your Deck to your hand.
+② Once per turn, during your Main Phase: You can discard 1 card, then target 1 "苍岚" card in your GY; Special Summon 1 "苍岚" card from your GY.
+You can only use this effect of "Azure Gale Guardian Dragon" once per turn.
+notes=["效果种类「search」按官方写法不取对象，target 已用作范围描述（如需取对象请设 params['targeting']=True）", '字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）']
+
+type_line zh/ja/en: 【龙族／风属性／效果】 | 【ドラゴン族／風／効果】 | [Dragon / WIND / Effect]

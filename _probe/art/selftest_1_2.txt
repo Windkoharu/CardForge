@@ -1,0 +1,88 @@
+==============================================================================
+【自测 1】client.alive() / models()
+==============================================================================
+alive() = True
+summary  = {"online": true, "host": "http://127.0.0.1:8188", "comfyui_version": "0.38.2", "python": "3.13.11 (tags/v3.13.11:6278944, Dec  5 2025, 16:26:58) [MSC v.1944 64 bit (AMD64)]", "torch": "2.13.0+cu130", "device": "cuda:0 NVIDIA GeForce RTX 4080 SUPER : cudaMallocAsync", "vram_total_gb": 32.0, "vram_free_gb": 3.1}
+
+models() 实际清单（来自 /object_info 的 COMBO 候选）：
+  background_removal   n=2
+      - BiRefNet\model.safetensors
+      - RMBG-1.4\model.safetensors
+  checkpoints          n=2
+      - yue2_3b_bf16.safetensors
+      - yue2_3b_int8_convrot.safetensors
+  clip_vision          n=0
+  clips                n=7
+      - MINIMAX-H3\qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+      - qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors
+      - qwen3.5_9b_qwen_image_2.1_pe_t2i.int8_convrot.safetensors
+      - qwen3vl_4b_fp8_scaled.safetensors
+      - qwen3vl_8b_int8_convrot.safetensors
+      - qwen_0.6b_ace15.safetensors
+      - qwen_4b_ace15.safetensors
+  controlnet           n=0
+  diffusion_models     n=5
+      - MINIMAX-H3\minimax_h3_fl2va_pruned_int8_convrot.safetensors
+      - MINIMAX-H3\minimax_h3_ref2va_pruned_int8_convrot.safetensors
+      - acestep_v1.5_xl_turbo_bf16.safetensors
+      - krea2_turbo_bf16.safetensors
+      - qwen_image_2.1_int8_convrot.safetensors
+  ipadapter            n=0
+  loras                n=16
+      - krea2_airy_anime_watercolor.safetensors
+      - krea2_cel_shaded_daytime_anime.safetensors
+      - krea2_darkbrush.safetensors
+      - krea2_flat_cel_anime.safetensors
+      - krea2_golden_blue_anime_gouache.safetensors
+      - krea2_golden_era_cel_animation.safetensors
+      - krea2_kidsdrawing.safetensors
+      - krea2_kroma_v031_turbo_opd_r384.safetensors
+      - krea2_luminous_anime_film.safetensors
+      - krea2_retroanime.safetensors
+      - krea2_softwatercolor.safetensors
+      - krea2_style_reference.safetensors
+      - krea2_turbo_4step_rank_64_lora_comfyui.safetensors
+      - minimax_h3_fl2v_lightx2v_turbo_4step_v0.1_comfy.safetensors
+      - minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors
+      - minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors
+  unets                n=5
+      - MINIMAX-H3\minimax_h3_fl2va_pruned_int8_convrot.safetensors
+      - MINIMAX-H3\minimax_h3_ref2va_pruned_int8_convrot.safetensors
+      - acestep_v1.5_xl_turbo_bf16.safetensors
+      - krea2_turbo_bf16.safetensors
+      - qwen_image_2.1_int8_convrot.safetensors
+  upscale              n=3
+      - 4x_NMKD-Superscale-SP_178000_G.pth
+      - 4x_NMKD-YandereNeoXL_200k.pth
+      - 4x_fatal_Anime_500000_G.pth
+  vaes                 n=6
+      - MINIMAX-H3\minimax_h3_audio_vae_fp32.safetensors
+      - MINIMAX-H3\minimax_h3_video_vae_fp16.safetensors
+      - ace_1.5_vae.safetensors
+      - pixel_space
+      - qwen_image_2.1_vae_bf16.safetensors
+      - qwen_image_vae.safetensors
+
+==============================================================================
+【自测 2】detect(models)
+==============================================================================
+选中档案 : krea2 | Krea 2 Turbo（本机首选）
+链路     : krea2
+原因     : 在 unets/krea2_turbo_bf16.safetensors 上命中关键词 ['krea2'] → 选择档案「Krea 2 Turbo（本机首选）」（优先级 1/8）。
+参数     : steps=8 cfg=1.0 sampler=euler scheduler=simple size=[832, 1216]
+负向有效 : False
+候选底模 : ['unets/krea2_turbo_bf16.safetensors', 'unets/qwen_image_2.1_int8_convrot.safetensors']
+被跳过的非图像模型 : ['MINIMAX-H3\\minimax_h3_fl2va_pruned_int8_convrot.safetensors', 'MINIMAX-H3\\minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'acestep_v1.5_xl_turbo_bf16.safetensors', 'yue2_3b_bf16.safetensors', 'yue2_3b_int8_convrot.safetensors', 'MINIMAX-H3\\minimax_h3_fl2va_pruned_int8_convrot.safetensors', 'MINIMAX-H3\\minimax_h3_ref2va_pruned_int8_convrot.safetensors', 'acestep_v1.5_xl_turbo_bf16.safetensors']
+
+全部档案的可用性：
+  krea2        Krea 2 Turbo（本机首选）                 chain=krea2  可用: krea2_turbo_bf16.safetensors
+  qwen_image   Qwen-Image 2.1（编辑 / 图生图链路）         chain=qwen   可用: qwen_image_2.1_int8_convrot.safetensors
+  illustrious  Illustrious-XL / WAI（SDXL 动漫）      chain=sdxl   本机无匹配权重
+  noobai       NoobAI-XL（Illustrious 进一步训练）       chain=sdxl   本机无匹配权重
+  animagine    Animagine XL 4.0（授权最干净）            chain=sdxl   本机无匹配权重
+  pony         Pony Diffusion V6 XL（授权受限）         chain=sdxl   本机无匹配权重
+  sdxl         通用 SDXL / 其它 SDXL finetune         chain=sdxl   本机无匹配权重
+  sd15         SD1.5 动漫系（低显存兜底）                   chain=sd15   本机无匹配权重
+
+bump_seed 演示（连续 5 张）：
+   [12346, 12347, 12348, 12349, 12350]

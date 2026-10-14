@@ -1,0 +1,110 @@
+﻿=== race ===
+race_spellcaster || 魔法师族 || 魔法使い || Spellcaster
+race_dragon || 龙族 || ドラゴン || Dragon
+race_zombie || 不死族 || アンデット || Zombie
+race_warrior || 战士族 || 戦士 || Warrior
+race_beast_warrior || 兽战士族 || 獣戦士 || Beast-Warrior
+race_beast || 兽族 || 獣 || Beast
+race_winged_beast || 鸟兽族 || 鳥獣 || Winged Beast
+race_fiend || 恶魔族 || 悪魔 || Fiend
+race_fairy || 天使族 || 天使 || Fairy
+race_insect || 昆虫族 || 昆虫 || Insect
+race_dinosaur || 恐龙族 || 恐竜 || Dinosaur
+race_reptile || 爬虫类族 || 爬虫類 || Reptile
+race_fish || 鱼族 || 魚 || Fish
+race_sea_serpent || 海龙族 || 海竜 || Sea Serpent
+race_aqua || 水族 || 水 || Aqua
+race_pyro || 炎族 || 炎 || Pyro
+race_thunder || 雷族 || 雷 || Thunder
+race_rock || 岩石族 || 岩石 || Rock
+race_plant || 植物族 || 植物 || Plant
+race_machine || 机械族 || 機械 || Machine
+race_psychic || 念动力族 || サイキック || Psychic
+race_divine_beast || 幻神兽族 || 幻神獣 || Divine-Beast
+race_creator_god || 创造神族 || 創造神 || Creator God
+race_wyrm || 幻龙族 || 幻竜 || Wyrm
+race_cyberse || 电子界族 || サイバース || Cyberse
+race_illusion || 幻想魔族 || 幻想魔 || Illusion
+=== attribute ===
+attr_dark || 暗属性 || 闇 || DARK
+attr_light || 光属性 || 光 || LIGHT
+attr_earth || 地属性 || 地 || EARTH
+attr_water || 水属性 || 水 || WATER
+attr_fire || 炎属性 || 炎 || FIRE
+attr_wind || 风属性 || 風 || WIND
+attr_divine || 神属性 || 神 || DIVINE
+=== card_type ===
+card_monster || 怪兽卡 || モンスターカード || Monster Card
+card_normal_monster || 通常怪兽 || 通常モンスター || Normal Monster
+card_effect_monster || 效果怪兽 || 効果モンスター || Effect Monster
+card_non_effect_monster || None || 効果モンスター以外 || non-Effect Monster
+card_ritual_monster || 仪式怪兽 || 儀式モンスター || Ritual Monster
+card_fusion_monster || 融合怪兽 || 融合モンスター || Fusion Monster
+card_synchro_monster || 同步怪兽 || Ｓモンスター || Synchro Monster
+card_xyz_monster || 超量怪兽 || Ｘモンスター || Xyz Monster
+card_pendulum_monster || 灵摆怪兽 || Ｐモンスター || Pendulum Monster
+card_link_monster || 连接怪兽 || Ｌモンスター || Link Monster
+card_token || 衍生物 || モンスタートークン || Monster Token
+card_spell || 魔法卡 || 魔法カード || Spell Card
+card_trap || 陷阱卡 || 罠カード || Trap Card
+card_normal_spell || 通常魔法卡 || 通常魔法カード || Normal Spell
+card_continuous_spell || 永续魔法卡 || 永続魔法カード || Continuous Spell
+card_equip_spell || 装备魔法卡 || 装備魔法カード || Equip Spell
+card_field_spell || 场地魔法卡 || フィールド魔法カード || Field Spell
+card_quick_play_spell || 速攻魔法卡 || 速攻魔法カード || Quick-Play Spell
+card_ritual_spell || 仪式魔法卡 || 儀式魔法カード || Ritual Spell
+card_normal_trap || 通常陷阱卡 || 通常罠カード || Normal Trap
+card_continuous_trap || 永续陷阱卡 || 永続罠カード || Continuous Trap
+card_counter_trap || 反击陷阱卡 || カウンター罠カード || Counter Trap
+card_tuner || 协调怪兽 || チューナー || Tuner monster
+card_union || 联合怪兽 || ユニオンモンスター || Union monster
+card_gemini || 二重怪兽 || デュアルモンスター || Gemini monster
+card_flip || 反转怪兽 || リバースモンスター || Flip monster
+card_spirit || 灵魂怪兽 || スピリットモンスター || Spirit monster
+card_toon || 卡通怪兽 || トゥーンモンスター || Toon monster
+card_special_summon_monster || 特殊召唤怪兽 || 特殊召喚モンスター || Special Summon Monster
+card_dark_synchro || None || ダークシンクロモンスター || Dark Synchro Monster
+card_maximum || None || マキシマムモンスター || Maximum Monster
+card_effect || 效果 || 効果 || effect
+card_ability || 能力 || 能力 || Ability
+=== zone ===
+zone_deck || 卡组 || デッキ || Deck
+zone_main_deck || 主卡组 || メインのデッキ || Main Deck
+zone_extra_deck || 额外卡组 || ＥＸデッキ || Extra Deck
+zone_side_deck || 副卡组 || サイドデッキ || Side Deck
+zone_hand || 手卡 || 手札 || hand
+zone_graveyard || 墓地 || 墓地 || Graveyard
+zone_banished || 除外状态 || 除外状態 || banished (cards) / banishment
+zone_field || 场上 || フィールド || field
+zone_monster_zone || 怪兽区域 || モンスターゾーン || Monster Zone
+zone_spell_trap_zone || 魔法与陷阱区域 || 魔法＆罠ゾーン || Spell & Trap Zone
+zone_pendulum_zone || 灵摆区域 || Ｐゾーン || Pendulum Zone
+zone_field_zone || 场地区域 || フィールドゾーン || Field Zone
+zone_extra_monster_zone || 额外怪兽区域 || ＥＸモンスターゾーン || Extra Monster Zone
+zone_main_monster_zone || 主要怪兽区域 || メインモンスターゾーン || Main Monster Zone
+zone_draw_phase || 抽牌阶段 || ドローフェイズ || Draw Phase
+zone_standby_phase || 准备阶段 || スタンバイフェイズ || Standby Phase
+zone_main_phase || 主要阶段 || メインフェイズ || Main Phase
+zone_battle_phase || 战斗阶段 || バトルフェイズ || Battle Phase
+zone_end_phase || 结束阶段 || エンドフェイズ || End Phase
+zone_battle_step || 战斗步骤 || バトルステップ || Battle Step
+zone_damage_step || 伤害步骤 || ダメージステップ || Damage Step
+zone_damage_calculation || 伤害计算 || ダメージ計算 || damage calculation
+=== stat ===
+stat_atk || 攻击力 || 攻撃力 || ATK
+stat_def || 守备力 || 守備力 || DEF
+stat_level || 等级 || レベル || Level
+stat_rank || 阶级 || ランク || Rank
+stat_pendulum_scale || 灵摆刻度 || Ｐスケール || Pendulum Scale
+stat_link_rating || 连接数值 || LINKの数値 || Link Rating
+stat_link_arrow || 连接标记 || リンクマーカー || Link Arrow / Link Marker
+stat_attribute || 属性 || 属性 || Attribute
+stat_type || 种族 || 種族 || Type (race)
+stat_lp || LP || ＬＰ || LP (Life Points)
+stat_battle_damage || 战斗伤害 || 戦闘ダメージ || battle damage
+stat_effect_damage || 效果伤害 || 効果ダメージ || effect damage
+stat_xys_material || 超量素材 || Ｘ素材 || Xyz Material
+stat_synchro_material || 同步素材 || Ｓ素材 || Synchro Material
+stat_fusion_material || 融合素材 || 融合素材 || Fusion Material
+stat_link_material || 连接素材 || Ｌ素材 || Link Material
+stat_ritual_material || None || None || Ritual Material

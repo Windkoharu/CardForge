@@ -1,0 +1,14 @@
+================================================================================================
+text.py × compositor.py 端到端集成
+================================================================================================
+  capabilities = {'pillow': True, 'official_frames': False, 'fonts': True, 'text_engine': True}
+  [OK]   it_card_effect: (813, 1185) -> it_card_effect.png
+  [PASS] it_card_effect 渲染出图
+  [OK]   it_card_longtext: (813, 1185) -> it_card_longtext.png
+  [PASS] it_card_longtext 渲染出图
+  [OK]   it_card_spell: (813, 1185) -> it_card_spell.png
+  [PASS] it_card_spell 渲染出图
+  [OK]   it_card_pendulum: (813, 1185) -> it_card_pendulum.png
+  [PASS] it_card_pendulum 渲染出图
+
+失败 0 条

@@ -1,0 +1,103 @@
+{
+  "id": 210000011,
+  "name": "星奏的见习指挥",
+  "frame": "effect",
+  "attribute": "光",
+  "race": "魔法师族",
+  "level": 4,
+  "atk": 1600,
+  "dfd": 1200,
+  "archetype": "星奏",
+  "setcode": "0x1000",
+  "text_i18n": {
+    "zh_cn": "①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。\n②：自己主要阶段，以自己手卡的1张「星奏」卡为对象才能发动。从手卡把1张「星奏」卡特殊召唤。\n这个卡名的①②的效果1回合各能使用1次。",
+    "ja": "①：このカードが召喚に成功した時に発動できる。デッキから「星奏」カード１枚を手札に加える。\n②：自分メインフェイズに、自分の手札の「星奏」カード１枚を対象として発動できる。手札から「星奏」カード１枚を特殊召喚する。\nこのカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。",
+    "en": "① When this card is Normal Summoned: You can add 1 \"星奏\" card from your Deck to your hand.\n② During your Main Phase: You can target 1 \"星奏\" card in your hand; Special Summon 1 \"星奏\" card from your hand.\nYou can only use each effect of \"星奏的见习指挥\" once per turn."
+  },
+  "effects": [
+    {
+      "kind": "search",
+      "trigger": "NORMAL_SUMMON_SUCCESS",
+      "target": {
+        "from_zone": "DECK",
+        "filter_kind": "archetype",
+        "filter_value": "星奏",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": false
+      },
+      "limit": "hopt_name",
+      "params": {
+        "_index": 0,
+        "targeting": false
+      },
+      "raw_text": "①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。",
+      "source": "infer"
+    },
+    {
+      "kind": "ssummon_hand",
+      "trigger": "IGNITION",
+      "target": {
+        "from_zone": "HAND",
+        "filter_kind": "archetype",
+        "filter_value": "星奏",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": false
+      },
+      "limit": "hopt_name",
+      "params": {
+        "_index": 1,
+        "card_type": "monster"
+      },
+      "raw_text": "②：1回合1次，自己主要阶段才能发动。从手卡把1只「星奏」怪兽特殊召唤。",
+      "source": "infer"
+    }
+  ],
+  "render": {
+    "rarity": "common",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0,
+      "bleed_bottom": 0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0,
+      "subject_scale": 0,
+      "subject_offset_y": 0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0,
+    "art_scale": 1,
+    "art_ring": 0,
+    "bezel": 1,
+    "font_scale_name": 1,
+    "font_scale_text": 1,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 星奏的见习指挥\n     CardForge 2.0 生成 · 卡种=效果（frame=effect） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--1. ①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)\n\te1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te1:SetProperty(EFFECT_FLAG_DELAY)\n\te1:SetRange(LOCATION_MZONE)\n\te1:SetCode(EVENT_SUMMON_SUCCESS)\n\te1:SetCountLimit(1,{id,1})\n\te1:SetTarget(s.tg1)\n\te1:SetOperation(s.op1)\n\tc:RegisterEffect(e1)\n\t--2. ②：1回合1次，自己主要阶段才能发动。从手卡把1只「星奏」怪兽特殊召唤。\n\tlocal e2=Effect.CreateEffect(c)\n\te2:SetDescription(aux.Stringid(id,1))\n\te2:SetCategory(CATEGORY_SPECIAL_SUMMON)\n\te2:SetType(EFFECT_TYPE_IGNITION)\n\te2:SetRange(LOCATION_MZONE)\n\te2:SetCountLimit(1,{id,2})\n\te2:SetTarget(s.tg2)\n\te2:SetOperation(s.op2)\n\tc:RegisterEffect(e2)\nend\ns.listed_series={0x1001}\n\nfunction s.fil1(c)\n\treturn c:IsSetCard(0x1001) and c:IsAbleToHand()\nend\n\nfunction s.tg1(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(s.fil1,tp,LOCATION_DECK,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)\nend\n\nfunction s.op1(e,tp,eg,ep,ev,re,r,rp)\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil1,tp,LOCATION_DECK,0,1,1,nil)\n\tif #g>0 then\n\t\tDuel.SendtoHand(g,nil,REASON_EFFECT)\n\t\tDuel.ConfirmCards(1-tp,g)\n\tend\nend\n\nfunction s.fil2(c,e,tp)\n\treturn c:IsSetCard(0x1001) and c:IsType(TYPE_MONSTER) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)\nend\n\nfunction s.tg2(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and Duel.IsExistingMatchingCard(s.fil2,tp,LOCATION_HAND,0,1,nil,e,tp) end\n\tDuel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_HAND)\nend\n\nfunction s.op2(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil2,tp,LOCATION_HAND,0,1,1,nil,e,tp)\n\tif #g>0 then\n\t\tDuel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)\n\tend\nend\n",
+  "strings": [
+    "这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。",
+    "1回合1次，自己主要阶段才能发动。从手卡把1只「星奏」怪兽特殊召唤。"
+  ],
+  "created": "2026-10-13T06:26:33.957821",
+  "updated": "2026-10-14T01:59:11.075564",
+  "schema_version": 2,
+  "race_bits": 2,
+  "attr_bits": 16,
+  "type_bits": 33,
+  "link_bits": 0,
+  "def_value": 1200
+}

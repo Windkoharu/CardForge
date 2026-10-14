@@ -1,0 +1,269 @@
+临时 WORKSPACE = D:\游戏王DIY设计\_probe\pool_export\_tmp\ws_build
+
+已造卡图：_probe\pool_export\_tmp\ws_build\pics\210000000.jpg 421×614（正确）
+          _probe\pool_export\_tmp\ws_build\pics\210000001.jpg 400×600（错误，用于触发 WARN）
+          _probe\pool_export\_tmp\ws_build\pics\field\210000002.jpg 512×512（场地背景）
+
+── 造的卡 ──
+  210000000 焰刃的见习剑士            frame=effect    type_bits=0x21        def_value=1000  level=4 需要脚本=True
+  210000001 星奏的指挥者 艾莉娅         frame=pendulum  type_bits=0x1000021   def_value=1200  level=4 需要脚本=True
+  210000002 星奏的圆舞曲             frame=spell     type_bits=0x80002     def_value=0     level=4 需要脚本=True
+  210000003 星奏的连接兽             frame=link      type_bits=0x4000021   def_value=7     level=3 需要脚本=True
+  210000004 古老的奏者              frame=normal    type_bits=0x21        def_value=1800  level=3 需要脚本=False
+
+── 3. expansions.build() ──
+  ok            = True
+  pack_dir      = _probe\pool_export\_tmp\ws_build\out
+  expansions    = _probe\pool_export\_tmp\ws_build\out\expansions
+  n_cards       = 5
+  cdbs          = {'(base)': 'CardForge.cdb', 'zh_cn': 'CardForge-zh-CN.cdb', 'ja': 'CardForge-ja.cdb'}
+  langs         = ['zh_cn', 'ja']
+  n_pics        = 2   n_field_pics = 1   n_scripts = 3
+  pending_pics  = [210000002, 210000003, 210000004]
+  strings_conf  = strings.conf
+  manifest      = cardforge_manifest.json
+  readme        = ['README.txt', 'README.txt']
+  skipped(4)  = 
+      {'kind': 'pic', 'id': 210000002, 'name': '星奏的圆舞曲', 'reason': '卡图不存在'}
+      {'kind': 'pic', 'id': 210000003, 'name': '星奏的连接兽', 'reason': '卡图不存在'}
+      {'kind': 'pic', 'id': 210000004, 'name': '古老的奏者', 'reason': '卡图不存在'}
+      {'kind': 'script', 'id': 210000002, 'name': '星奏的圆舞曲', 'reason': 'spec.lua 为空'}
+  build issues(4) = 
+      [WARN] G5_PIC_MISSING: 卡 210000002「星奏的圆舞曲」没有卡图
+      [WARN] G5_PIC_MISSING: 卡 210000003「星奏的连接兽」没有卡图
+      [WARN] G5_PIC_MISSING: 卡 210000004「古老的奏者」没有卡图
+      [WARN] G5_SCRIPT_MISSING: 卡 210000002「星奏的圆舞曲」需要脚本，但 spec.lua 是空的
+
+── 包内文件树 ──
+  out/
+    cardforge_manifest.json  (2.4 KB)
+    expansions/
+      CardForge-ja.cdb  (12.0 KB)
+      CardForge-zh-CN.cdb  (12.0 KB)
+      CardForge.cdb  (12.0 KB)
+      pics/
+        210000000.jpg  (4.7 KB)
+        210000001.jpg  (4.3 KB)
+        field/
+          210000002.jpg  (4.6 KB)
+      README.txt  (4.7 KB)
+      script/
+        c210000000.lua  (0.2 KB)
+        c210000001.lua  (0.0 KB)
+        c210000003.lua  (0.1 KB)
+      strings.conf  (0.1 KB)
+    README.txt  (4.7 KB)
+
+── 4. 用标准库 sqlite3 独立读回生成的 cdb ──
+  cdb = _probe\pool_export\_tmp\ws_build\out\expansions\CardForge.cdb  (12288 字节)
+  sqlite_master = ['datas', 'texts']
+  PRAGMA table_info(datas) 列 = ['id', 'ot', 'alias', 'setcode', 'type', 'atk', 'def', 'level', 'race', 'attribute', 'category']
+  PRAGMA table_info(texts) 列 = ['id', 'name', 'desc', 'str1', 'str2', 'str3', 'str4', 'str5', 'str6', 'str7', 'str8', 'str9', 'str10', 'str11', 'str12', 'str13', 'str14', 'str15', 'str16']
+  表内卡数 datas=5 texts=5
+
+  [PASS] 210000000 在 cdb 里有记录
+  ── 210000000 焰刃的见习剑士 ──
+     ot=3 alias=0 setcode=0x3001 type=0x21 atk=1700 def=1000 level=4 race=0x1 attribute=0x4 category=0
+  [PASS]   210000000 name 一致  —— '焰刃的见习剑士' vs '焰刃的见习剑士'
+  [PASS]   210000000 desc 一致（cdb.card_desc 推导）  —— '①：这张卡召唤成功时才能发动。从卡组把1张「焰刃」卡加入手卡。这个效果1回合只能' vs '①：这张卡召唤成功时才能发动。从卡组把1张「焰刃」卡加入手卡。这个效果1回合只能'
+  [PASS]   210000000 atk 一致  —— 1700 vs 1700
+  [PASS]   210000000 def 一致  —— 1000 vs 1000
+  [PASS]   210000000 type 一致（engine_type_bits，通常怪已修正为 0x11）  —— 0x21 vs 0x21
+  [PASS]   210000000 level 列一致（灵摆为刻度打包）  —— 0x00000004 vs 0x00000004
+  [PASS]   210000000 race 一致（魔陷为 0）  —— 0x1 vs 0x1
+  [PASS]   210000000 attribute 一致（魔陷为 0）  —— 0x4 vs 0x4
+  [PASS]   210000000 setcode 一致  —— 0x3001 vs 0x3001
+  [PASS]   210000000 ot = 3 (OCG|TCG)  —— 3
+     str1='①：从卡组把1张「焰刃」卡加入手卡。'
+     desc='①：这张卡召唤成功时才能发动。从卡组把1张「焰刃」卡加入手卡。这个效果1回合只能使用1次。'
+
+  [PASS] 210000001 在 cdb 里有记录
+  ── 210000001 星奏的指挥者 艾莉娅 ──
+     ot=3 alias=0 setcode=0x1001 type=0x1000021 atk=1600 def=1200 level=134742020 race=0x2 attribute=0x10 category=0
+  [PASS]   210000001 name 一致  —— '星奏的指挥者 艾莉娅' vs '星奏的指挥者 艾莉娅'
+  [PASS]   210000001 desc 一致（cdb.card_desc 推导）  —— '←8 【灵摆】 8→\r\n①：自己主要阶段才能发动。从卡组把1只「星奏」怪兽加入手' vs '←8 【灵摆】 8→\r\n①：自己主要阶段才能发动。从卡组把1只「星奏」怪兽加入手'
+  [PASS]   210000001 atk 一致  —— 1600 vs 1600
+  [PASS]   210000001 def 一致  —— 1200 vs 1200
+  [PASS]   210000001 type 一致（engine_type_bits，通常怪已修正为 0x11）  —— 0x1000021 vs 0x1000021
+  [PASS]   210000001 level 列一致（灵摆为刻度打包）  —— 0x08080004 vs 0x08080004
+  [PASS]   210000001 race 一致（魔陷为 0）  —— 0x2 vs 0x2
+  [PASS]   210000001 attribute 一致（魔陷为 0）  —— 0x10 vs 0x10
+  [PASS]   210000001 setcode 一致  —— 0x1001 vs 0x1001
+  [PASS]   210000001 ot = 3 (OCG|TCG)  —— 3
+     str1='①：从卡组把1张「星奏」卡加入手卡。'
+     desc='←8 【灵摆】 8→\r\n①：自己主要阶段才能发动。从卡组把1只「星奏」怪兽加入手卡。\r\n【怪兽效果】\r\n①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。'
+
+  [PASS] 210000002 在 cdb 里有记录
+  ── 210000002 星奏的圆舞曲 ──
+     ot=3 alias=0 setcode=0x1001 type=0x80002 atk=0 def=0 level=0 race=0x0 attribute=0x0 category=0
+  [PASS]   210000002 name 一致  —— '星奏的圆舞曲' vs '星奏的圆舞曲'
+  [PASS]   210000002 desc 一致（cdb.card_desc 推导）  —— '①：作为这张卡发动时的效果处理，从卡组把1只「星奏」怪兽加入手卡。' vs '①：作为这张卡发动时的效果处理，从卡组把1只「星奏」怪兽加入手卡。'
+  [PASS]   210000002 atk 一致  —— 0 vs 0
+  [PASS]   210000002 def 一致  —— 0 vs 0
+  [PASS]   210000002 type 一致（engine_type_bits，通常怪已修正为 0x11）  —— 0x80002 vs 0x80002
+  [PASS]   210000002 level 列一致（灵摆为刻度打包）  —— 0x00000000 vs 0x00000000
+  [PASS]   210000002 race 一致（魔陷为 0）  —— 0x0 vs 0x0
+  [PASS]   210000002 attribute 一致（魔陷为 0）  —— 0x0 vs 0x0
+  [PASS]   210000002 setcode 一致  —— 0x1001 vs 0x1001
+  [PASS]   210000002 ot = 3 (OCG|TCG)  —— 3
+     str1='①：从卡组把1只「星奏」怪兽加入手卡。'
+     desc='①：作为这张卡发动时的效果处理，从卡组把1只「星奏」怪兽加入手卡。'
+
+  [PASS] 210000003 在 cdb 里有记录
+  ── 210000003 星奏的连接兽 ──
+     ot=3 alias=0 setcode=0x1001 type=0x4000021 atk=2400 def=7 level=3 race=0x2 attribute=0x10 category=0
+  [PASS]   210000003 name 一致  —— '星奏的连接兽' vs '星奏的连接兽'
+  [PASS]   210000003 desc 一致（cdb.card_desc 推导）  —— '「星奏」怪兽2只以上\r\n①：这张卡连接召唤成功时才能发动。抽1张卡。' vs '「星奏」怪兽2只以上\r\n①：这张卡连接召唤成功时才能发动。抽1张卡。'
+  [PASS]   210000003 atk 一致  —— 2400 vs 2400
+  [PASS]   210000003 def 一致  —— 7 vs 7
+  [PASS]   210000003 type 一致（engine_type_bits，通常怪已修正为 0x11）  —— 0x4000021 vs 0x4000021
+  [PASS]   210000003 level 列一致（灵摆为刻度打包）  —— 0x00000003 vs 0x00000003
+  [PASS]   210000003 race 一致（魔陷为 0）  —— 0x2 vs 0x2
+  [PASS]   210000003 attribute 一致（魔陷为 0）  —— 0x10 vs 0x10
+  [PASS]   210000003 setcode 一致  —— 0x1001 vs 0x1001
+  [PASS]   210000003 ot = 3 (OCG|TCG)  —— 3
+     str1=''
+     desc='「星奏」怪兽2只以上\r\n①：这张卡连接召唤成功时才能发动。抽1张卡。'
+
+  [PASS] 210000004 在 cdb 里有记录
+  ── 210000004 古老的奏者 ──
+     ot=3 alias=0 setcode=0x0 type=0x11 atk=800 def=1800 level=3 race=0x100 attribute=0x1 category=0
+  [PASS]   210000004 name 一致  —— '古老的奏者' vs '古老的奏者'
+  [PASS]   210000004 desc 一致（cdb.card_desc 推导）  —— '在废墟里弹奏无声竖琴的石头人。' vs '在废墟里弹奏无声竖琴的石头人。'
+  [PASS]   210000004 atk 一致  —— 800 vs 800
+  [PASS]   210000004 def 一致  —— 1800 vs 1800
+  [PASS]   210000004 type 一致（engine_type_bits，通常怪已修正为 0x11）  —— 0x11 vs 0x11
+  [PASS]   210000004 level 列一致（灵摆为刻度打包）  —— 0x00000003 vs 0x00000003
+  [PASS]   210000004 race 一致（魔陷为 0）  —— 0x100 vs 0x100
+  [PASS]   210000004 attribute 一致（魔陷为 0）  —— 0x1 vs 0x1
+  [PASS]   210000004 setcode 一致  —— 0x0 vs 0x0
+  [PASS]   210000004 ot = 3 (OCG|TCG)  —— 3
+     str1=''
+     desc='在废墟里弹奏无声竖琴的石头人。'
+
+  ── 连接怪兽专项（箭头掩码 / 连接数）──
+     arrows_bits 期望 = 0x7 (7)，实测 def=0x7 (7)
+  [PASS] 连接怪兽 def = 箭头掩码
+  [PASS] 连接怪兽 level = 连接数 3  —— level=3
+
+  ── 通常怪兽 type 位（core 偏差兜底）──
+     CardSpec.type_bits        = 0x21  （= MONSTER|EFFECT，因为 FRAMES['normal'].base=='effect'，core 疑似漏写）
+     cdb.engine_type_bits(spec)= 0x11  （= MONSTER|NORMAL，写进 cdb 的值）
+     cdb 实测 type             = 0x11
+  [PASS] 通常怪兽写进 cdb 的 type = 0x11 (MONSTER|NORMAL)  —— 0x11
+
+  ── 灵摆卡 level 列打包（对齐官方编码）──
+     期望 = (8<<24)|(8<<16)|4 = 0x08080004
+     cdb 实测 level = 0x08080004 → 解出 {'raw': 134742020, 'level': 4, 'lscale': 8, 'rscale': 8, 'pendulum': True}
+  [PASS] 灵摆 level 列 = (刻度<<24)|(刻度<<16)|等级  —— 0x08080004
+  [PASS] 逆运算解出刻度 8 / 等级 4  —— {'raw': 134742020, 'level': 4, 'lscale': 8, 'rscale': 8, 'pendulum': True}
+
+  ── 灵摆卡 desc 版式 ──
+     repr = '←8 【灵摆】 8→\r\n①：自己主要阶段才能发动。从卡组把1只「星奏」怪兽加入手卡。\r\n【怪兽效果】\r\n①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。'
+  [PASS] 以「←8 【灵摆】 8→」开头
+  [PASS] 含 CRLF 分隔
+  [PASS] 含【怪兽效果】段标记
+  [PASS] 灵摆效果在怪兽效果之前
+
+  [PASS] 通常怪兽 desc = flavor  —— '在废墟里弹奏无声竖琴的石头人。'
+
+  [PASS] strings 落到 str1/str2，str3+ 为空  —— ('①：从卡组把1张「星奏」卡加入手卡。', '灵摆效果', '', '')
+
+  ── 多语言 cdb ──
+     CardForge-ja.cdb           卡数=5  210000000 的卡名 = '焔刃の見習い剣士'
+     CardForge-zh-CN.cdb        卡数=5  210000000 的卡名 = '焰刃的见习剑士'
+     CardForge.cdb              卡数=5  210000000 的卡名 = '焰刃的见习剑士'
+  [PASS] ja 包里卡名是日文  —— 焔刃の見習い剣士
+  [PASS] ja 包里卡文是日文  —— ①：このカードが召喚に成功した時に発動できる。デッキから「焔刃」カード1枚を手札
+
+── 5. 生成的 .lua 无 BOM ──
+  c210000000.lua  前 3 字节 = b'--['  (2d 2d 5b)
+  [PASS] c210000000.lua 无 BOM
+  c210000001.lua  前 3 字节 = b'--['  (2d 2d 5b)
+  [PASS] c210000001.lua 无 BOM
+  c210000003.lua  前 3 字节 = b'--['  (2d 2d 5b)
+  [PASS] c210000003.lua 无 BOM
+  [PASS] 脚本按需生成（3 个：效果怪 + 灵摆 + 连接兽；通常怪/魔陷没有）  —— 实际 ['c210000000.lua', 'c210000001.lua', 'c210000003.lua']
+
+── 3b. expansions.verify()（干净包，应无 ERROR）──
+  共 5 条
+    [WARN ] G5_PIC_SIZE            卡 210000001 的卡图是 400×600，EDOPro 用 421×614
+    [WARN ] G5_SCRIPT_MISSING      卡 210000002 需要脚本，但缺 script/c210000002.lua
+    [INFO ] G5_PIC_PENDING         卡 210000002 的卡图待补（manifest 已标记）
+    [INFO ] G5_PIC_PENDING         卡 210000003 的卡图待补（manifest 已标记）
+    [INFO ] G5_PIC_PENDING         卡 210000004 的卡图待补（manifest 已标记）
+  [PASS] 干净包无 ERROR  —— ERROR=0
+  [PASS] 缺脚本的卡被点名（G5_SCRIPT_MISSING）
+  [PASS] 尺寸不符被点名（G5_PIC_SIZE，带实测尺寸）
+  [PASS] 缺卡图标成 pending（G5_PIC_PENDING）
+  [PASS] 通常怪兽没被要求脚本
+
+── 3c. 人为注入带 BOM 的 .lua → verify 必须报 ERROR ──
+    [ERROR] G5_LUA_BOM: expansions/script/c210000002.lua 带 UTF-8 BOM（前 3 字节 EF BB BF）
+        hint: BOM 会让 Lua 解析直接失败、脚本完全不生效；以 utf-8 无 BOM 重写。
+  [PASS] BOM 被检出且为 ERROR  —— [('G5_LUA_BOM', 'ERROR')]
+  [PASS] 注入 BOM 后包不再通过（有 ERROR）
+
+── 3d. 卡号与官方池冲突 → verify 必须报 ERROR ──
+  官方池可用 = True，青眼白龙 89631139 已占用 = True
+    [ERROR] G5_ID_CONFLICT: 卡号 89631139 与官方卡池冲突（共 1 个）
+  [PASS] 卡号冲突被检出且为 ERROR  —— [('G5_ID_CONFLICT', 'ERROR')]
+
+── 3e. manifest 内容 ──
+  keys = ['card_ids', 'cards', 'cdbs', 'generator', 'langs', 'name', 'pending_pics', 'skipped', 'stats', 'ts']
+  cards = [{"id": 210000000, "name": "焰刃的见习剑士", "frame": "effect", "archetype": "焰刃", "setcode": "0x3001", "needs_script": true, "has_script": true, "has_pic": true}, {"id": 210000001, "name": "星奏的指挥者 艾莉娅", "frame": "pendulum", "archetype": "星奏", "setcode": "0x1001", "needs_script": true, "has_script": true, "has_pic": true}, {"id": 210000002, "name": "星奏的圆舞曲", "frame": "spell", "archetype": "星奏", "setcode"…
+  pending_pics = [210000002, 210000003, 210000004]
+  [PASS] manifest 记录 5 张卡
+  [PASS] manifest 标出 pending 卡图  —— [210000002, 210000003, 210000004]
+
+── 3f. README.txt 前 40 行 ──
+  │ CardForge 2.0 导出包 —— CardForge
+  │ 生成时间：2026-10-13T06:24:55
+  │ 
+  │ ════════════════════════════════════════════════════════════════════
+  │ 一、怎么装
+  │ ════════════════════════════════════════════════════════════════════
+  │ 1) 把本目录 expansions/ 里的**全部内容**复制进 EDOPro 的 expansions/ 目录：
+  │ 
+  │      Windows : %LOCALAPPDATA%\EDOPro\expansions
+  │      macOS   : ~/Library/Application Support/EDOPro/expansions
+  │      Linux   : ~/.local/share/EDOPro/expansions
+  │ 
+  │    也可以交给工具自动做（复制前会自动备份同名文件）：
+  │ 
+  │      cardforge export --install
+  │      # 或 python -c "from cardforge.export import install; print(install.install(r'D:\游戏王DIY设计\_probe\pool_export\_tmp\ws_build\out'))"
+  │ 
+  │ 2) 如果本包带 strings.conf，请把里面的 !setname / !counter 行**追加**到
+  │    EDOPro 的 config/strings.conf（或放在 expansions/strings.conf，两种位置都认）。
+  │    不做这一步，DIY 系列的「字段名」与「计数器名」在游戏里会显示成空白。
+  │ 
+  │ 3) 重启 EDOPro。卡图放 expansions/pics/<卡号>.jpg，脚本放 expansions/script/c<卡号>.lua。
+  │ 
+  │ ════════════════════════════════════════════════════════════════════
+  │ 二、这个包里有什么
+  │ ════════════════════════════════════════════════════════════════════
+  │   卡数        ：5
+  │   卡池文件    ：CardForge.cdb, CardForge-zh-CN.cdb, CardForge-ja.cdb
+  │   语言        ：zh_cn, ja
+  │   卡图        ：2 张；待补 3 张：210000002, 210000003, 210000004
+  │   场地背景    ：1 张
+  │   卡脚本      ：3 个
+  │   系列名/计数器：已生成 strings.conf
+  │ 
+  │   跳过项（前 20 条）：
+  │     - [pic] 210000002 卡图不存在
+  │     - [pic] 210000003 卡图不存在
+  │     - [pic] 210000004 卡图不存在
+  │     - [script] 210000002 spec.lua 为空
+  │ ════════════════════════════════════════════════════════════════════
+  [PASS] README 含许可提示
+  [PASS] README 含导入路径
+  [PASS] README 在包根与 expansions/ 各一份
+
+── 附加：pack_stats / file_tree 截断 ──
+  pack_stats = {'ok': True, 'pack_dir': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_build\\out', 'expansions_dir': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_build\\out\\expansions', 'cdbs': ['CardForge-ja.cdb', 'CardForge-zh-CN.cdb', 'CardForge.cdb'], 'n_pics': 2, 'n_field_pics': 1, 'n_scripts': 3, 'strings_conf': True, 'readme': True, 'manifest': True}
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过
+════════════════════════════════════════════════════════════════════

@@ -1,0 +1,579 @@
+{
+  "availability": {
+    "root": "data\\assets",
+    "exists": true,
+    "files": 87,
+    "digest": "e06d085c0b41b3e0",
+    "categories": {
+      "frame": {
+        "present": 16,
+        "total": 16,
+        "missing": []
+      },
+      "attribute": {
+        "present": 9,
+        "total": 9,
+        "missing": []
+      },
+      "icon": {
+        "present": 6,
+        "total": 6,
+        "missing": []
+      },
+      "star": {
+        "present": 2,
+        "total": 2,
+        "missing": []
+      },
+      "arrow": {
+        "present": 16,
+        "total": 16,
+        "missing": []
+      },
+      "rare": {
+        "present": 9,
+        "total": 9,
+        "missing": []
+      },
+      "laser": {
+        "present": 4,
+        "total": 4,
+        "missing": []
+      },
+      "stamp": {
+        "present": 1,
+        "total": 1,
+        "missing": []
+      },
+      "copyright": {
+        "present": 6,
+        "total": 6,
+        "missing": []
+      },
+      "stat": {
+        "present": 2,
+        "total": 2,
+        "missing": []
+      },
+      "mask": {
+        "present": 2,
+        "total": 2,
+        "missing": []
+      },
+      "bleed": {
+        "present": 1,
+        "total": 1,
+        "missing": []
+      },
+      "back": {
+        "present": 1,
+        "total": 1,
+        "missing": []
+      },
+      "font": {
+        "present": 12,
+        "total": 12,
+        "missing": []
+      }
+    },
+    "missing": [],
+    "requested_missing": [],
+    "unexpected": [],
+    "skipped": [
+      "NOTICE.txt",
+      "_cache/copyright_en-black.svg.png",
+      "_cache/copyright_jp-black.svg.png",
+      "_cache/copyright_sc-black.svg.png",
+      "_contact_sheet.png",
+      "_mask_vis.png",
+      "_pend_frame_view.png",
+      "_sheet_frames.png",
+      "_sheet_other.png",
+      "_sheet_rare.png"
+    ],
+    "image_cache": 0
+  },
+  "diagnose": {
+    "lang": "zh_cn",
+    "assets": "data\\assets",
+    "assets_exists": true,
+    "cache": {
+      "fonts": "workspace\\.cache\\fonts",
+      "svg": "workspace\\.cache\\svg",
+      "fonts_writable": true,
+      "svg_writable": true
+    },
+    "stack": [
+      "sc",
+      "en_name",
+      "en",
+      "en_race",
+      "atk_def",
+      "link"
+    ],
+    "roles": {
+      "sc": {
+        "path": "data\\assets\\ygo-sc.ttf",
+        "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-sc.ttf",
+        "source": "asset-ttf",
+        "fallback": false,
+        "index": 0,
+        "coverage": 1.0,
+        "reason": "",
+        "asset_exists": true
+      },
+      "en": {
+        "path": "data\\assets\\ygo-en.ttf",
+        "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en.ttf",
+        "source": "asset-ttf",
+        "fallback": false,
+        "index": 0,
+        "coverage": 0.3889,
+        "reason": "",
+        "asset_exists": true
+      },
+      "en_name": {
+        "path": "data\\assets\\ygo-en-name.ttf",
+        "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en-name.ttf",
+        "source": "asset-ttf",
+        "fallback": false,
+        "index": 0,
+        "coverage": 0.3889,
+        "reason": "",
+        "asset_exists": true
+      },
+      "en_race": {
+        "path": "data\\assets\\ygo-en-race.ttf",
+        "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en-race.ttf",
+        "source": "asset-ttf",
+        "fallback": false,
+        "index": 0,
+        "coverage": 0.3889,
+        "reason": "",
+        "asset_exists": true
+      },
+      "atk_def": {
+        "path": "data\\assets\\ygo-atk-def.ttf",
+        "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-atk-def.ttf",
+        "source": "asset-ttf",
+        "fallback": false,
+        "index": 0,
+        "coverage": 0.3889,
+        "reason": "",
+        "asset_exists": true
+      },
+      "link": {
+        "path": "data\\assets\\ygo-link.ttf",
+        "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-link.ttf",
+        "source": "asset-ttf",
+        "fallback": false,
+        "index": 0,
+        "coverage": 0.3889,
+        "reason": "",
+        "asset_exists": true
+      }
+    },
+    "pillow": "12.3.0",
+    "fonttools": "4.66.1",
+    "svg_rasterizer": "svglib+pymupdf",
+    "system_candidates": {
+      "zh_cn": 25,
+      "zh_tw": 26,
+      "ja": 30,
+      "ko": 28,
+      "en": 34
+    },
+    "coverage_text": 1.0,
+    "best_for_text": {
+      "role": "sc",
+      "path": "data\\assets\\ygo-sc.ttf"
+    },
+    "notes": [
+      "en/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-en.ttf）",
+      "en_name/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-en-name.ttf）",
+      "en_race/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-en-race.ttf）",
+      "atk_def/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-atk-def.ttf）",
+      "link/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-link.ttf）"
+    ],
+    "ok": true
+  },
+  "frames": [
+    {
+      "file": "effect-pendulum.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 254,
+      "alpha_max": 255,
+      "alpha_mean": 254.9995,
+      "ok": true
+    },
+    {
+      "file": "effect.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "fusion-pendulum.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "fusion.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "link.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "normal-pendulum.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "normal.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "ritual-pendulum.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "ritual.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "spell.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "synchro-pendulum.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "synchro.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "token.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "trap.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "xyz-pendulum.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    },
+    {
+      "file": "xyz.png",
+      "size": [
+        1394,
+        2031
+      ],
+      "mode": "RGBA",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "alpha_mean": 255.0,
+      "ok": true
+    }
+  ],
+  "font_smoke": [
+    {
+      "tag": "zh",
+      "role": "sc",
+      "lang": "zh_cn",
+      "text": "青眼白龙 通常怪兽 攻击力3200 守备力2500",
+      "font": "D:\\游戏王DIY设计\\data\\assets\\ygo-sc.ttf",
+      "coverage": 1.0,
+      "ink_ratio": 0.06,
+      "bbox": [
+        11,
+        18,
+        935,
+        63
+      ],
+      "file": "font_smoke_zh.png"
+    },
+    {
+      "tag": "ja",
+      "role": "sc",
+      "lang": "ja",
+      "text": "モンスター 効果 攻撃力 守備力 テスト",
+      "font": "D:\\游戏王DIY设计\\data\\assets\\ygo-sc.ttf",
+      "coverage": 1.0,
+      "ink_ratio": 0.0396,
+      "bbox": [
+        15,
+        19,
+        825,
+        63
+      ],
+      "file": "font_smoke_ja.png"
+    },
+    {
+      "tag": "en",
+      "role": "en_name",
+      "lang": "en",
+      "text": "Blue-Eyes White Dragon Effect Monster",
+      "font": "D:\\游戏王DIY设计\\data\\assets\\ygo-en-name.ttf",
+      "coverage": 1.0,
+      "ink_ratio": 0.0352,
+      "bbox": [
+        9,
+        30,
+        620,
+        57
+      ],
+      "file": "font_smoke_en.png"
+    },
+    {
+      "tag": "stat",
+      "role": "atk_def",
+      "lang": "en",
+      "text": "ATK/3200",
+      "font": "D:\\游戏王DIY设计\\data\\assets\\ygo-atk-def.ttf",
+      "coverage": 1.0,
+      "ink_ratio": 0.0168,
+      "bbox": [
+        6,
+        20,
+        202,
+        51
+      ],
+      "file": "font_smoke_stat.png"
+    }
+  ],
+  "attribute_files": [
+    "dark.png",
+    "divine.png",
+    "earth.png",
+    "fire.png",
+    "light.png",
+    "spell.png",
+    "trap.png",
+    "water.png",
+    "wind.png"
+  ],
+  "icon_files": [
+    "continuous.png",
+    "counter.png",
+    "equip.png",
+    "field.png",
+    "quick-play.png",
+    "ritual.png"
+  ],
+  "api_checks": {
+    "spell_trap_badge('spell','quick')": "(72, 72) RGBA",
+    "spell_trap_badge('spell','quick-play')": "(72, 72) RGBA",
+    "spell_trap_badge('trap','counter')": "(72, 72) RGBA",
+    "spell_trap_badge('spell','normal')": "None",
+    "attribute('暗')": "(128, 128) RGBA",
+    "attribute('DARK')": "(128, 128) RGBA",
+    "attribute('神')": "(128, 128) RGBA",
+    "star('level')": "(88, 88) RGBA",
+    "star('rank')": "(88, 88) RGBA",
+    "arrow('右上')": "(168, 168) RGBA",
+    "arrow('左下', on=False)": "(168, 168) RGBA",
+    "rarity_layer('UR')": "(1394, 2031) RGBA",
+    "rarity_layer('pser-print')": "(1394, 2031) RGBA",
+    "laser(1)": "(72, 72) RGBA",
+    "stamp('20th')": "(445, 358) RGBA",
+    "stamp('twentieth')": "(445, 358) RGBA",
+    "icon('field')": "(72, 72) RGBA",
+    "card_back()": "(1488, 2126) RGBA",
+    "bleeds()": "(1488, 2126) RGBA",
+    "frame('effect')": "(1394, 2031) RGBA",
+    "frame('effect', pendulum=True)": "(1394, 2031) RGBA",
+    "frame('link')": "(1394, 2031) RGBA",
+    "frame('token')": "(1394, 2031) RGBA",
+    "frame('nope')": "None"
+  },
+  "copyright": [
+    {
+      "lang": "sc",
+      "color": "black",
+      "result": "(1951, 103) RGBA"
+    },
+    {
+      "lang": "sc",
+      "color": "white",
+      "result": "(1951, 103) RGBA"
+    },
+    {
+      "lang": "jp",
+      "color": "black",
+      "result": "(2358, 104) RGBA"
+    },
+    {
+      "lang": "jp",
+      "color": "white",
+      "result": "(2358, 104) RGBA"
+    },
+    {
+      "lang": "en",
+      "color": "black",
+      "result": "(1756, 104) RGBA"
+    },
+    {
+      "lang": "en",
+      "color": "white",
+      "result": "(1756, 104) RGBA"
+    },
+    {
+      "lang": "zh_cn",
+      "color": "black",
+      "result": "(1951, 103) RGBA"
+    },
+    {
+      "lang": "zh_cn",
+      "color": "white",
+      "result": "(1951, 103) RGBA"
+    },
+    {
+      "lang": "zh_tw",
+      "color": "black",
+      "result": "(1951, 103) RGBA"
+    },
+    {
+      "lang": "zh_tw",
+      "color": "white",
+      "result": "(1951, 103) RGBA"
+    },
+    {
+      "lang": "ja",
+      "color": "black",
+      "result": "(2358, 104) RGBA"
+    },
+    {
+      "lang": "ja",
+      "color": "white",
+      "result": "(2358, 104) RGBA"
+    },
+    {
+      "lang": "en",
+      "color": "black",
+      "result": "(1756, 104) RGBA"
+    },
+    {
+      "lang": "en",
+      "color": "white",
+      "result": "(1756, 104) RGBA"
+    }
+  ],
+  "missing": [],
+  "digest": "e06d085c0b41b3e0"
+}

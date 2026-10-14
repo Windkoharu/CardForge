@@ -1,0 +1,480 @@
+PSCT 卡文生成与校验引擎 · 自测报告
+生成器原生语言：('zh_cn', 'ja', 'en')；降级语言：('ko',) + 其余非原生语言
+规则条数：35；编号上限 20
+
+══════════════════════════════════════════════════════════════════════════════
+1. 术语覆盖率 coverage_report()
+══════════════════════════════════════════════════════════════════════════════
+术语总数 213；数据源：terms=D:\游戏王DIY设计\data\lexicons\terms.json
+                patterns=D:\游戏王DIY设计\data\lexicons\psct_patterns.json
+
+语言          有值  null      覆盖率  原生模板  可用于生成  缺口分类
+en         213     0   100.0%  是         是           
+zh_cn      209     4    98.1%  是         是           card_type:3,stat:1
+zh_tw      208     5    97.7%  否         否（降级 en）    card_type:3,stat:2
+ja         212     1    99.5%  是         是           stat:1
+ko         169    44    79.3%  否         否（降级 en）    action:16,card_type:2,psct_phrase:23,race:1,stat:1,zone:1
+de         204     9    95.8%  否         否（降级 en）    action:1,card_type:4,psct_phrase:1,race:1,stat:2
+fr         203    10    95.3%  否         否（降级 en）    action:2,card_type:4,psct_phrase:1,race:1,stat:2
+it         205     8    96.2%  否         否（降级 en）    action:1,card_type:3,psct_phrase:1,race:1,stat:2
+pt         205     8    96.2%  否         否（降级 en）    action:1,card_type:3,psct_phrase:1,race:1,stat:2
+es         204     9    95.8%  否         否（降级 en）    action:1,card_type:4,psct_phrase:1,race:1,stat:2
+
+按分类：{'action': 46, 'attribute': 7, 'card_type': 33, 'psct_phrase': 62, 'race': 26, 'stat': 17, 'zone': 22}
+降级语言：['zh_tw', 'ko', 'de', 'fr', 'it', 'pt', 'es']
+  [PASS] 术语表加载成功（213 条）
+  [PASS] ko 的缺口被如实报告（不是 0）
+
+══════════════════════════════════════════════════════════════════════════════
+2. 8 张卡 × zh_cn / ja / en 生成结果（全部打印）
+══════════════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────────────
+【①通常怪兽】苍岚的古代龙  frame=normal type_line(zh)=【龙族／光属性／通常】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 1/8，source=flavor）
+传说在苍岚之巅守护着古老誓约的巨龙，鳞片会映出极光。
+   · 注：通常怪兽的文本框内容是说明文（渲染器用 draw_flavor 绘制，不会读 text_i18n）
+── ja（used=ja，行数估算 1/8，source=flavor）
+蒼嵐の頂で古き誓いを守るという伝説の竜。その鱗は極光を映す。
+   · 注：通常怪兽的文本框内容是说明文（渲染器用 draw_flavor 绘制，不会读 text_i18n）
+── en（used=en，行数估算 1/8，source=flavor）
+A legendary dragon said to guard an ancient oath atop the azure peak. Its scales mirror the aurora.
+   · 注：通常怪兽的文本框内容是说明文（渲染器用 draw_flavor 绘制，不会读 text_i18n）
+
+──────────────────────────────────────────────────────────────────────────────
+【②效果怪兽·单效果】苍岚的斥候  frame=effect type_line(zh)=【鸟兽族／风属性／效果】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 3/8，source=ir）
+①：这张卡召唤成功时才能发动。从卡组把1张「苍岚」卡加入手卡。
+这个卡名的①的效果1回合只能使用1次。
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+── ja（used=ja，行数估算 3/8，source=ir）
+①：このカードが召喚に成功した時に発動できる。デッキから「苍岚」カード１枚を手札に加える。
+このカード名の①の効果は１ターンに１度しか使用できない。
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+── en（used=en，行数估算 2/8，source=ir）
+① When this card is Normal Summoned: You can add 1 "苍岚" card from your Deck to your hand.
+You can only use this effect of "Azure Gale Scout" once per turn.
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）
+
+──────────────────────────────────────────────────────────────────────────────
+【③双效果·卡名HOPT】苍岚的双刃龙  frame=effect type_line(zh)=【龙族／风属性／效果】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 5/8，source=ir）
+①：自己场上有「苍岚」卡存在的场合，自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡。
+②：这张卡被破坏的场合，以自己墓地的1张「苍岚」卡为对象才能发动。从墓地把1张「苍岚」卡特殊召唤。
+这个卡名的①②的效果1回合各能使用1次。
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+── ja（used=ja，行数估算 8/8，source=ir）
+①：自分フィールドに「苍岚」カードが存在する場合、自分メインフェイズに発動できる。デッキから「苍岚」カード１枚を手札に加える。
+②：このカードが破壊された場合、自分の墓地の「苍岚」カード１枚を対象として発動できる。墓地から「苍岚」カード１枚を特殊召喚する。
+このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+── en（used=en，行数估算 4/8，source=ir）
+① If you control a "苍岚" card, during your Main Phase: You can add 1 "苍岚" card from your Deck to your hand.
+② If this card is destroyed: You can target 1 "苍岚" card in your GY; Special Summon 1 "苍岚" card from your GY.
+You can only use each effect of "Azure Gale Twin-Blade Dragon" once per turn.
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）
+
+──────────────────────────────────────────────────────────────────────────────
+【④起动效果】苍岚的审判者  frame=effect type_line(zh)=【天使族／光属性／效果】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 2/8，source=ir）
+①：1回合1次，自己主要阶段，把自己场上的1只怪兽解放，以对方场上的1张卡为对象才能发动。把那张卡破坏。
+── ja（used=ja，行数估算 3/8，source=ir）
+①：１ターンに１度、自分メインフェイズに、自分フィールドのモンスター１体をリリースし、相手フィールドのカード１枚を対象として発動できる。それを破壊する。
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+── en（used=en，行数估算 2/8，source=ir）
+① Once per turn, during your Main Phase: You can Tribute 1 monster, then target 1 card your opponent controls; destroy it.
+   · 注：字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）
+
+──────────────────────────────────────────────────────────────────────────────
+【⑤永续效果】苍岚的旗帜  frame=effect type_line(zh)=【魔法师族／风属性／效果】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 2/8，source=ir）
+①：只要这张卡在怪兽区域存在，自己场上的怪兽的攻击力上升500。
+   · 注：永续效果不入连锁，没有「发动时取对象」这一步；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+── ja（used=ja，行数估算 2/8，source=ir）
+①：このカードがモンスターゾーンに存在する限り、自分フィールドのモンスターの攻撃力は５００アップする。
+   · 注：永续效果不入连锁，没有「发动时取对象」这一步；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+── en（used=en，行数估算 1/8，source=ir）
+① While this card is face-up on the field, monsters you control gain 500 ATK.
+   · 注：永续效果不入连锁，没有「发动时取对象」这一步；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）
+
+──────────────────────────────────────────────────────────────────────────────
+【⑥灵摆卡双文本】苍岚的钟摆龙  frame=pendulum type_line(zh)=【龙族／风属性／灵摆／效果】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 5/6，source=ir）
+①：只要这张卡在怪兽区域存在，自己场上的怪兽的攻击力上升300。
+②：这张卡特殊召唤成功时才能发动。从卡组把1张「苍岚」卡加入手卡。
+这个卡名的②的效果1回合只能使用1次。
+   ↳ 灵摆效果框（5/5 行）
+   ①：自己主要阶段，支付800点LP才能发动。从卡组把1张「苍岚」卡特殊召唤。
+   ②：结束阶段，以自己墓地的1张卡为对象发动。把那张卡回到卡组。
+   这个卡名的①的效果1回合只能使用1次。
+   · 注：永续效果不入连锁，没有「发动时取对象」这一步；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+── ja（used=ja，行数估算 5/6，source=ir）
+①：このカードがモンスターゾーンに存在する限り、自分フィールドのモンスターの攻撃力は３００アップする。
+②：このカードが特殊召喚に成功した時に発動できる。デッキから「苍岚」カード１枚を手札に加える。
+このカード名の②の効果は１ターンに１度しか使用できない。
+   ↳ 灵摆效果框（6/5 行）
+   ①：自分メインフェイズに、８００ＬＰを払って発動できる。デッキから「苍岚」カード１枚を特殊召喚する。
+   ②：エンドフェイズに、自分の墓地のカード１枚を対象として発動する。それをデッキに戻す。
+   このカード名の①の効果は１ターンに１度しか使用できない。
+   · 注：永续效果不入连锁，没有「发动时取对象」这一步；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+── en（used=en，行数估算 3/6，source=ir）
+① While this card is face-up on the field, monsters you control gain 300 ATK.
+② When this card is Special Summoned: You can add 1 "苍岚" card from your Deck to your hand.
+You can only use this effect of "Azure Gale Pendulum Dragon" once per turn.
+   ↳ 灵摆效果框（3/5 行）
+   ① During your Main Phase: You can pay 800 LP; Special Summon 1 "苍岚" card from your Deck.
+   ② During the End Phase: target 1 card in your GY; return it to the Deck.
+   You can only use this effect of "Azure Gale Pendulum Dragon" once per turn.
+   · 注：永续效果不入连锁，没有「发动时取对象」这一步；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+   · 注：字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）
+   · 注：效果种类「search」按官方写法在处理时才选卡，不写「以…为对象」；target 已用作范围描述（如需强制取对象请设 params['targeting']=True）
+
+──────────────────────────────────────────────────────────────────────────────
+【⑦速攻魔法】苍岚的急袭  frame=spell type_line(zh)=【速攻魔法】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 1/8，source=ir）
+①：以对方场上的1张卡为对象才能发动。把那张卡破坏。
+   · 注：魔法/陷阱没有「诱发即时效果」这一说法，已省略 (Quick Effect) 类时点措辞（速攻魔法/陷阱靠卡种获得 2 速）
+── ja（used=ja，行数估算 2/8，source=ir）
+①：相手フィールドのカード１枚を対象として発動できる。それを破壊する。
+   · 注：魔法/陷阱没有「诱发即时效果」这一说法，已省略 (Quick Effect) 类时点措辞（速攻魔法/陷阱靠卡种获得 2 速）
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+── en（used=en，行数估算 1/8，source=ir）
+① You can target 1 card your opponent controls; destroy it.
+   · 注：魔法/陷阱没有「诱发即时效果」这一说法，已省略 (Quick Effect) 类时点措辞（速攻魔法/陷阱靠卡种获得 2 速）
+   · 注：字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）
+
+──────────────────────────────────────────────────────────────────────────────
+【⑧反击陷阱】苍岚的反击  frame=trap type_line(zh)=【反击陷阱】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 2/8，source=ir）
+①：魔法·陷阱·怪兽的效果发动时，把这张卡丢弃才能发动。那个发动无效并破坏。
+── ja（used=ja，行数估算 2/8，source=ir）
+①：魔法・罠・モンスターの効果が発動した時、このカードを捨てて発動できる。その発動を無効にし破壊する。
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+── en（used=en，行数估算 2/8，source=ir）
+① When a Spell/Trap Card or effect is activated: You can discard this card; negate the activation, and if you do, destroy it.
+   · 注：字段名「苍岚」没有 en 译名（Archetype.name_i18n 可补）
+
+══════════════════════════════════════════════════════════════════════════════
+3. 24 段卡文跑 lint()，断言零 ERROR（生成器 ↔ 校验器一致性）
+══════════════════════════════════════════════════════════════════════════════
+
+【①通常怪兽】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ①通常怪兽：lint(spec) 零 ERROR
+
+【②效果怪兽·单效果】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ②效果怪兽·单效果：lint(spec) 零 ERROR
+
+【③双效果·卡名HOPT】lint(spec) → 1 条：ERROR 0 / WARN 0 / INFO 1
+   [INFO ] PSCT_TEXT_TOO_LONG           text_i18n.ja                 卡文长度超过文本框容量估算 —— 估算 8 行，已接近文本框容量 8 行
+  [PASS] ③双效果·卡名HOPT：lint(spec) 零 ERROR
+
+【④起动效果】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ④起动效果：lint(spec) 零 ERROR
+
+【⑤永续效果】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ⑤永续效果：lint(spec) 零 ERROR
+
+【⑥灵摆卡双文本】lint(spec) → 2 条：ERROR 0 / WARN 1 / INFO 1
+   [WARN ] PSCT_TEXT_TOO_LONG           pendulum_text_i18n.ja        卡文长度超过文本框容量估算 —— 估算 6 行，文本框约 5 行（每行约 30 全角字当量）
+   [INFO ] PSCT_TEXT_TOO_LONG           pendulum_text_i18n.zh_cn     卡文长度超过文本框容量估算 —— 估算 5 行，已接近文本框容量 5 行
+  [PASS] ⑥灵摆卡双文本：lint(spec) 零 ERROR
+
+【⑦速攻魔法】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ⑦速攻魔法：lint(spec) 零 ERROR
+
+【⑧反击陷阱】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ⑧反击陷阱：lint(spec) 零 ERROR
+  [PASS] ①通常怪兽/zh_cn：lint_text 零 ERROR
+  [PASS] ①通常怪兽/ja：lint_text 零 ERROR
+  [PASS] ①通常怪兽/en：lint_text 零 ERROR
+  [PASS] ②效果怪兽·单效果/zh_cn：lint_text 零 ERROR
+  [PASS] ②效果怪兽·单效果/ja：lint_text 零 ERROR
+  [PASS] ②效果怪兽·单效果/en：lint_text 零 ERROR
+  [PASS] ③双效果·卡名HOPT/zh_cn：lint_text 零 ERROR
+  [PASS] ③双效果·卡名HOPT/ja：lint_text 零 ERROR
+  [PASS] ③双效果·卡名HOPT/en：lint_text 零 ERROR
+  [PASS] ④起动效果/zh_cn：lint_text 零 ERROR
+  [PASS] ④起动效果/ja：lint_text 零 ERROR
+  [PASS] ④起动效果/en：lint_text 零 ERROR
+  [PASS] ⑤永续效果/zh_cn：lint_text 零 ERROR
+  [PASS] ⑤永续效果/ja：lint_text 零 ERROR
+  [PASS] ⑤永续效果/en：lint_text 零 ERROR
+  [PASS] ⑥灵摆卡双文本/zh_cn：lint_text 零 ERROR
+  [PASS] ⑥灵摆卡双文本/ja：lint_text 零 ERROR
+  [PASS] ⑥灵摆卡双文本/en：lint_text 零 ERROR
+  [PASS] ⑦速攻魔法/zh_cn：lint_text 零 ERROR
+  [PASS] ⑦速攻魔法/ja：lint_text 零 ERROR
+  [PASS] ⑦速攻魔法/en：lint_text 零 ERROR
+  [PASS] ⑧反击陷阱/zh_cn：lint_text 零 ERROR
+  [PASS] ⑧反击陷阱/ja：lint_text 零 ERROR
+  [PASS] ⑧反击陷阱/en：lint_text 零 ERROR
+
+══════════════════════════════════════════════════════════════════════════════
+4. 故意写错的卡文 → 断言 linter 报出对应 code
+══════════════════════════════════════════════════════════════════════════════
+
+【中文用了分号】期望 ERROR PSCT_PUNCT_CJK_SEMICOLON
+   文本：①：1回合1次，自己主要阶段才能发动；从卡组把1张「苍岚」卡加入手卡。
+   [ERROR] PSCT_PUNCT_CJK_SEMICOLON     中文/日文卡文出现「；」分号 —— 第 1 段出现「；」
+  [PASS] 中文用了分号：命中 PSCT_PUNCT_CJK_SEMICOLON
+
+【英文把 cost 写在分号之后】期望 ERROR PSCT_COST_AFTER_SEMI
+   文本：① Once per turn: You can target 1 monster you control; Tribute it, and if you do, draw 1 card.
+   [ERROR] PSCT_COST_AFTER_SEMI         代价（cost）写在分号之后 —— 第 1 段：分号之后出现「Tribute」
+  [PASS] 英文把 cost 写在分号之后：命中 PSCT_COST_AFTER_SEMI
+
+【编号跳号（①→③）】期望 ERROR PSCT_NUM_SEQUENCE
+   文本：①：自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡。 / ③：这张卡被破坏时才能发动。自己从卡组抽1张卡。
+   [ERROR] PSCT_NUM_SEQUENCE            效果编号不连续（跳号／未从①开始） —— 实际编号 ①③，应为 ①②
+   [ERROR] PSCT_HOPT_MISSING            检索／特殊召唤／抽卡类效果，全文没有任何回合限制 —— 命中的效果：「从卡组把1张「苍岚」卡加入手卡」
+  [PASS] 编号跳号（①→③）：命中 PSCT_NUM_SEQUENCE
+
+【检索没有回合限制】期望 ERROR PSCT_HOPT_MISSING
+   文本：①：自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡。
+   [ERROR] PSCT_HOPT_MISSING            检索／特殊召唤／抽卡类效果，全文没有任何回合限制 —— 命中的效果：「从卡组把1张「苍岚」卡加入手卡」
+  [PASS] 检索没有回合限制：命中 PSCT_HOPT_MISSING
+
+【中文里混入英文连接词】期望 ERROR PSCT_CONJ_FOREIGN_IN_CJK
+   文本：①：1回合1次，自己主要阶段才能发动。then 从卡组抽1张卡。
+   [ERROR] PSCT_CONJ_FOREIGN_IN_CJK     中文/日文卡文里出现英文连接词 —— 出现了英文连接词「then」
+  [PASS] 中文里混入英文连接词：命中 PSCT_CONJ_FOREIGN_IN_CJK
+
+【中文写取对象、英文没写】期望 ERROR PSCT_TARGET_MISSING_EN
+   文本：①：以对方场上的1张卡为对象才能发动。把那张卡破坏。
+   [ERROR] PSCT_TARGET_MISSING_EN       中文写了「以〜为对象」，英文却没有 target —— zh_cn 写了取对象，en 没有 target
+  [PASS] 中文写取对象、英文没写：命中 PSCT_TARGET_MISSING_EN
+
+【英文有 target、中文没写】期望 WARN PSCT_TARGET_MISSING_ZH
+   文本：①：1回合1次，自己主要阶段才能发动。把对方场上的1张卡破坏。
+   [WARN ] PSCT_TARGET_MISSING_ZH       英文有 target，中文却没写「以〜为对象」 —— en 有 target，zh_cn 没写「以…为对象」
+  [PASS] 英文有 target、中文没写：命中 PSCT_TARGET_MISSING_ZH
+
+【HOPT 写在条件之后（英文）】期望 WARN PSCT_HOPT_POSITION
+   文本：① You can target 1 card in your GY: Once per turn, add it to your hand.
+   [WARN ] PSCT_PUNCT_EN_MISSING_SEMI   英文出现代价或取对象，但没有「;」分隔效果处理 —— 第 1 段：① You can target 1 card in your GY: Once per tur…
+   [WARN ] PSCT_HOPT_POSITION           「1回合1次」写在发动条件之后（位置不对） —— 第 1 段：Once per turn 出现在冒号之后
+  [PASS] HOPT 写在条件之后（英文）：命中 PSCT_HOPT_POSITION
+
+【编号没在段首】期望 ERROR PSCT_NUM_MID_PARAGRAPH
+   文本：①：1回合1次，自己主要阶段才能发动。③：把对方场上的1张卡破坏。
+   [ERROR] PSCT_NUM_MID_PARAGRAPH       效果编号没有出现在段落起始 —— 「①：1回合1次，自己主要阶段才能发动。③：把对方场上的1张卡破坏。…」中的③未在段首
+  [PASS] 编号没在段首：命中 PSCT_NUM_MID_PARAGRAPH
+
+【民间误译（同调）】期望 WARN PSCT_FOLK_TERM
+   文本：①：1回合1次，自己主要阶段才能发动。把1只同调怪兽特殊召唤。
+   [WARN ] PSCT_FOLK_TERM               官方简中卡文里出现民间误译 —— 「同调」→ 官方写法「同步」
+  [PASS] 民间误译（同调）：命中 PSCT_FOLK_TERM
+
+【同一段里时/场合混用】期望 WARN PSCT_TIMING_MIXED
+   文本：①：自己场上有「苍岚」卡存在的场合，这张卡被破坏时才能发动。自己从卡组抽1张卡。
+   [ERROR] PSCT_HOPT_MISSING            检索／特殊召唤／抽卡类效果，全文没有任何回合限制 —— 命中的效果：「从卡组抽1张卡」
+   [WARN ] PSCT_TIMING_MIXED            同一段里「时」与「场合」混用（时点语义冲突） —— 第 1 段
+  [PASS] 同一段里时/场合混用：命中 PSCT_TIMING_MIXED
+
+【英文有两段结构却缺分号】期望 WARN PSCT_PUNCT_EN_MISSING_SEMI
+   文本：① Once per turn: You can target 1 card in your GY add it to your hand.
+   [WARN ] PSCT_PUNCT_EN_MISSING_SEMI   英文出现代价或取对象，但没有「;」分隔效果处理 —— 第 1 段：① Once per turn: You can target 1 card in your G…
+  [PASS] 英文有两段结构却缺分号：命中 PSCT_PUNCT_EN_MISSING_SEMI
+
+【中文用半角双引号】期望 WARN PSCT_QUOTE_STYLE
+   文本：①：1回合1次，自己主要阶段才能发动。从卡组把1张"苍岚"卡加入手卡。
+   [WARN ] PSCT_QUOTE_STYLE             字段／卡名引号用法与该语言不符 —— 中文/日文里出现了半角双引号 "…"
+  [PASS] 中文用半角双引号：命中 PSCT_QUOTE_STYLE
+
+【引用了卡名但没加引号】期望 WARN PSCT_NAME_UNQUOTED
+   文本：①：1回合1次，自己主要阶段才能发动。从卡组把1张苍岚的双刃龙加入手卡。
+   [WARN ] PSCT_NAME_UNQUOTED           引用了卡名／字段名但没加引号 —— 「苍岚的双刃龙」
+  [PASS] 引用了卡名但没加引号：命中 PSCT_NAME_UNQUOTED
+
+【卡文超出文本框容量】期望 WARN PSCT_TEXT_TOO_LONG
+   文本：①：1回合1次，自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡，那之后，把1张手卡送去墓地，并且自己从卡组抽1张卡，此外，直到回合结束时自己场上的怪兽的攻击力上升500。 / ②：这张卡被破坏的场合才能发动。从墓地把1只「苍岚」怪兽特殊召唤，那个场合，自己回复1000点LP，此外，那之后，把对方场上的1张卡破坏。 / ③：把这张卡解放才能发动。把对方场上的1张卡除外，并且自己抽1张卡。 / 这个卡名的①②的效果1回合各能使用1次。
+   [WARN ] PSCT_EFFECT_COUNT            单卡效果条数偏多 —— 共 3 条编号效果
+   [WARN ] PSCT_TEXT_TOO_LONG           卡文长度超过文本框容量估算 —— 估算 9 行，文本框约 8 行（每行约 30 全角字当量）
+  [PASS] 卡文超出文本框容量：命中 PSCT_TEXT_TOO_LONG
+
+【编号超过⑩】期望 WARN PSCT_NUM_BEYOND_TABLE
+   文本：①：自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡。 / ⑪：1回合1次，这张卡被破坏时才能发动。自己从卡组抽1张卡。
+   [ERROR] PSCT_NUM_SEQUENCE            效果编号不连续（跳号／未从①开始） —— 实际编号 ①⑪，应为 ①②
+   [WARN ] PSCT_NUM_BEYOND_TABLE        效果编号超过 ⑩（词表只收录到 ⑩） —— 最大编号 11
+   [INFO ] PSCT_HOPT_NAME_HINT          多效果卡只用了「1回合1次」（可被离场重置） —— 检测到「1回合1次」但没有卡名级限制
+  [PASS] 编号超过⑩：命中 PSCT_NUM_BEYOND_TABLE
+
+【反向对照】正文引用编号「这个卡名的③效果」不应触发 PSCT_NUM_MID_PARAGRAPH
+  [PASS] 引用编号不算段落起始违规（实得 []）
+
+【编号超过⑳】21 条编号效果
+   [ERROR] PSCT_NUM_OVERFLOW            效果编号超过 ⑳ —— 最大编号 21
+   [WARN ] PSCT_EFFECT_COUNT            单卡效果条数偏多 —— 共 21 条编号效果
+   [INFO ] PSCT_HOPT_NAME_HINT          多效果卡只用了「1回合1次」（可被离场重置） —— 检测到「1回合1次」但没有卡名级限制
+   [WARN ] PSCT_TEXT_TOO_LONG           卡文长度超过文本框容量估算 —— 估算 21 行，文本框约 8 行（每行约 30 全角字当量）
+  [PASS] 编号超过 ⑳ 报 ERROR（实得 ['PSCT_EFFECT_COUNT', 'PSCT_HOPT_NAME_HINT', 'PSCT_NUM_OVERFLOW', 'PSCT_TEXT_TOO_LONG']）
+
+══════════════════════════════════════════════════════════════════════════════
+5. 灵摆卡：pendulum_text_i18n 与 text_i18n 都非空且内容不同
+══════════════════════════════════════════════════════════════════════════════
+
+── zh_cn
+   怪兽效果框：①：只要这张卡在怪兽区域存在，自己场上的怪兽的攻击力上升300。 ⏎ ②：这张卡特殊召唤成功时才能发动。从卡组把1张「苍岚」卡加入手卡。 ⏎ 这个卡名的②的效果1回合只能使用1次。
+   灵摆效果框：①：自己主要阶段，支付800点LP才能发动。从卡组把1张「苍岚」卡特殊召唤。 ⏎ ②：结束阶段，以自己墓地的1张卡为对象发动。把那张卡回到卡组。 ⏎ 这个卡名的①的效果1回合只能使用1次。
+  [PASS] zh_cn：两个文本框都非空
+  [PASS] zh_cn：两个文本框内容不同
+
+── ja
+   怪兽效果框：①：このカードがモンスターゾーンに存在する限り、自分フィールドのモンスターの攻撃力は３００アップする。 ⏎ ②：このカードが特殊召喚に成功した時に発動できる。デッキから「苍岚」カード１枚を手札に加える。 ⏎ このカード名の②の効果は１ターンに１度しか使用できない。
+   灵摆效果框：①：自分メインフェイズに、８００ＬＰを払って発動できる。デッキから「苍岚」カード１枚を特殊召喚する。 ⏎ ②：エンドフェイズに、自分の墓地のカード１枚を対象として発動する。それをデッキに戻す。 ⏎ このカード名の①の効果は１ターンに１度しか使用できない。
+  [PASS] ja：两个文本框都非空
+  [PASS] ja：两个文本框内容不同
+
+── en
+   怪兽效果框：① While this card is face-up on the field, monsters you control gain 300 ATK. ⏎ ② When this card is Special Summoned: You can add 1 "苍岚" card from your Deck to your hand. ⏎ You can only use this effect of "Azure Gale Pendulum Dragon" once per turn.
+   灵摆效果框：① During your Main Phase: You can pay 800 LP; Special Summon 1 "苍岚" card from your Deck. ⏎ ② During the End Phase: target 1 card in your GY; return it to the Deck. ⏎ You can only use this effect of "Azure Gale Pendulum Dragon" once per turn.
+  [PASS] en：两个文本框都非空
+  [PASS] en：两个文本框内容不同
+  [PASS] pendulum_effect_indices 已设置（效果分流）
+
+══════════════════════════════════════════════════════════════════════════════
+6. type_line / st_label × 全部 frame × zh_cn/ja/en（人工核对格式）
+══════════════════════════════════════════════════════════════════════════════
+
+frame               zh_cn                       ja                              en
+normal              【魔法师族／暗属性／通常】               【魔法使い族／闇／通常】                    [Spellcaster / DARK / Normal]
+effect              【魔法师族／暗属性／效果】               【魔法使い族／闇／効果】                    [Spellcaster / DARK / Effect]
+ritual              【魔法师族／暗属性／仪式／效果】            【魔法使い族／闇／儀式／効果】                 [Spellcaster / DARK / Ritual / Effect]
+fusion              【魔法师族／暗属性／融合／效果】            【魔法使い族／闇／融合／効果】                 [Spellcaster / DARK / Fusion / Effect]
+synchro             【魔法师族／暗属性／同步／协调／效果】         【魔法使い族／闇／シンクロ／チューナー／効果】         [Spellcaster / DARK / Synchro / Tuner / Effect]
+xyz                 【魔法师族／暗属性／超量／效果】            【魔法使い族／闇／エクシーズ／効果】              [Spellcaster / DARK / Xyz / Effect]
+link                【魔法师族／暗属性／连接／效果】            【魔法使い族／闇／リンク／効果】                [Spellcaster / DARK / Link / Effect]
+pendulum            【魔法师族／暗属性／灵摆／效果】            【魔法使い族／闇／ペンデュラム／効果】             [Spellcaster / DARK / Pendulum / Effect]
+normal_pendulum     【魔法师族／暗属性／灵摆／通常】            【魔法使い族／闇／ペンデュラム／通常】             [Spellcaster / DARK / Pendulum / Normal]
+ritual_pendulum     【魔法师族／暗属性／灵摆／仪式／效果】         【魔法使い族／闇／ペンデュラム／儀式／効果】          [Spellcaster / DARK / Pendulum / Ritual / Effect]
+fusion_pendulum     【魔法师族／暗属性／灵摆／融合／效果】         【魔法使い族／闇／ペンデュラム／融合／効果】          [Spellcaster / DARK / Pendulum / Fusion / Effect]
+synchro_pendulum    【魔法师族／暗属性／灵摆／同步／效果】         【魔法使い族／闇／ペンデュラム／シンクロ／効果】        [Spellcaster / DARK / Pendulum / Synchro / Effect]
+xyz_pendulum        【魔法师族／暗属性／灵摆／超量／效果】         【魔法使い族／闇／ペンデュラム／エクシーズ／効果】       [Spellcaster / DARK / Pendulum / Xyz / Effect]
+spell               【速攻魔法】                      【速攻魔法】                          [Quick-Play Spell]
+trap                【反击陷阱】                      【カウンター罠】                        [Counter Trap]
+token               【魔法师族／暗属性／衍生物】              【魔法使い族／闇／トークン】                  [Spellcaster / DARK / Token]
+skill               【技能卡】                       【スキルカード】                        [Skill Card]
+  [PASS] 简中类型行 = 【龙族／炎属性／效果】（种族带「族」、全角斜杠）
+  [PASS] 日文类型行 = 【ドラゴン族／炎／効果】
+  [PASS] 英文类型行 = [Dragon / FIRE / Effect]
+  [PASS] 速攻魔法 = 【速攻魔法】
+  [PASS] 反击陷阱 = 【反击陷阱】
+  [PASS] 英文速攻 = [Quick-Play Spell]
+  [PASS] 魔陷没有怪兽类型行
+
+══════════════════════════════════════════════════════════════════════════════
+7. 缺口语言回落（ko）：不返回 None，且标明实际语言
+══════════════════════════════════════════════════════════════════════════════
+term_or_fallback('act_search', 'ko') = ('add ... from your Deck to your hand', 'en')
+  [PASS] ko 缺口回落到 en 并标明 used_lang='en'
+  [PASS] term() 对缺口语言不返回 None
+ko 缺口术语 44 条，逐条查 ko/xx/de 均无 None：True
+  [PASS] 44 条 ko 缺口术语全部有回落值（永不 None）
+
+compose_with_meta(spec, 'ko') → used_lang=en，degraded=True
+   reason: 没有 ko 的原生 PSCT 句式模板（术语覆盖率 79.3%），已降级到 en
+   text  : ① If you control a "苍岚" card, during your Main Phase: You can add 1 "苍岚" card from your Deck to your hand.
+  [PASS] ko 生成降级到 en 且在返回结构里标注了 used_lang/degraded/reason
+  [PASS] zh_tw 同样降级（未手写繁中句式，不硬造）
+
+══════════════════════════════════════════════════════════════════════════════
+8. HOPT 三种写法（与 psct_patterns.json 的 hopt 对应，必须区分）
+══════════════════════════════════════════════════════════════════════════════
+
+【once_per_turn（写进发动条件）】key=once_per_turn
+   zh_cn   1回合1次，
+   ja      １ターンに１度、
+   en      Once per turn:
+
+【hopt_name（段末另起一句，①/①②）】key=hopt_name_use
+   zh_cn   这个卡名的①②的效果1回合各能使用1次。
+   ja      このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。
+   en      You can only use each effect of "样本卡" once per turn.
+
+【hopt_name（单数：只限制①）】key=hopt_name_this
+   zh_cn   这个卡名的①的效果1回合只能使用1次。
+   ja      このカード名の①の効果は１ターンに１度しか使用できない。
+   en      You can only use this effect of "样本卡" once per turn.
+
+【hopt_name_activate（怪兽）】key=hopt_name_activate_monster
+   zh_cn   这个卡名的效果1回合只能发动1次。
+   ja      このカード名の効果は１ターンに１度しか発動できない。
+   en      You can only activate this effect of "样本卡" once per turn.
+
+【hopt_name_activate（魔陷）】key=hopt_name_activate
+   zh_cn   「样本卡」1回合只能发动1张。
+   ja      「样本卡」は１ターンに１枚しか発動できない。
+   en      You can only activate 1 "样本卡" per turn.
+
+【hopt_name_apply（决斗中1次）】key=hopt_name_apply
+   zh_cn   这个卡名的效果1场决斗中只能适用1次。
+   ja      このカード名の効果はデュエル中に１度しか適用できない。
+   en      You can only apply this effect of "样本卡" once per Duel.
+
+【hopt_gain_effect_once】key=hopt_gain_effect_once
+   zh_cn   （这个效果1回合只能获得1次。）
+   ja      （この効果は１ターンに１度しか得られない。）
+   en      (You can only gain this effect once per turn.)
+
+【hopt_once_while_face_up】key=hopt_once_while_face_up
+   zh_cn   这张卡在怪兽区域表侧表示存在的场合，1次…
+   ja      このカードがモンスターゾーンに表側表示で存在する場合に１度、…
+   en      Once while face-up on the field: ...
+  [PASS] once_per_turn 的中文写法是「1回合1次，」（写在发动条件里）
+  [PASS] hopt_name 用「① ② 各能使用1次」复数句式
+  [PASS] 单效果限制用「只能使用1次」单数句式
+  [PASS] 怪兽的 activate 档写「这个卡名的效果1回合只能发动1次」
+  [PASS] 魔陷的 activate 档写「「X」1回合只能发动1张」（官方句式）
+
+══════════════════════════════════════════════════════════════════════════════
+9. data/lexicons/ 缺失时的内置兜底表（子进程实测）
+══════════════════════════════════════════════════════════════════════════════
+   CARDFORGE_DATA = D:\游戏王DIY设计\_probe\psct\_no_such_data
+   DATA 存在？False
+   lexicon.available() = False
+   sources = {'terms': '内置兜底表（不可读（FileNotFoundError））', 'terms_meta': {}, 'patterns': '内置兜底表（不可读（FileNotFoundError））'}
+   内置兜底术语条数 = 208
+     act_search               从卡组把…加入手卡 | デッキから…手札に加える | add ... from your Deck to your hand
+     race_dragon              龙族 | ドラゴン | Dragon
+     attr_dark                暗属性 | 闇 | DARK
+     zone_graveyard           墓地 | 墓地 | Graveyard
+     psct_then                那之后 | その後 | then
+     psct_hopt_name_each      这个卡名的①②的效果1回合各能使用1次。 | このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。 | You can only use each effect of "X" once per turn.
+   ko 回落 = ('add ... from your Deck to your hand', 'en')
+   conjunction('then','ja') = その後
+   hopt('hopt_name_use','zh_cn') = 这个卡名的①②的效果1回合各能使用1次。
+   ── zh_cn（used=zh_cn，source=monster）
+   ①：这张卡召唤成功时才能发动。从卡组把1只龙族怪兽加入手卡。
+   这个卡名的①的效果1回合只能使用1次。
+   ── ja（used=ja，source=monster）
+   ①：このカードが召喚に成功した時に発動できる。デッキからドラゴン族モンスター１体を手札に加える。
+   このカード名の①の効果は１ターンに１度しか使用できない。
+   ── en（used=en，source=monster）
+   ① When this card is Normal Summoned: You can add 1 Dragon monster from your Deck to your hand.
+   You can only use this effect of "Fallback Dragon" once per turn.
+   类型行 = 【龙族／炎属性／效果】 | 【ドラゴン族／炎／効果】 | [Dragon / FIRE / Effect]
+   RESULT: OK（无 data/lexicons 也能生成三语卡文）
+  [PASS] 无 data/lexicons 时三语卡文仍可生成（内置兜底表生效）
+  [PASS] 兜底表覆盖 208 条核心术语
+
+══════════════════════════════════════════════════════════════════════════════
+汇总：78/78 项断言通过
+══════════════════════════════════════════════════════════════════════════════
+  全部通过。

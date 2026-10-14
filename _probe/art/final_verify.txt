@@ -1,0 +1,92 @@
+==============================================================================
+最终验证（全部公开入口）
+==============================================================================
+包重导出 : ArtRequest, ArtResult, ComfyClient, Graph, ModelProfile, PROFILES, art_size_for, by_key, capabilities, client, detect, export_workflow, generate, generate_series, graph, library, presets, profiles, prompt, run
+
+--- 公开签名 ---
+  profiles.ModelProfile(key: 'str', zh: 'str', match: 'tuple[str, ...]', steps: 'int', cfg: 'float', sampler: 'str', scheduler: 'str', width: 'int', height: 'int', clip_s...
+  profiles.detect(available_models: 'dict') -> 'ModelProfile'
+  profiles.by_key(key: 'str') -> 'ModelProfile | None'
+  profiles.art_size_for(frame: 'str', profile: 'ModelProfile', width: 'int' = 0, height: 'int' = 0) -> 'tuple[int, int]'
+  client.ComfyClient.__init__(self, host: 'str' = 'http://127.0.0.1:8188', timeout: 'int' = 600, client_id: 'str | None' = None) -> 'None'
+  client.ComfyClient.queue(self, prompt: 'dict', client_id: 'str | None' = None, extra_data: 'dict | None' = None, front: 'bool' = False) -> 'str'
+  client.ComfyClient.wait(self, prompt_id: 'str', on_progress=None, timeout: 'int' = 900, interval: 'float' = 1.5) -> 'dict'
+  client.ComfyClient.view(self, filename: 'str', subfolder: 'str' = '', type_: 'str' = 'output') -> 'bytes'
+  client.ComfyClient.upload(self, path: 'str | os.PathLike', subfolder: 'str' = 'CardForge', overwrite: 'bool' = True) -> 'dict'
+  client.ComfyClient.free(self, unload_models: 'bool' = False, free_memory: 'bool' = True) -> 'None'
+  graph.Graph.add(self, class_type: 'str', *, _title: 'str' = '', _pos: 'tuple | None' = None, **inputs) -> 'str'
+  graph.Graph.link(self, node: 'str', input_name: 'str', src: 'str', slot: 'int' = 0) -> 'None'
+  graph.Graph.to_api(self) -> 'dict'
+  graph.Graph.to_ui(self, meta: 'dict | None' = None, *, version: 'float' = 0.4) -> 'dict'
+  graph.build_t2i(*, profile: 'ModelProfile', ckpt_or_unet: 'str', clip: 'str' = '', vae: 'str' = '', positive: 'str', negative: 'str', width: 'int', height: 'int',...
+  graph.build_upscale(*, graph_or_image, upscale_model: 'str', target: 'tuple[int, int]', method: 'str' = 'lanczos', save_prefix: 'str' = 'cardforge/art', available: 's...
+  graph.build_remove_bg(*, image, model: 'str' = '', node: 'str' = '', save_prefix: 'str' = 'cardforge/art', available: 'set[str] | None' = None, schemas: 'dict | None' =...
+  prompt.build(req: 'ArtRequest', spec: 'CardSpec | None', profile: 'ModelProfile', arch: 'Archetype | None' = None) -> 'dict'
+  prompt.zh_to_tags(style_zh: 'str') -> 'list[str]'
+  presets.preset(key: 'str') -> 'dict'
+  library.save(card_id: 'int', img_or_bytes, meta: 'dict', archetype: 'str' = '') -> 'dict'
+  library.compare(card_id: 'int', a: 'int', b: 'int', archetype: 'str' = '') -> 'dict'
+  run.generate(req: 'ArtRequest', card: 'CardSpec | None' = None, on_progress=None, *, host: 'str' = 'http://127.0.0.1:8188', client: 'ComfyClient | None' = None...
+  run.generate_series(arch: 'Archetype', cards: 'list[CardSpec]', base: 'ArtRequest', on_progress=None, *, host: 'str' = 'http://127.0.0.1:8188', client: 'ComfyClient |...
+  run.export_workflow(preset: 'str', path: 'str', *, profile: 'str' = 'auto', spec: 'CardSpec | None' = None, host: 'str' = 'http://127.0.0.1:8188', request: 'ArtReques...
+  run.capabilities(host: 'str' = 'http://127.0.0.1:8188') -> 'dict'
+
+SERIES_STYLE_KEY = series_style
+PROFILES 档案数 = 8 -> ['krea2', 'qwen_image', 'illustrious', 'noobai', 'animagine', 'pony', 'sdxl', 'sd15']
+PRESETS 预设数 = 8 -> ['t2i_single', 't2i_series', 'style_ref', 'ipadapter_consistency', 'character_sheet', 'upscale', 'remove_bg', 'inpaint_edit']
+ZH_TAGS 词条数 = 578
+CONTROL_AFTER = ['noise_seed', 'seed']
+
+--- 预设可用性（by_capability）---
+  t2i_single             available=True  可用
+  t2i_series             available=True  可用
+  style_ref              available=True  可用
+  ipadapter_consistency  available=False 本机没有 CLIP Vision 模型（models/clip_vision/ 为空）
+  character_sheet        available=True  可用
+  upscale                available=True  可用
+  remove_bg              available=True  可用
+  inpaint_edit           available=True  可用
+
+--- Graph 往返 / 指纹 ---
+dry_run ok = True | images = [] | 节点数 = 15
+离线（无 schemas）widgets_values: [42, "fixed"]
+离线 ui_to_api 还原: {"1": {"class_type": "UNETLoader", "inputs": {"unet_name": "x.safetensors", "weight_dtype": "default"}}, "2": {"class_type": "RandomNoise", "inputs": {"noise_seed": 42}}}
+指纹（seed=1）      = a7a736a03fbd6964
+指纹（seed=999999） = a7a736a03fbd6964  -> 忽略 seed，一致? True
+指纹（不同节点）    = 24043eec3eda2049  -> 与上面不同? True
+
+--- 全部预设 export_workflow ---
+  t2i_single             OK  节点= 15 links= 16 version=0.4 自检=通过
+  t2i_series             OK  节点= 15 links= 16 version=0.4 自检=通过
+  style_ref              OK  节点= 18 links= 20 version=0.4 自检=通过
+  ipadapter_consistency  失败 ComfyError: IPAdapter 不适用于 krea2（krea2）链路 | hint=IPAdapter 是 SD1.5 / SDXL 的 UNet cross-attention 补丁，Krea 2 / Qwen-Image 这类 DiT + 流匹配模型没有对应的 IPAdapter 权重。要统一画风请改用：① krea2 的画
+  character_sheet        OK  节点= 15 links= 16 version=0.4 自检=通过
+  upscale                OK  节点=  5 links=  4 version=0.4 自检=通过
+  remove_bg              OK  节点=  8 links=  8 version=0.4 自检=通过
+  inpaint_edit           OK  节点= 20 links= 26 version=0.4 自检=通过
+
+--- 生成的 README ---
+  README_character_sheet.md            5583 bytes
+  README_inpaint_edit.md               6986 bytes
+  README_remove_bg.md                  6583 bytes
+  README_style_ref.md                  7034 bytes
+  README_t2i_series.md                 6615 bytes
+  README_t2i_single.md                 6650 bytes
+  README_upscale.md                    6607 bytes
+
+--- 资产库 workspace/pics/art ---
+   {"archetype": "_probe_perf", "card_id": 970061, "versions": 2, "version": 2}
+   {"archetype": "_probe_removebg", "card_id": 970022, "versions": 1, "version": 1}
+   {"archetype": "_probe_upscale", "card_id": 970021, "versions": 1, "version": 1}
+   {"archetype": "_probe_烬霞", "card_id": 970001, "versions": 6, "version": 6}
+   {"archetype": "_probe_烬霞", "card_id": 970011, "versions": 1, "version": 1}
+   {"archetype": "_probe_烬霞", "card_id": 970012, "versions": 1, "version": 1}
+
+--- 六类错误的 hint 是否中文 ---
+  offline        中文? True  ComfyUI 没在跑或端口不通。请先启动它，再重试：（本机）D:\AI\ComfyUI-aki-v3.2\python\python.ex...
+  node_missing   中文? True  工作流用到了本机 ComfyUI 没有的节点（多半是自定义节点插件没装）。处理办法：① 在 ComfyUI Manager 里装对应插件后重...
+  model_missing  中文? True  模型文件名不在 ComfyUI 的候选列表里（改名/移走/放错目录）。处理办法：调用 client.models() 打印本机实际可用清单，...
+  oom            中文? True  显存不足。按这个顺序试：① 降画布（1536→1152→1024）；② 去掉大 LoRA（krea2_kroma_v031_turbo_op...
+  timeout        中文? True  等待超时。先看 client.queue_depth()：若队列里堆了别的任务，等它跑完再提交；若确实卡死，调 client.interru...
+  bad_prompt     中文? True  提交的工作流本身不合法（参数缺失/类型不对/连线指向不存在的节点）。这一步**重试无用**。请按 node_errors 里指出的节点与参数...
+  unknown        中文? True  未归类的 ComfyUI 错误，请把 detail 里的原始报文一起提交以便定位。...

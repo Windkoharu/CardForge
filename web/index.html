@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CardForge 卡锻 2.0 · 游戏王 DIY 工坊</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23241f18'/><path d='M8 21 L16 7 L24 21 Z' fill='none' stroke='%23c9a227' stroke-width='2.2'/></svg>">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/aria.css">
+</head>
+<body>
+
+<!-- ══════════════ 顶栏：能力层级 + 质量门 + 当前卡 ══════════════ -->
+<header class="topbar" id="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">
+      <b>卡锻</b><i>CardForge 2.0</i>
+    </span>
+  </div>
+
+  <nav class="stages" id="stages" aria-label="流程导航">
+    <button class="stage-tab is-active" data-stage="spec">
+      <span class="stage-no">1</span><span class="stage-zh">规格</span>
+      <span class="stage-hint">卡种 · 数值 · 效果</span>
+    </button>
+    <button class="stage-tab" data-stage="text">
+      <span class="stage-no">2</span><span class="stage-zh">卡文 · 脚本</span>
+      <span class="stage-hint">PSCT · Lua</span>
+    </button>
+    <button class="stage-tab" data-stage="art">
+      <span class="stage-no">3</span><span class="stage-zh">卡图 · 卡面</span>
+      <span class="stage-hint">出图 · 罕贵 · 出框</span>
+    </button>
+    <button class="stage-tab" data-stage="pack">
+      <span class="stage-no">4</span><span class="stage-zh">上桌</span>
+      <span class="stage-hint">导出 · 自检 · 安装</span>
+    </button>
+  </nav>
+
+  <div class="gates" id="gates" aria-label="质量门状态"></div>
+
+  <div class="levels" id="levels" title="四层能力：缺哪层降哪层，没有一层会阻断主流程"></div>
+
+  <span class="llm-chip" id="llm-chip" title="当前接入的大模型">检测中…</span>
+
+  <button class="ghost-btn" id="btn-settings" title="大模型接入 —— 配模型、切模型、试连">
+    <span class="btn-glyph" aria-hidden="true">⚙</span>模型
+  </button>
+
+  <button class="ghost-btn" id="btn-archetypes" title="系列圣经 —— G4 的审计对象">
+    <span class="btn-glyph" aria-hidden="true">⌘</span>系列
+  </button>
+
+  <button class="ghost-btn" id="btn-assistant" title="星奏·艾莉娅 —— 打个招呼">
+    <img class="btn-avatar" src="assets/aria/aria_avatar.png" alt="">艾莉娅
+  </button>
+</header>
+
+<!-- ══════════════ 主体：左卡片列表 / 中工作区 / 右抽屉 ══════════════ -->
+<main class="layout">
+
+  <aside class="rail" id="rail">
+    <div class="rail-head">
+      <strong>工作区</strong>
+      <button class="mini-btn" id="btn-new-card" title="新建一张卡">+ 新卡</button>
+    </div>
+    <div class="rail-search">
+      <input type="search" id="card-search" placeholder="筛卡名 / 卡号 / 系列" autocomplete="off">
+    </div>
+    <ul class="card-list" id="card-list" role="listbox" aria-label="卡片列表"></ul>
+    <div class="rail-foot" id="rail-foot"></div>
+  </aside>
+
+  <section class="workspace" id="workspace">
+
+    <!-- ─────────── 欢迎态 · 工坊大门（列表为空时显示）─────────── -->
+    <div class="studio-hero" id="studio-hero" hidden>
+      <img class="hero-banner" src="assets/aria/aria_banner.png" alt="卡锻工坊的深夜工作室">
+      <div class="hero-shade"></div>
+      <div class="hero-copy">
+        <h1>卡锻工坊<small>CARDFORGE 2.0</small></h1>
+        <p>把「一句话设想」锻成<b>能上牌桌的卡</b>。<br>
+          四步流水线：规格 → 卡文·脚本 → 卡图·卡面 → 上桌，
+          每一步都有确定性质量门把守。</p>
+        <p class="hero-quote">「判断归铁律，修辞归我。」<br>
+          <span style="color:var(--ink-faint);font-size:11.5px;">—— 星奏·艾莉娅，工坊的星奏向导</span></p>
+        <div class="hero-actions">
+          <button class="primary-btn" id="hero-new">锻造第一张卡</button>
+          <button class="ghost-btn" id="hero-guide">让艾莉娅带我一圈</button>
+        </div>
+        <p class="hero-note">右边就是她 —— 她只翻译质量门的结论，从不替你做判断。</p>
+      </div>
+      <span class="hero-who">forge spirit · aria</span>
+    </div>
+
+    <!-- ─────────── 阶段 1 · 规格 ─────────── -->
+    <div class="stage-panel is-active" data-stage="spec">
+      <div class="panel-grid">
+        <div class="col-main">
+          <fieldset class="block">
+            <legend>基本信息</legend>
+            <div class="form-grid" id="f-basic"></div>
+          </fieldset>
+          <fieldset class="block" id="b-monster">
+            <legend>怪兽数值</legend>
+            <div class="form-grid" id="f-monster"></div>
+            <div class="marker-grid" id="f-markers"></div>
+          </fieldset>
+          <fieldset class="block" id="b-spell">
+            <legend>魔法 / 陷阱</legend>
+            <div class="form-grid" id="f-spell"></div>
+          </fieldset>
+          <fieldset class="block">
+            <legend>归属</legend>
+            <div class="form-grid" id="f-belong"></div>
+          </fieldset>
+          <fieldset class="block block-wide">
+            <legend>效果 <span class="count-badge" id="eff-count">0</span>
+              <button class="mini-btn" id="btn-add-effect" type="button">+ 添加效果</button>
+              <button class="mini-btn alt" id="btn-infer-effect" type="button"
+                      title="从已有卡文反推结构化效果（纯规则推断，不依赖大模型）">从卡文推断</button>
+            </legend>
+            <div id="f-effects" class="effects"></div>
+          </fieldset>
+        </div>
+
+        <div class="col-side">
+          <div class="preview-card">
+            <img id="preview-img" alt="卡面实时预览" width="360">
+            <p class="preview-tag" id="preview-tag">矢量预览</p>
+          </div>
+          <div class="side-actions">
+            <button class="primary-btn" id="btn-save">保存规格</button>
+            <button class="ghost-btn" id="btn-preview-now">刷新预览</button>
+          </div>
+          <div class="notice" id="spec-notice"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── 阶段 2 · 卡文 + 脚本 ─────────── -->
+    <div class="stage-panel" data-stage="text">
+      <div class="split">
+        <section class="pane">
+          <header class="pane-head">
+            <h3>PSCT 卡文</h3>
+            <div class="inline-tools">
+              <span class="lbl"><span>语言</span></span>
+              <div class="chips" id="text-lang"></div>
+              <button class="mini-btn" id="btn-ai-draft"
+                title="按概念描述让大模型起草卡文草稿；草稿只是提议，问题清单由内核校验器确定性给出">AI 起草</button>
+              <button class="mini-btn" id="btn-compose">生成</button>
+              <button class="mini-btn" id="btn-lint-text">校验</button>
+              <button class="mini-btn alt" id="btn-write-text">写回规格</button>
+            </div>
+          </header>
+          <div class="pane-body">
+            <textarea id="text-editor" spellcheck="false"
+              placeholder="点「生成」由结构化效果产出规范卡文；也可以直接在这里手写。"></textarea>
+            <p class="footnote">
+              卡文是效果的<b>投影</b>：改效果定义再生成，比直接改文本更可靠。
+              手写内容会原样进卡面与 cdb，并同样接受校验。
+            </p>
+          </div>
+          <div class="issue-bar" id="text-issues"></div>
+        </section>
+
+        <section class="pane">
+          <header class="pane-head">
+            <h3>Lua 脚本</h3>
+            <div class="inline-tools">
+              <button class="mini-btn" id="btn-emit">生成脚本</button>
+              <button class="mini-btn" id="btn-lint-lua">静态检查</button>
+              <button class="mini-btn alt" id="btn-write-lua">写入工作区</button>
+            </div>
+          </header>
+          <div class="pane-body">
+            <pre id="lua-view" class="code-view" spellcheck="false">// 还没有脚本</pre>
+            <p class="footnote">
+              脚本与卡文<b>同源</b>：都是效果 IR 的确定性投影，不做自然语言直译。
+              生成不了的效果会写成 <code>-- 需人工补写</code> 注释而不是瞎编 API。
+            </p>
+          </div>
+          <div class="issue-bar" id="lua-issues"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ─────────── 阶段 3 · 卡图 + 卡面 ─────────── -->
+    <div class="stage-panel" data-stage="art">
+      <div class="split">
+        <section class="pane">
+          <header class="pane-head">
+            <h3>卡图生成（本机 ComfyUI）</h3>
+            <div class="inline-tools">
+              <span class="chip" id="comfy-chip">检测中…</span>
+              <button class="mini-btn" id="btn-dryrun">预览工作流</button>
+              <button class="mini-btn primary" id="btn-generate">开始出图</button>
+              <button class="mini-btn danger" id="btn-interrupt">打断</button>
+            </div>
+          </header>
+          <div class="pane-body">
+            <div class="form-grid" id="f-art"></div>
+            <div class="job-progress" id="art-progress" hidden>
+              <div class="bar"><i id="art-bar"></i></div>
+              <span id="art-msg"></span>
+            </div>
+            <div class="art-strip" id="art-strip"></div>
+          </div>
+        </section>
+
+        <section class="pane">
+          <header class="pane-head">
+            <h3>卡面合成</h3>
+            <div class="inline-tools">
+              <select id="export-size" class="mini-select" title="导出尺寸">
+                <option value="edopro">EDOPro 421×614</option>
+                <option value="mdpro3">MDPro3 704×1024</option>
+                <option value="share">分享 813×1185</option>
+                <option value="print300">印刷 300dpi 697×1016</option>
+                <option value="print">印刷 600dpi 1394×2031</option>
+                <option value="archive">存档 2787×4063</option>
+              </select>
+              <select id="export-fmt" class="mini-select" title="导出格式">
+                <option value="jpg">JPG</option>
+                <option value="png">PNG</option>
+                <option value="webp">WebP</option>
+              </select>
+              <button class="mini-btn" id="btn-render">重新渲染</button>
+              <button class="mini-btn primary" id="btn-export-card">直接导出卡面</button>
+              <button class="mini-btn alt" id="btn-export-pics">导出全部尺寸</button>
+            </div>
+          </header>
+          <div class="pane-body">
+            <div class="render-stage">
+              <img id="art-preview-img" alt="卡面">
+            </div>
+            <div class="form-grid" id="f-render"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ─────────── 阶段 4 · 上桌 ─────────── -->
+    <div class="stage-panel" data-stage="pack">
+      <div class="target-bar" id="target-bar">
+        <span class="tb-label">上桌目标</span>
+        <button class="tb-btn is-active" data-target="edopro">EDOPro（expansions 包）</button>
+        <button class="tb-btn" data-target="mdpro3">MDPro3 / MDPro4（.ypk 卡包）</button>
+        <span class="tb-note" id="tb-note"></span>
+      </div>
+
+      <div class="split target-pane" data-target="edopro">
+        <section class="pane">
+          <header class="pane-head">
+            <h3>导出 EDOPro 扩展包</h3>
+            <div class="inline-tools">
+              <select id="pack-scope"></select>
+              <button class="mini-btn" id="btn-build">构建</button>
+              <button class="mini-btn" id="btn-verify">自检</button>
+            </div>
+          </header>
+          <div class="pane-body">
+            <div class="form-grid" id="f-pack"></div>
+            <pre class="code-view small" id="pack-tree">还没有导出包</pre>
+          </div>
+        </section>
+
+        <section class="pane">
+          <header class="pane-head">
+            <h3>安装到 EDOPro</h3>
+            <div class="inline-tools">
+              <select id="edopro-target"></select>
+              <button class="mini-btn" id="btn-dryinstall">预演</button>
+              <button class="mini-btn primary danger" id="btn-install">真安装</button>
+            </div>
+          </header>
+          <div class="pane-body">
+            <div class="notice" id="install-notice">
+              安装前一定先「预演」。真安装会备份同名文件到
+              <code>.cardforge_backup/</code>，可回退。
+            </div>
+            <pre class="code-view small" id="install-view">—</pre>
+          </div>
+          <div class="issue-bar" id="pack-issues"></div>
+        </section>
+      </div>
+
+      <div class="split target-pane" data-target="mdpro3" hidden>
+        <section class="pane">
+          <header class="pane-head">
+            <h3>打包 MDPro3 / MDPro4 卡包（.ypk）</h3>
+            <div class="inline-tools">
+              <select id="md-scope"></select>
+              <button class="mini-btn" id="btn-md-build">生成 .ypk</button>
+              <button class="mini-btn alt" id="btn-md-detect">重新探测客户端</button>
+            </div>
+          </header>
+          <div class="pane-body">
+            <div class="notice" id="md-client-notice">正在探测本机 MDPro3…</div>
+            <div class="form-grid" id="f-md"></div>
+            <pre class="code-view small" id="md-view">还没有生成 .ypk</pre>
+          </div>
+          <div class="issue-bar" id="md-issues"></div>
+        </section>
+
+        <section class="pane">
+          <header class="pane-head"><h3>怎么装进游戏</h3></header>
+          <div class="pane-body">
+            <ol class="steps">
+              <li>上一步点<b>「生成 .ypk」</b>，文件会出现在
+                <code>workspace/out/</code>，页面里也会给出下载链接。</li>
+              <li>打开 <b>MDPro3</b> → <b>游戏设置</b> → <b>导入导出</b> → <b>导入</b>。</li>
+              <li>文件类型选<b>「扩展卡文件」</b>，选中刚才那个 <code>.ypk</code>，
+                看到「导入扩展卡文件……成功」即可。</li>
+              <li>回<b>游戏设置 → 扩展卡包</b>，确认<b>「启用扩展卡」</b>是开的。</li>
+              <li>编辑卡组时按<b>卡号</b>或<b>「Custom」筛选</b>就能找到你的卡。</li>
+            </ol>
+            <div class="notice warn">
+              <b>为什么界面不直接写进 MDPro3 目录？</b><br>
+              MDPro3 的脚本装在 <code>Data/script.zip</code>、卡池在
+              <code>Data/locales/*/cards.cdb</code>，而这两个都会被游戏里的
+              <b>「更新先行卡」整体覆盖</b>。写进去等于放在一条会被冲掉的路径上，
+              而且改动官方卡池不可逆。走 <code>.ypk</code> 是客户端自己的正路：
+              一次点击导入，<b>「清空扩展卡」</b>可以整体回退。
+            </div>
+            <div class="notice">
+              卡号说明：CardForge 默认发 <code>210000000</code> 以上的号。
+              本机官方池最大约 <code>9999 万</code>，<b>不会撞号</b>；
+              生成时还会拿客户端的官方卡池再核一遍，撞了会直接拦住并告诉你哪张。
+            </div>
+            <div class="notice" id="md-result-notice">（还没生成过）</div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════ 星奏·艾莉娅 · 立绘陪伴栏 ══════════════ -->
+  <aside class="companion" id="companion" aria-label="星奏·艾莉娅">
+    <div class="aria-stage">
+      <div class="aria-bubble" id="aria-bubble" hidden data-state="guide">
+        <span class="who">星奏·艾莉娅<span class="state-chip" id="aria-chip">引导</span></span>
+        <div id="aria-bubble-text"></div>
+        <button class="close" id="aria-bubble-close" title="收起这句话">✕</button>
+      </div>
+      <div class="aria-body">
+        <div class="aria-figure" id="aria-figure" tabindex="0" role="button"
+             title="点我：展开完整对话（判断归质量门，聊天归我）">
+          <img class="aria-img" id="aria-img-a" src="assets/aria/aria_guide.png"
+               alt="星奏·艾莉娅 · 引导">
+          <img class="aria-img" id="aria-img-b" alt="星奏·艾莉娅">
+        </div>
+      </div>
+    </div>
+    <div class="aria-quick" id="aria-quick">
+      <button data-ask="这张卡的打点合不合理？">打点合理吗</button>
+      <button data-ask="刚才的质量门结论是什么意思？">解释质量门</button>
+      <button data-ask="下一步做什么？">下一步干嘛</button>
+      <button data-ask="帮我看一下这张卡的整体设计。">看整体设计</button>
+    </div>
+    <div class="aria-foot">
+      <div class="aria-persona" id="aria-persona"></div>
+      <button class="aria-open" id="aria-open">完整对话</button>
+    </div>
+  </aside>
+</main>
+
+<!-- ══════════════ 艾莉娅抽屉（完整对话）══════════════ -->
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header class="drawer-head">
+    <img class="head-avatar" src="assets/aria/aria_avatar.png" alt="">
+    <div class="head-text">
+      <strong id="assistant-name">星奏·艾莉娅</strong>
+      <span class="prov-chip" id="prov-chip">检测中</span>
+    </div>
+    <button class="mini-btn" id="btn-clear-chat" title="清空当前人格的对话记录">清空</button>
+    <button class="mini-btn" id="btn-close-drawer" aria-label="关闭">✕</button>
+  </header>
+  <div class="persona-row" id="persona-row"></div>
+  <div class="chat-log" id="chat-log"></div>
+  <div class="chat-suggest" id="chat-suggest">
+    <button data-ask="这张卡的打点合不合理？">打点合理吗</button>
+    <button data-ask="刚才的质量门结论是什么意思？">解释质量门</button>
+    <button data-ask="这个系列还缺什么卡？">系列缺什么</button>
+    <button data-ask="怎么把卡导入 EDOPro？">怎么上桌</button>
+  </div>
+  <form class="chat-input" id="chat-form">
+    <input id="chat-text" placeholder="问艾莉娅…（Enter 发送）" autocomplete="off">
+    <button type="submit" title="发送（Enter）">发送</button>
+  </form>
+</aside>
+
+<!-- ══════════════ 浮层 ══════════════ -->
+<div class="toast-stack" id="toasts" role="status" aria-live="polite"></div>
+<div class="modal-backdrop" id="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <header id="modal-title"></header>
+    <div id="modal-body"></div>
+    <footer id="modal-foot"></footer>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+frag_to_hand                     search, search_grave, recover, search_banished
+frag_special_summon              ssummon, ssummon_deck, ssummon_hand, ssummon_grave, ssummon_extra, ssummon_banished
+frag_special_summon_token        ssummon_token
+frag_draw                        draw
+frag_mill                        mill
+frag_excavate                    excavate
+frag_discard_opponent            discard_opponent
+frag_destroy                     destroy
+frag_destroy_all                 destroy_all
+frag_banish                      banish, banish_face_down
+frag_send_grave                  send_grave
+frag_return_hand                 return_hand
+frag_return_deck                 return_deck, shuffle_deck
+frag_set                         set_from_deck
+frag_negate                      negate, negate_effect
+frag_static                      cannot_activate, direct_attack, piercing, cannot_attack, cannot_be_destroyed, unaffected, cannot_be_targeted, continuous_gain_atk
+frag_stat_change                 gain_atk, lose_atk, set_atk, gain_def, set_def
+frag_change_position             change_position
+frag_take_control                take_control
+frag_counter                     place_counter
+frag_lp                          lp_damage, lp_gain
+(空=靠卡种骨架)                        fusion_summon, synchro_summon, xyz_summon, link_summon, ritual_summon, pendulum_summon, extra_normal_summon
+frag_name_alias                  copy_name, treat_as_card
+frag_rule_text                   cannot_special_summon, cannot_normal_summon, must_first_ssummon
+TOTAL KINDS 56

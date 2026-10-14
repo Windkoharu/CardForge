@@ -1,0 +1,40 @@
+{
+  "name": "星奏",
+  "setcode": "0x1000",
+  "concept": "音律与星辰的演奏者，以奏鸣构筑场面",
+  "win_method": "BATTLE",
+  "trumps": [
+    "MAIN"
+  ],
+  "roster": [
+    {
+      "role": "starter",
+      "count": 2,
+      "brief": "零前置条件即可启动，检索或特召本家"
+    },
+    {
+      "role": "extender",
+      "count": 2,
+      "brief": "被干扰后仍能继续接，墓地/手卡特召"
+    },
+    {
+      "role": "trump",
+      "count": 2,
+      "brief": "终端，具备压制或斩杀能力"
+    },
+    {
+      "role": "support",
+      "count": 4,
+      "brief": "本家魔法/陷阱，检索与干扰"
+    },
+    {
+      "role": "recovery",
+      "count": 2,
+      "brief": "从墓地/除外区回手，闭合资源循环"
+    }
+  ],
+  "target_power": "casual",
+  "created": "2026-10-14T02:02:07.610385",
+  "updated": "2026-10-14T02:02:07.610402",
+  "schema_version": 2
+}

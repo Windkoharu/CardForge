@@ -1,0 +1,39 @@
+[
+  {
+    "ts": 1791801540.6709852,
+    "action": "edit",
+    "preset": "style",
+    "preset_label": "统一画风",
+    "instruction": "把 <image_1> 的画风改造成 <image_2> 的画风：统一的笔触、上色方式、线条粗细、色彩倾向与光照处理（更厚的笔触与更强烈的火光色调）。严格保持 <image_1> 中的人物身份、面部、姿势、服装、构图与背景内容完全不变，只改变绘画风格。",
+    "resolution": "standard",
+    "version": 1,
+    "history": "210000001-1.png",
+    "style_ref": 210000000
+  },
+  {
+    "ts": 1791801550.4219,
+    "action": "revert"
+  },
+  {
+    "ts": 1791801632.2409058,
+    "action": "edit",
+    "preset": "fx",
+    "preset_label": "加魔法特效",
+    "instruction": "在 <image_1> 的画面上叠加以下魔法特效：青白色的雷电漩涡与碎裂的光片，从胸口向外爆发。特效要自然融入原有光照与透视，不遮挡人物面部与关键轮廓，保持人物身份、姿势、服装与构图完全不变。",
+    "resolution": "standard",
+    "version": 2,
+    "history": "210000001-2.png",
+    "style_ref": null
+  },
+  {
+    "ts": 1791801959.1872509,
+    "action": "edit",
+    "preset": "mood",
+    "preset_label": "氛围调色",
+    "instruction": "调整 <image_1> 的整体色调与氛围为：深蓝色的月夜，冷调，压抑肃杀。只调整色彩倾向、对比与气氛，保持人物、姿势、构图与画面内容完全不变。",
+    "resolution": "standard",
+    "version": 3,
+    "history": "210000001-3.png",
+    "style_ref": null
+  }
+]

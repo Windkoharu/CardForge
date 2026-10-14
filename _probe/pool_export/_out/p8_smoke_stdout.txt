@@ -1,0 +1,130 @@
+── 1. 包级 import ──
+  [PASS] import cardforge.pool
+  [PASS] pool 转出 cdb/official/repo
+
+── 2. export 的惰性转发（PEP 562）──
+  [PASS] import 后 'build' 还没进 globals（惰性）
+  [PASS] export.build 取到的是函数  —— build
+  [PASS] 取过一次后固定进 globals
+  [PASS] export.verify 是函数
+  [PASS] export.expansions 是**模块**（不与 build 撞名）  —— module
+  [PASS] export.install 是**模块**（不与 install() 函数撞名）  —— module
+  [PASS] export.ydk 是模块
+  [PASS] export.strings 是模块
+  [PASS] export.render 是函数
+  [PASS] export.parse 是函数
+  [PASS] export.ydk_write 是函数
+  [PASS] export.ydk_read 是函数
+  [PASS] export.ydk_validate 是函数
+  [PASS] export.install_pack 是函数
+  [PASS] export.find_edopro 是函数
+  [PASS] export.make_repo_pack 是函数
+  [PASS] export.repo_config_block 是函数
+  [PASS] export.PIC_SIZE == (421, 614)  —— (421, 614)
+  [PASS] export.MANIFEST_NAME == 'cardforge_manifest.json'
+  [PASS] dir(export) 含未加载的符号
+  [PASS] 不存在的属性抛 AttributeError
+
+── 3. 与 docs/02 契约的签名比对 ──
+  cdb.open_cdb(path, create=True)
+  [PASS]     open_cdb 参数名与默认值符合契约  —— 实际 (path, create=True)
+期望 (path, create=True)
+  cdb.upsert_card(con, spec, lang='zh_cn', texts=None, *, ot=3, alias=0, category=0)
+  [PASS]     upsert_card 参数名与默认值符合契约  —— 实际 (con, spec, lang='zh_cn', texts=None, *, ot=3, alias=0, category=0)
+期望 (con, spec, lang='zh_cn', texts=None, *, ot=3, alias=0, category=0)
+  cdb.read_card(con, card_id)
+  [PASS]     read_card 参数名与默认值符合契约  —— 实际 (con, card_id)
+期望 (con, card_id)
+  cdb.list_cards(con, limit=0)
+  [PASS]     list_cards 参数名与默认值符合契约  —— 实际 (con, limit=0)
+期望 (con, limit=0)
+  cdb.write_strings_conf(path, setnames=None, counters=None, counters_alias=None)
+  [PASS]     write_strings_conf 参数名与默认值符合契约  —— 实际 (path, setnames=None, counters=None, counters_alias=None)
+期望 (path, setnames=None, counters=None, counters_alias=None)
+  cdb.ensure_schema(con)
+  [PASS]     ensure_schema 参数名与默认值符合契约  —— 实际 (con)
+期望 (con)
+  official.load(cdb_path=None)
+  [PASS]     load 参数名与默认值符合契约  —— 实际 (cdb_path=None)
+期望 (cdb_path=None)
+  repo.save_card(spec, *, snapshot=True, note='')
+  [PASS]     save_card 参数名与默认值符合契约  —— 实际 (spec, *, snapshot=True, note='')
+期望 (spec, *, snapshot=True, note='')
+  repo.load_card(card_id, archetype='')
+  [PASS]     load_card 参数名与默认值符合契约  —— 实际 (card_id, archetype='')
+期望 (card_id, archetype='')
+  repo.list_cards(archetype='')
+  [PASS]     list_cards 参数名与默认值符合契约  —— 实际 (archetype='')
+期望 (archetype='')
+  repo.delete_card(card_id, archetype='')
+  [PASS]     delete_card 参数名与默认值符合契约  —— 实际 (card_id, archetype='')
+期望 (card_id, archetype='')
+  repo.save_archetype(a, *, snapshot=True, note='')
+  [PASS]     save_archetype 参数名与默认值符合契约  —— 实际 (a, *, snapshot=True, note='')
+期望 (a, *, snapshot=True, note='')
+  repo.load_archetype(name)
+  [PASS]     load_archetype 参数名与默认值符合契约  —— 实际 (name)
+期望 (name)
+  repo.list_archetypes()
+  [PASS]     list_archetypes 参数名与默认值符合契约  —— 实际 ()
+期望 ()
+  repo.save_deck(d, *, snapshot=True, note='')
+  [PASS]     save_deck 参数名与默认值符合契约  —— 实际 (d, *, snapshot=True, note='')
+期望 (d, *, snapshot=True, note='')
+  repo.load_deck(name)
+  [PASS]     load_deck 参数名与默认值符合契约  —— 实际 (name)
+期望 (name)
+  repo.snapshots(kind, key)
+  [PASS]     snapshots 参数名与默认值符合契约  —— 实际 (kind, key)
+期望 (kind, key)
+  repo.rollback(kind, key, version)
+  [PASS]     rollback 参数名与默认值符合契约  —— 实际 (kind, key, version)
+期望 (kind, key, version)
+  strings.render(setnames=None, counters=None, counters_alias=None, *, unknown=None, comments=None, header='CardForge 自动生成 —— DIY 系列名 / 计数器名')
+  [PASS]     render 参数名与默认值符合契约  —— 实际 (setnames=None, counters=None, counters_alias=None, *, unknown=None, comments=None, header='CardForge 自动生成 —— DIY 系列名 / 计数器名')
+期望 (setnames=None, counters=None, counters_alias=None, *, unknown=None, comments=None, header='CardForge 自动生成 —— DIY 系列名 / 计数器名')
+  strings.parse(text)
+  [PASS]     parse 参数名与默认值符合契约  —— 实际 (text)
+期望 (text)
+  expansions.verify(pack_dir, *, official=None, check_official=True)
+  [PASS]     verify 参数名与默认值符合契约  —— 实际 (pack_dir, *, official=None, check_official=True)
+期望 (pack_dir, *, official=None, check_official=True)
+  ydk.write(deck, path)
+  [PASS]     write 参数名与默认值符合契约  —— 实际 (deck, path)
+期望 (deck, path)
+  ydk.read(path)
+  [PASS]     read 参数名与默认值符合契约  —— 实际 (path)
+期望 (path)
+  install.find_edopro()
+  [PASS]     find_edopro 参数名与默认值符合契约  —— 实际 ()
+期望 ()
+  install.install(pack_dir, target=None, *, dry_run=False, merge_strings=True, backup=True)
+  [PASS]     install 参数名与默认值符合契约  —— 实际 (pack_dir, target=None, *, dry_run=False, merge_strings=True, backup=True)
+期望 (pack_dir, target=None, *, dry_run=False, merge_strings=True, backup=True)
+  install.make_repo_pack(pack_dir, out_zip=None, *, name='', url='', mode='', root_folder='')
+  [PASS]     make_repo_pack 参数名与默认值符合契约  —— 实际 (pack_dir, out_zip=None, *, name='', url='', mode='', root_folder='')
+期望 (pack_dir, out_zip=None, *, name='', url='', mode='', root_folder='')
+
+── 4. 编译检查（全部新文件）──
+  [PASS] compileall 通过（无语法错误）
+
+── 5. 文件清单与行数 ──
+  cardforge/pool/__init__.py           16 行
+  cardforge/pool/cdb.py               671 行
+  cardforge/pool/official.py          439 行
+  cardforge/pool/repo.py              623 行
+  cardforge/export/__init__.py           79 行
+  cardforge/export/expansions.py        889 行
+  cardforge/export/install.py           444 行
+  cardforge/export/strings.py           234 行
+  cardforge/export/ydk.py               275 行
+  合计                               3670 行
+  [PASS] 只新增了 pool/ 与 export/ 下的 .py
+
+── 6. 只读约束：vendor/ 与 core/ 没被改过 ──
+  [PASS] core/ 无 __pycache__ 之外的新文件
+  [PASS] vendor/data 只有原始 cdb  —— ['cards_zh.cdb']
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过
+════════════════════════════════════════════════════════════════════

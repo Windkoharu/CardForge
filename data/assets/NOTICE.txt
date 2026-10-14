@@ -1,0 +1,74 @@
+CardForge 卡面素材 —— 来源与许可
+================================
+
+本目录（templates/assets/）下的图标、属性圆标、星级、连接箭头与字体文件，均下载自：
+
+    kooriookami/yugih-card
+    https://github.com/kooriookami/yugioh-card
+    License: MIT
+
+原始路径：src/assets/yugioh-card/yugioh/{image,font}/
+下载通道：gh-proxy.com（raw.githubusercontent.com 在本网络环境被阻断）
+
+文件清单
+--------
+frame/        16 个官方卡框整图（1394×2031）—— 本项目默认基座
+                 normal / effect / ritual / fusion / synchro / xyz / link
+                 spell / trap / token
+                 normal|effect|ritual|fusion|synchro|xyz -pendulum（灵摆版）
+mask/          2 个插画窗遮罩（亮度通道才是有效遮罩，alpha 为反相/羽化）
+icon/          6 个魔陷种类徽记（仪式/速攻/永续/装备/场地/反击）
+attribute/     9 个属性圆标（光暗地水炎风神 + 魔/罠）
+star/          2 个星级符号（level 红金星 / rank 黑阶星）
+arrow/        16 个连接箭头（8 方向 × on/off 两态）
+rare/          8 种稀有度覆膜 + 属性位标记（1394×2031 整卡 RGBA）
+                 ur 银字 / ser 银碎 / gser 金碎 / hr 全息
+                 pser 棱镜碎 / pser-print 印刷层 / gr 金字 / dt 碎钻
+laser/         3 式激光防伪标（YU-GI-OH 全息标）
+stamp/         20 周年纪念标
+copyright/     6 个版权标矢量图（简中/日/英 × 黑/白，SVG）
+stat/          2 个 Astral 版数值行美术字（SVG）
+bleed/         出血版卡面（1488×2126）
+back/          出血版卡背（1488×2126）
+*.woff2        6 个卡面字体（其中 ygo-sc.woff2 = 简中，28811 字形）
+
+关于 frame/ 的重要说明
+----------------------
+卡框整图是「和官方一样」的关键：真实质感、斜面卡名条、插画框、文本面板，
+都是实卡扫描级美术，不是程序画的色块。
+
+卡框为全不透明图，插画位是纯白占位区。实测占位区（标准框 x171–1222 y376–1427；
+灵摆框 x93–1300 y364–1912）折算回 813 系后恰好等于
+GEO['artwork'] = (100,219,613,613) 与 GEO['pendulum_artwork'] = (55,212,703,903)，
+误差 0.06% —— 说明卡框与本项目的版面是同一套坐标，可直接互换。
+
+插画窗四角均为直角（逐角采样 100% 命中），因此合成只需矩形粘贴，不必用遮罩。
+
+MIT 许可要点
+------------
+允许使用、复制、修改、合并、发布、分发、再许可与销售，条件是保留上述版权
+声明与许可声明。本文件即承担该署名义务。
+
+注意
+----
+字体文件（*.woff2）是为卡面观感还原而收录。其字形设计可能溯源到第三方字体，
+MIT 许可覆盖的是本仓库的分发行为。若要将生成的卡面用于商业发行，请自行核对
+字体的原始授权，必要时替换为自有/开源字体（如思源黑体）。
+
+转换说明
+--------
+PIL 不能直接读取 woff2，首次使用时会由 fontTools 转换为同名 .ttf 并缓存到本目录
+（*.ttf 为生成物，可随时删除，会自动重建）。
+PIL 也不能读 SVG，版权标与 Astral 美术字会由 svglib → PDF → PyMuPDF 光栅化，
+结果缓存在 _cache/（该目录以 _ 开头，不计入素材指纹，可随时删除）。
+
+第三方站点素材不在本目录
+------------------------
+从 yugiohcardmaker.org 取得的 4 支字体存放在 ../external/fonts/，**默认不参与渲染**。
+该站点未提供授权文件，许可状况未明示，仅在调用方显式指定时才使用。
+
+几何数值不来自本目录
+--------------------
+卡面版面的坐标数值（卡名条/插画窗/星级/类型行/文本框等）取自
+alixsep/yugilife 的 template.json，属纯几何事实，仅读取数值、不复制文件。
+详见 cardforge/forge/template.py 顶部说明。

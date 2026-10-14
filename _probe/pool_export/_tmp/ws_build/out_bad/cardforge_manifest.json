@@ -1,0 +1,35 @@
+{
+  "generator": "CardForge 2.0",
+  "ts": "2026-10-13T06:24:55",
+  "name": "BadPack",
+  "langs": [
+    "zh_cn"
+  ],
+  "cdbs": {
+    "": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_build\\out_bad\\expansions\\BadPack.cdb",
+    "zh_cn": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_build\\out_bad\\expansions\\BadPack-zh-CN.cdb"
+  },
+  "card_ids": [
+    89631139
+  ],
+  "pending_pics": [],
+  "cards": [
+    {
+      "id": 89631139,
+      "name": "占用了官方卡号的白龙",
+      "frame": "normal",
+      "archetype": "",
+      "setcode": "0x0",
+      "needs_script": false,
+      "has_script": false,
+      "has_pic": true
+    }
+  ],
+  "skipped": [],
+  "stats": {
+    "n_cards": 1,
+    "n_pics": 0,
+    "n_field_pics": 0,
+    "n_scripts": 0
+  }
+}

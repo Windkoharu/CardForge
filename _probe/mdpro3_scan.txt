@@ -1,0 +1,65 @@
+═══ 所有 .cdb / .ypk / .db / strings.conf / lflist / script 目录 ═══
+         484  Data\hosts2.conf
+     676,679  Data\lflist.conf
+      10,342  Data\locales\de-DE\bot.conf
+  10,555,392  Data\locales\de-DE\cards.cdb
+      41,044  Data\locales\de-DE\strings.conf
+      37,736  Data\locales\de-DE\translation.conf
+       9,805  Data\locales\en-US\bot.conf
+   8,076,288  Data\locales\en-US\cards.cdb
+      37,759  Data\locales\en-US\strings.conf
+      35,184  Data\locales\en-US\translation.conf
+   8,108,032  Data\locales\en-US_mdpro3\cards.cdb
+      37,759  Data\locales\en-US_mdpro3\strings.conf
+      11,904  Data\locales\es-ES\bot.conf
+   8,482,816  Data\locales\es-ES\cards.cdb
+      43,184  Data\locales\es-ES\strings.conf
+      39,860  Data\locales\es-ES\translation.conf
+      10,712  Data\locales\fr-FR\bot.conf
+   9,929,728  Data\locales\fr-FR\cards.cdb
+      42,193  Data\locales\fr-FR\strings.conf
+      39,297  Data\locales\fr-FR\translation.conf
+      10,202  Data\locales\it-IT\bot.conf
+   9,568,256  Data\locales\it-IT\cards.cdb
+      41,030  Data\locales\it-IT\strings.conf
+      38,873  Data\locales\it-IT\translation.conf
+      10,971  Data\locales\ja-JP\bot.conf
+  11,860,992  Data\locales\ja-JP\cards.cdb
+      49,240  Data\locales\ja-JP\strings.conf
+      41,803  Data\locales\ja-JP\translation.conf
+      12,300  Data\locales\ko-KR\bot.conf
+  10,747,904  Data\locales\ko-KR\cards.cdb
+      43,489  Data\locales\ko-KR\strings.conf
+      38,016  Data\locales\ko-KR\translation.conf
+      11,443  Data\locales\pt-PT\bot.conf
+   9,776,128  Data\locales\pt-PT\cards.cdb
+      42,764  Data\locales\pt-PT\strings.conf
+      35,936  Data\locales\pt-PT\translation.conf
+       9,007  Data\locales\zh-CN\bot.conf
+   8,087,552  Data\locales\zh-CN\cards.cdb
+      47,685  Data\locales\zh-CN\strings.conf
+      33,023  Data\locales\zh-CN\translation.conf
+   6,520,832  Data\locales\zh-SC\cards.cdb
+      47,627  Data\locales\zh-SC\strings.conf
+       8,876  Data\locales\zh-TW\bot.conf
+   6,238,208  Data\locales\zh-TW\cards.cdb
+      46,904  Data\locales\zh-TW\strings.conf
+      32,979  Data\locales\zh-TW\translation.conf
+   1,232,896  Data\pack\pack.db
+  13,985,487  Data\script.zip
+       [DIR]  Picture\DIY  (子项 8)
+
+═══ script.zip 内部结构（前 40 条 + 目录统计）═══
+总条目 13577
+顶层分布: {"script": 13577}
+样例: ['script/', 'script/LICENSE', 'script/c10000.lua', 'script/c10000000.lua', 'script/c10000010.lua', 'script/c10000020.lua', 'script/c10000030.lua', 'script/c10000040.lua', 'script/c10000080.lua', 'script/c10000090.lua', 'script/c10002346.lua', 'script/c10004783.lua', 'script/c10007434.lua', 'script/c10012614.lua', 'script/c10019086.lua']
+有 initial.lua? False
+有 utility.lua? True
+
+═══ StreamingAssets ═══
+[D] MDPro3_Data\StreamingAssets\aa 
+[D] MDPro3_Data\StreamingAssets\aa\AddressablesLink 
+  MDPro3_Data\StreamingAssets\aa\AddressablesLink\link.xml 29572
+  MDPro3_Data\StreamingAssets\aa\catalog.bin 4453228
+  MDPro3_Data\StreamingAssets\aa\catalog.hash 32
+  MDPro3_Data\StreamingAssets\aa\settings.json 864

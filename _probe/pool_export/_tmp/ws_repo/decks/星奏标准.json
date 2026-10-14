@@ -1,0 +1,34 @@
+{
+  "name": "星奏标准",
+  "main": [
+    {
+      "card_id": 210000001,
+      "count": 3,
+      "role": "starter",
+      "name": "星奏的指挥者 艾莉娅"
+    },
+    {
+      "card_id": 89631139,
+      "count": 3,
+      "name": "青眼白龙"
+    }
+  ],
+  "extra": [
+    {
+      "card_id": 210000010,
+      "count": 2,
+      "role": "trump",
+      "name": "星奏的终曲"
+    }
+  ],
+  "side": [
+    {
+      "card_id": 210000000,
+      "count": 2,
+      "name": "焰刃的见习剑士"
+    }
+  ],
+  "archetype": "星奏",
+  "target": "casual",
+  "schema_version": 2
+}

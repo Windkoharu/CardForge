@@ -1,0 +1,319 @@
+{
+  "ok": true,
+  "version": "2.0.0.dev1",
+  "started_at": 1791882881.3717468,
+  "uptime_s": 389.7,
+  "requests": 98,
+  "server_errors": 0,
+  "paths": {
+    "root": {
+      "path": ".",
+      "exists": true
+    },
+    "data": {
+      "path": "data",
+      "exists": true
+    },
+    "assets": {
+      "path": "data\\assets",
+      "exists": true
+    },
+    "lexicons": {
+      "path": "data\\lexicons",
+      "exists": true
+    },
+    "knowledge": {
+      "path": "data\\knowledge",
+      "exists": true
+    },
+    "web": {
+      "path": "web",
+      "exists": true
+    },
+    "vendor": {
+      "path": "vendor",
+      "exists": true
+    },
+    "engine": {
+      "path": "vendor\\engine",
+      "exists": true
+    },
+    "official_scripts": {
+      "path": "vendor\\scripts",
+      "exists": true
+    },
+    "workspace": {
+      "path": "workspace",
+      "exists": true
+    },
+    "cache": {
+      "path": "workspace\\.cache",
+      "exists": true
+    }
+  },
+  "levels": {
+    "L0-data": true,
+    "L2-art": true,
+    "L1-render": true,
+    "L1_detail": {
+      "L1_render": true,
+      "pillow": true,
+      "official_frames": true,
+      "fonts": true,
+      "text_engine": true,
+      "numpy": true,
+      "frames": [],
+      "missing_assets": [],
+      "levels": {
+        "L0-data": true,
+        "L1-render": true,
+        "L2-art": null,
+        "L3-duel": null
+      },
+      "assets": {
+        "root": "data\\assets",
+        "exists": true,
+        "files": 87,
+        "digest": "e06d085c0b41b3e0",
+        "categories": {
+          "frame": {
+            "present": 16,
+            "total": 16,
+            "missing": []
+          },
+          "attribute": {
+            "present": 9,
+            "total": 9,
+            "missing": []
+          },
+          "icon": {
+            "present": 6,
+            "total": 6,
+            "missing": []
+          },
+          "star": {
+            "present": 2,
+            "total": 2,
+            "missing": []
+          },
+          "arrow": {
+            "present": 16,
+            "total": 16,
+            "missing": []
+          },
+          "rare": {
+            "present": 9,
+            "total": 9,
+            "missing": []
+          },
+          "laser": {
+            "present": 4,
+            "total": 4,
+            "missing": []
+          },
+          "stamp": {
+            "present": 1,
+            "total": 1,
+            "missing": []
+          },
+          "copyright": {
+            "present": 6,
+            "total": 6,
+            "missing": []
+          },
+          "stat": {
+            "present": 2,
+            "total": 2,
+            "missing": []
+          },
+          "mask": {
+            "present": 2,
+            "total": 2,
+            "missing": []
+          },
+          "bleed": {
+            "present": 1,
+            "total": 1,
+            "missing": []
+          },
+          "back": {
+            "present": 1,
+            "total": 1,
+            "missing": []
+          },
+          "font": {
+            "present": 12,
+            "total": 12,
+            "missing": []
+          }
+        },
+        "missing": [],
+        "requested_missing": [],
+        "unexpected": [],
+        "skipped": [
+          "NOTICE.txt",
+          "_cache/copyright_en-black.svg.png",
+          "_cache/copyright_jp-black.svg.png",
+          "_cache/copyright_sc-black.svg.png",
+          "_contact_sheet.png",
+          "_mask_vis.png",
+          "_pend_frame_view.png",
+          "_sheet_frames.png",
+          "_sheet_other.png",
+          "_sheet_rare.png"
+        ],
+        "image_cache": 5
+      },
+      "n_official_frames": 16,
+      "n_official_frames_total": 16,
+      "font_diagnose": {
+        "lang": "zh_cn",
+        "assets": "data\\assets",
+        "assets_exists": true,
+        "cache": {
+          "fonts": "workspace\\.cache\\fonts",
+          "svg": "workspace\\.cache\\svg",
+          "fonts_writable": true,
+          "svg_writable": true
+        },
+        "stack": [
+          "sc",
+          "en_name",
+          "en",
+          "en_race",
+          "atk_def",
+          "link"
+        ],
+        "roles": {
+          "sc": {
+            "path": "data\\assets\\ygo-sc.ttf",
+            "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-sc.ttf",
+            "source": "asset-ttf",
+            "fallback": false,
+            "index": 0,
+            "coverage": null,
+            "reason": "",
+            "asset_exists": true
+          },
+          "en": {
+            "path": "data\\assets\\ygo-en.ttf",
+            "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en.ttf",
+            "source": "asset-ttf",
+            "fallback": false,
+            "index": 0,
+            "coverage": null,
+            "reason": "",
+            "asset_exists": true
+          },
+          "en_name": {
+            "path": "data\\assets\\ygo-en-name.ttf",
+            "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en-name.ttf",
+            "source": "asset-ttf",
+            "fallback": false,
+            "index": 0,
+            "coverage": null,
+            "reason": "",
+            "asset_exists": true
+          },
+          "en_race": {
+            "path": "data\\assets\\ygo-en-race.ttf",
+            "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en-race.ttf",
+            "source": "asset-ttf",
+            "fallback": false,
+            "index": 0,
+            "coverage": null,
+            "reason": "",
+            "asset_exists": true
+          },
+          "atk_def": {
+            "path": "data\\assets\\ygo-atk-def.ttf",
+            "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-atk-def.ttf",
+            "source": "asset-ttf",
+            "fallback": false,
+            "index": 0,
+            "coverage": null,
+            "reason": "",
+            "asset_exists": true
+          },
+          "link": {
+            "path": "data\\assets\\ygo-link.ttf",
+            "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-link.ttf",
+            "source": "asset-ttf",
+            "fallback": false,
+            "index": 0,
+            "coverage": null,
+            "reason": "",
+            "asset_exists": true
+          }
+        },
+        "pillow": "12.3.0",
+        "fonttools": "4.66.1",
+        "svg_rasterizer": "svglib+pymupdf",
+        "system_candidates": {
+          "zh_cn": 25,
+          "zh_tw": 26,
+          "ja": 30,
+          "ko": 28,
+          "en": 34
+        },
+        "notes": [],
+        "ok": true
+      }
+    },
+    "L3-duel": "ocgcore",
+    "L3_reason": "已加载 ocgcore.dll（工程内置 vendor/engine）",
+    "L3_hint": "",
+    "gates": {
+      "G1": true,
+      "G2": true,
+      "G3_engine": true,
+      "G4": true,
+      "G5": true,
+      "official_pool": true,
+      "gate_names": {
+        "G1": "平衡审计",
+        "G2": "脚本静态检查",
+        "G3": "实跑验证",
+        "G4": "系列一致性",
+        "G5": "导出自检"
+      }
+    }
+  },
+  "counts": {
+    "cards": 1,
+    "archetypes": 0,
+    "decks": 0
+  },
+  "pool": {
+    "available": true,
+    "count": 0,
+    "path": "D:\\游戏王DIY设计\\vendor\\data\\cards_zh.cdb",
+    "hint": ""
+  },
+  "assistant": {
+    "available": true,
+    "name": "星奏·艾莉娅",
+    "provider": "none"
+  },
+  "recent_cards": [
+    {
+      "id": 210000011,
+      "name": "星奏的见习指挥",
+      "frame": "effect",
+      "frame_label": "效果",
+      "attribute": "光",
+      "race": "魔法师族",
+      "level": 4,
+      "atk": 1600,
+      "def": 1200,
+      "archetype": "星奏",
+      "rarity": "common",
+      "n_effects": 2,
+      "updated": "2026-10-13T16:24:55.997544",
+      "schema_version": 2,
+      "path": "D:\\游戏王DIY设计\\workspace\\cards\\星奏\\210000011\\spec.json"
+    }
+  ],
+  "archetypes": [],
+  "decks": []
+}

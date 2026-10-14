@@ -1,0 +1,104 @@
+{
+  "lang": "zh_cn",
+  "assets": "data\\assets",
+  "assets_exists": true,
+  "cache": {
+    "fonts": "workspace\\.cache\\fonts",
+    "svg": "workspace\\.cache\\svg",
+    "fonts_writable": true,
+    "svg_writable": true
+  },
+  "stack": [
+    "sc",
+    "en_name",
+    "en",
+    "en_race",
+    "atk_def",
+    "link"
+  ],
+  "roles": {
+    "sc": {
+      "path": "data\\assets\\ygo-sc.ttf",
+      "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-sc.ttf",
+      "source": "asset-ttf",
+      "fallback": false,
+      "index": 0,
+      "coverage": 1.0,
+      "reason": "",
+      "asset_exists": true
+    },
+    "en": {
+      "path": "data\\assets\\ygo-en.ttf",
+      "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en.ttf",
+      "source": "asset-ttf",
+      "fallback": false,
+      "index": 0,
+      "coverage": 0.3889,
+      "reason": "",
+      "asset_exists": true
+    },
+    "en_name": {
+      "path": "data\\assets\\ygo-en-name.ttf",
+      "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en-name.ttf",
+      "source": "asset-ttf",
+      "fallback": false,
+      "index": 0,
+      "coverage": 0.3889,
+      "reason": "",
+      "asset_exists": true
+    },
+    "en_race": {
+      "path": "data\\assets\\ygo-en-race.ttf",
+      "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-en-race.ttf",
+      "source": "asset-ttf",
+      "fallback": false,
+      "index": 0,
+      "coverage": 0.3889,
+      "reason": "",
+      "asset_exists": true
+    },
+    "atk_def": {
+      "path": "data\\assets\\ygo-atk-def.ttf",
+      "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-atk-def.ttf",
+      "source": "asset-ttf",
+      "fallback": false,
+      "index": 0,
+      "coverage": 0.3889,
+      "reason": "",
+      "asset_exists": true
+    },
+    "link": {
+      "path": "data\\assets\\ygo-link.ttf",
+      "absolute": "D:\\游戏王DIY设计\\data\\assets\\ygo-link.ttf",
+      "source": "asset-ttf",
+      "fallback": false,
+      "index": 0,
+      "coverage": 0.3889,
+      "reason": "",
+      "asset_exists": true
+    }
+  },
+  "pillow": "12.3.0",
+  "fonttools": "4.66.1",
+  "svg_rasterizer": "svglib+pymupdf",
+  "system_candidates": {
+    "zh_cn": 25,
+    "zh_tw": 26,
+    "ja": 30,
+    "ko": 28,
+    "en": 34
+  },
+  "coverage_text": 1.0,
+  "best_for_text": {
+    "role": "sc",
+    "path": "data\\assets\\ygo-sc.ttf"
+  },
+  "notes": [
+    "en/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-en.ttf）",
+    "en_name/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-en-name.ttf）",
+    "en_race/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-en-race.ttf）",
+    "atk_def/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-atk-def.ttf）",
+    "link/zh_cn 对给定文本覆盖率 39%（D:\\游戏王DIY设计\\data\\assets\\ygo-link.ttf）"
+  ],
+  "ok": true
+}

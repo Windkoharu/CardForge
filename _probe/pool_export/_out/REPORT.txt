@@ -1,0 +1,36 @@
+CardForge 2.0 · pool/ + export/ 自测汇总
+==============================================================================
+[OK  ] p0_schema.py               0.05s  官方 cdb 真实 schema（PRAGMA table_info）
+         └─ 退出码 0
+[OK  ] p0b_conventions.py         0.15s  字段约定：ot / 灵摆 desc / 连接 def / setcode 打包 / 换行
+         └─ 退出码 0
+[OK  ] p0c_numeric.py             0.32s  atk·def 的 '?' 编码 / str1..16 使用率 / 字段查重语义
+         └─ 退出码 0
+[OK  ] p0d_frames_scale.py        0.05s  core.FRAMES.base 偏差 + 灵摆刻度存储位置
+         └─ 退出码 0
+[OK  ] p0e_pendulum_pack.py       0.04s  灵摆 level 列打包编码（398/398 对齐 desc）
+         └─ 退出码 0
+[OK  ] p1_official.py             0.45s  官方卡池只读查询（pool/official.py）
+         └─ 退出码 0
+[OK  ] p2_repo.py                 0.19s  仓库 CRUD + 增量快照 + 回滚 + v0.x 迁移（pool/repo.py）
+         └─ 断言：全部通过（共 131 行输出）
+[OK  ] p3_build_verify.py         0.26s  打真包 + G5 自检 + 独立 sqlite3 读回 + BOM（export/expansions.py）
+         └─ 断言：全部通过
+[OK  ] p4_ydk.py                  0.06s  .ydk 读写与校验（export/ydk.py）
+         └─ 断言：全部通过
+[OK  ] p5_install.py              0.10s  EDOPro 探测 / 备份式安装 / zip 分发（export/install.py）
+         └─ 断言：全部通过
+[OK  ] p6_strings.py              0.03s  strings.conf 渲染·解析·往返·合并（export/strings.py）
+         └─ 断言：全部通过
+[OK  ] p7_misc.py                 0.24s  边角 API：补列 / 多语言 / 失败分支 / 空输入
+         └─ 断言：全部通过
+[OK  ] p8_smoke.py                0.10s  包级 import / PEP 562 惰性转发 / 契约签名比对 / 编译
+         └─ 断言：全部通过
+[OK  ] p9_static.py               0.12s  静态自查：未使用的 import / 死代码 / TODO 残留
+         └─ 退出码 0
+[OK  ] p10_integration.py         0.14s  与兄弟模块 cli.py / pipeline.gates 的接口对齐
+         └─ 断言：全部通过
+==============================================================================
+合计 15/15 步通过
+
+明细报告（UTF-8）：p0_schema.txt, p0_schema_stdout.txt, p0b_conventions.txt, p0b_conventions_stdout.txt, p0c_numeric.txt, p0c_numeric_stdout.txt, p0d_frames_scale.txt, p0d_frames_scale_stdout.txt, p0e_pendulum_pack.txt, p0e_pendulum_pack_stdout.txt, p10_integration.txt, p10_integration_stdout.txt, p1_official.txt, p1_official_stdout.txt, p2_repo.txt, p2_repo_stdout.txt, p3_build_verify.txt, p3_build_verify_stdout.txt, p4_ydk.txt, p4_ydk_stdout.txt, p5_install.txt, p5_install_stdout.txt, p6_strings.txt, p6_strings_stdout.txt, p7_misc.txt, p7_misc_stdout.txt, p8_smoke.txt, p8_smoke_stdout.txt, p9_static_stdout.txt

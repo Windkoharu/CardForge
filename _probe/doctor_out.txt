@@ -1,0 +1,26 @@
+
+   ______            __ ______
+  / ____/___ ______/ // ____/___  _________ ____
+ / /   / __ `/ ___/ // /_  / __ \/ ___/ __ `/ _ \
+/ /___/ /_/ / /  / // __/ / /_/ / /  / /_/ /  __/
+\____/\__,_/_/  /_//_/    \____/_/   \__, /\___/
+                                    /____/
+  卡锻 2.0 · 跨平台 AI 游戏王 DIY 工坊
+
+CardForge 2.0.0.dev1  ·  Python 3.13.13  ·  win32
+────────────────────────────────────────────────────────────────────
+  [OK] 工作区：workspace
+  [OK] 内置数据：data
+  [OK] 卡框素材：data\assets\frame
+  [OK] 知识库：data\knowledge
+  [OK] Pillow：已安装
+  [OK] 排版引擎：可用
+  [OK] 字体：6/6 个角色解析成功（data\assets）
+  [OK] ComfyUI：已连接 127.0.0.1:8188
+        模型：checkpoints 2，unets 5，diffusion_models 5，loras 16，vaes 6，clips 7，upscale 3，controlnet 0，clip_vision 0，ipadapter 0，background_removal 2
+  [OK] 对局引擎：已加载 ocgcore.dll（工程内置 vendor/engine）
+  [OK] 官方卡池：已加载
+        质量门：G1✓，G2✓，G4✓，G5✓
+────────────────────────────────────────────────────────────────────
+能力层级：L0 数据 ✓ · L1 渲染 ✓ · L2 出图 ✓ · L3 对局 ✓
+下一步：python -m cardforge serve   →  打开 http://127.0.0.1:8790

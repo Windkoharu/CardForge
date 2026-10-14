@@ -1,0 +1,14 @@
+[
+  {
+    "ts": 1791802300.5098023,
+    "action": "edit",
+    "preset": "mood",
+    "preset_label": "氛围调色",
+    "instruction": "调整 <image_1> 的整体色调与氛围为：暖橙色调，火光映照。只调整色彩倾向、对比与气氛，保持人物、姿势、构图与画面内容完全不变。",
+    "resolution": "fast",
+    "version": 1,
+    "history": "210000004-1.png",
+    "inline": true,
+    "style_ref": null
+  }
+]

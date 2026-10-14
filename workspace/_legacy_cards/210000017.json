@@ -1,0 +1,25 @@
+{
+  "name": "星奏の不協和",
+  "frame": "trap",
+  "type_flags": [],
+  "text": "①：对方怪兽的攻击宣言时才能发动。对方场上 1 张卡破坏。",
+  "id": 210000017,
+  "archetype": "星奏",
+  "setcode": "0x1001",
+  "level": 0,
+  "atk": 0,
+  "def": 0,
+  "race": 0,
+  "attribute": "",
+  "race_bits": 0,
+  "attr_bits": 0,
+  "type_bits": 4,
+  "effect_tier": 1,
+  "detected_effects": [
+    "destroy"
+  ],
+  "_lua": "--[[ 星奏の不協和\n     CardForge 自动生成 · 模板档:tier1/destroy\n     效果：破坏场上的卡\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t-- 效果 1：破坏场上的卡\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_DESTROY)\n\te1:SetType(EFFECT_TYPE_QUICK_O)\n\te1:SetCode(EVENT_FREE_CHAIN)\n\te1:SetTarget(e1_destroytg)\n\te1:SetOperation(e1_destroyop)\n\tc:RegisterEffect(e1)\nend\n\n-- ①：对方怪兽的攻击宣言时才能发动。对方场上1张卡破坏。\nfunction e1_dstg(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(aux.TRUE,tp,0,LOCATION_ONFIELD,1,nil) end\n\tlocal sg=Duel.GetMatchingGroup(aux.TRUE,tp,0,LOCATION_ONFIELD,nil)\n\tDuel.SetOperationInfo(0,CATEGORY_DESTROY,sg,sg:GetCount(),0,0)\nend\nfunction e1_dsop(e,tp,eg,ep,ev,re,r,rp)\n\tlocal sg=Duel.GetMatchingGroup(aux.TRUE,tp,0,LOCATION_ONFIELD,nil)\n\tif sg:GetCount()>0 then Duel.Destroy(sg,REASON_EFFECT) end\nend\n",
+  "_strings": [
+    "①：对方怪兽的攻击宣言时才能发动。对方场上1张卡破坏。"
+  ]
+}

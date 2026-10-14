@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-10-13T16:18:41.241933+00:00",
+  "chain": {
+    "unet": "krea2_turbo_bf16.safetensors",
+    "clip": "qwen3vl_4b_fp8_scaled.safetensors",
+    "clip_type": "krea2",
+    "vae": "qwen_image_vae.safetensors",
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler": "euler",
+    "scheduler": "simple",
+    "max_shift": 1.15,
+    "base_shift": 0.5,
+    "cutout": "BiRefNet_lite (ComfyUI-RMBG, Alpha)"
+  },
+  "identity": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words.",
+  "items": {
+    "aria_full": {
+      "prompt": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words. Composition: full body standing pose, entire figure from head to boots visible, facing the viewer at a slight three-quarter angle, one hand resting on her belt, the other holding a half-finished glowing card. Plain flat neutral warm-gray studio background, soft even lighting.",
+      "width": 832,
+      "height": 1216,
+      "seed": 20261014,
+      "cutout": true
+    },
+    "aria_guide": {
+      "prompt": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words. Expression: a calm gentle smile, one hand open in a welcoming gesture, as if inviting the viewer to proceed. Composition: upper body portrait framing from head to waist, facing the viewer, plain flat neutral warm-gray studio background, soft even lighting.",
+      "width": 832,
+      "height": 1216,
+      "seed": 20261014,
+      "cutout": true
+    },
+    "aria_working": {
+      "prompt": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words. Expression: focused and concentrated, eyes fixed ahead as if watching a progress bar, holding a fine brass carving stylus, small determined smile. Composition: upper body portrait framing from head to waist, facing the viewer, plain flat neutral warm-gray studio background, soft even lighting.",
+      "width": 832,
+      "height": 1216,
+      "seed": 20261014,
+      "cutout": true
+    },
+    "aria_alert": {
+      "prompt": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words. Expression: a raised eyebrow and a serious warning look, one index finger raised, lips pressed in a firm line. Composition: upper body portrait framing from head to waist, facing the viewer, plain flat neutral warm-gray studio background, soft even lighting.",
+      "width": 832,
+      "height": 1216,
+      "seed": 20261014,
+      "cutout": true
+    },
+    "aria_pass": {
+      "prompt": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words. Expression: a relieved satisfied smile, giving a small approving nod, eyes closed gently in a happy arc. Composition: upper body portrait framing from head to waist, facing the viewer, plain flat neutral warm-gray studio background, soft even lighting.",
+      "width": 832,
+      "height": 1216,
+      "seed": 20261014,
+      "cutout": true
+    },
+    "aria_think": {
+      "prompt": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words. Expression: thoughtful, eyes looking up to the side, one hand raised to her chin, head slightly tilted. Composition: upper body portrait framing from head to waist, facing the viewer, plain flat neutral warm-gray studio background, soft even lighting.",
+      "width": 832,
+      "height": 1216,
+      "seed": 20261014,
+      "cutout": true
+    },
+    "aria_surprise": {
+      "prompt": "Anime illustration of Aria (星奏·艾莉娅), a card-crafting forge-spirit artisan, a young woman in her early twenties, clean crisp lineart and soft cel shading, polished official key-visual quality for a desktop app mascot. She has long silver-white hair with warm golden tips flowing past her waist, tied in a loose low side ponytail on her right with a brass rhombus hairpin shaped like a trading-card back emblem, and a tiny golden star hairclip above her left ear. Amber-gold eyes with soft star-like highlights, delicate features. She wears a dark walnut-brown leather workshop jacket with the sleeves rolled up over a parchment-cream shirt, a small brass triangle badge at her collar, a dark leather craft apron with thin golden rhombus embroidery, fingerless brown gloves, a sturdy tool belt with brass calipers and a carving stylus, and a small softly glowing card-shaped pendant on her chest. Color palette: brass gold, dark walnut brown, parchment cream, faint stardust-blue glow. A few translucent glowing trading cards float slowly around her. Warm rim light, soft shadows. The image contains no text, no letters, no watermark, no logo, no signature, no UI elements. She is the calm, earnest assistant of a card-forging workshop: she never judges, she only translates the rules into human words. Expression: wide surprised eyes, slightly parted lips, leaning back a little, one hand raised in mild startle. Composition: upper body portrait framing from head to waist, facing the viewer, plain flat neutral warm-gray studio background, soft even lighting.",
+      "width": 832,
+      "height": 1216,
+      "seed": 20261014,
+      "cutout": true
+    },
+    "aria_avatar": {
+      "from": "aria_guide.png",
+      "size": [
+        512,
+        512
+      ]
+    },
+    "aria_banner": {
+      "prompt": "Wide cinematic anime banner illustration, wallpaper quality. Aria (星奏·艾莉娅), a silver-haired card-crafting forge-spirit artisan with warm golden hair tips and amber-gold eyes, wearing a dark walnut-brown leather workshop jacket and a dark leather craft apron with golden rhombus embroidery, stands at the right side of the frame in a warm artisan workshop at night, leaning over a wooden workbench covered with softly glowing blank trading cards, brass tools and a small anvil. Behind her: dark wooden shelves stacked with framed trading cards, warm amber lantern light, drifting stardust motes and a few translucent glowing cards floating in the air. The left half of the wide frame is calm empty workshop space with soft bokeh, reserved as negative space for interface text. Clean lineart, soft cel shading, warm inviting mood, high detail. The image contains no text, no letters, no watermark, no logo, no signature.",
+      "width": 1536,
+      "height": 640,
+      "seed": 20261015,
+      "cutout": false
+    }
+  }
+}

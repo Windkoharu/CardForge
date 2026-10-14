@@ -1,0 +1,19 @@
+{
+  "generator": "CardForge 2.0",
+  "ts": "2026-10-13T06:24:55",
+  "name": "Empty",
+  "langs": [
+    "zh_cn"
+  ],
+  "cdbs": {},
+  "card_ids": [],
+  "pending_pics": [],
+  "cards": [],
+  "skipped": [],
+  "stats": {
+    "n_cards": 0,
+    "n_pics": 0,
+    "n_field_pics": 0,
+    "n_scripts": 0
+  }
+}

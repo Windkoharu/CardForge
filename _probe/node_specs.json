@@ -1,0 +1,1680 @@
+{
+  "UNETLoader": {
+    "required": {
+      "unet_name": {
+        "type": "COMBO",
+        "n": 5,
+        "opts": [
+          "MINIMAX-H3\\minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+          "MINIMAX-H3\\minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+          "acestep_v1.5_xl_turbo_bf16.safetensors",
+          "krea2_turbo_bf16.safetensors",
+          "qwen_image_2.1_int8_convrot.safetensors"
+        ]
+      },
+      "weight_dtype": {
+        "type": "COMBO",
+        "n": 4,
+        "opts": [
+          "default",
+          "fp8_e4m3fn",
+          "fp8_e4m3fn_fast",
+          "fp8_e5m2"
+        ]
+      }
+    },
+    "optional": {},
+    "output": [
+      "MODEL"
+    ],
+    "output_name": [
+      "MODEL"
+    ],
+    "output_node": false,
+    "category": "model/loaders",
+    "display_name": "Load Diffusion Model"
+  },
+  "CLIPLoader": {
+    "required": {
+      "clip_name": {
+        "type": "COMBO",
+        "n": 7,
+        "opts": [
+          "MINIMAX-H3\\qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors",
+          "qwen3.5_9b_qwen_image_2.1_pe_t2i.int8_convrot.safetensors",
+          "qwen3vl_4b_fp8_scaled.safetensors",
+          "qwen3vl_8b_int8_convrot.safetensors",
+          "qwen_0.6b_ace15.safetensors",
+          "qwen_4b_ace15.safetensors"
+        ]
+      },
+      "type": {
+        "type": "COMBO",
+        "n": 29,
+        "opts": [
+          "stable_diffusion",
+          "stable_cascade",
+          "sd3",
+          "stable_audio",
+          "mochi",
+          "ltxv",
+          "pixart",
+          "cosmos",
+          "lumina2",
+          "wan",
+          "hidream",
+          "chroma",
+          "ace",
+          "omnigen2"
+        ]
+      }
+    },
+    "optional": {
+      "device": {
+        "type": "COMBO",
+        "n": 2,
+        "opts": [
+          "default",
+          "cpu"
+        ]
+      }
+    },
+    "output": [
+      "CLIP"
+    ],
+    "output_name": [
+      "CLIP"
+    ],
+    "output_node": false,
+    "category": "model/loaders",
+    "display_name": "Load CLIP"
+  },
+  "VAELoader": {
+    "required": {
+      "vae_name": {
+        "type": "COMBO",
+        "n": 6,
+        "opts": [
+          "MINIMAX-H3\\minimax_h3_audio_vae_fp32.safetensors",
+          "MINIMAX-H3\\minimax_h3_video_vae_fp16.safetensors",
+          "ace_1.5_vae.safetensors",
+          "qwen_image_2.1_vae_bf16.safetensors",
+          "qwen_image_vae.safetensors",
+          "pixel_space"
+        ]
+      }
+    },
+    "optional": {},
+    "output": [
+      "VAE"
+    ],
+    "output_name": [
+      "VAE"
+    ],
+    "output_node": false,
+    "category": "model/loaders",
+    "display_name": "Load VAE"
+  },
+  "LoraLoaderModelOnly": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "lora_name": {
+        "type": "COMBO",
+        "n": 16,
+        "opts": [
+          "krea2_airy_anime_watercolor.safetensors",
+          "krea2_cel_shaded_daytime_anime.safetensors",
+          "krea2_darkbrush.safetensors",
+          "krea2_flat_cel_anime.safetensors",
+          "krea2_golden_blue_anime_gouache.safetensors",
+          "krea2_golden_era_cel_animation.safetensors",
+          "krea2_kidsdrawing.safetensors",
+          "krea2_kroma_v031_turbo_opd_r384.safetensors",
+          "krea2_luminous_anime_film.safetensors",
+          "krea2_retroanime.safetensors",
+          "krea2_softwatercolor.safetensors",
+          "krea2_style_reference.safetensors",
+          "krea2_turbo_4step_rank_64_lora_comfyui.safetensors",
+          "minimax_h3_fl2v_lightx2v_turbo_4step_v0.1_comfy.safetensors"
+        ]
+      },
+      "strength_model": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": -100.0,
+        "max": 100.0,
+        "step": 0.01
+      }
+    },
+    "optional": {},
+    "output": [
+      "MODEL"
+    ],
+    "output_name": [
+      "MODEL"
+    ],
+    "output_node": false,
+    "category": "model/loaders",
+    "display_name": "Load LoRA"
+  },
+  "ModelSamplingFlux": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "max_shift": {
+        "type": "FLOAT",
+        "default": 1.15,
+        "min": 0.0,
+        "max": 100.0,
+        "step": 0.01
+      },
+      "base_shift": {
+        "type": "FLOAT",
+        "default": 0.5,
+        "min": 0.0,
+        "max": 100.0,
+        "step": 0.01
+      },
+      "width": {
+        "type": "INT",
+        "default": 1024,
+        "min": 16,
+        "max": 16384,
+        "step": 8
+      },
+      "height": {
+        "type": "INT",
+        "default": 1024,
+        "min": 16,
+        "max": 16384,
+        "step": 8
+      }
+    },
+    "optional": {},
+    "output": [
+      "MODEL"
+    ],
+    "output_name": [
+      "MODEL"
+    ],
+    "output_node": false,
+    "category": "model/patch/flux",
+    "display_name": "ModelSamplingFlux"
+  },
+  "CLIPTextEncode": {
+    "required": {
+      "text": {
+        "type": "STRING",
+        "multiline": true,
+        "dynamicPrompts": true
+      },
+      "clip": {
+        "type": "CLIP"
+      }
+    },
+    "optional": {},
+    "output": [
+      "CONDITIONING"
+    ],
+    "output_name": [
+      "CONDITIONING"
+    ],
+    "output_node": false,
+    "category": "model/conditioning",
+    "display_name": "CLIP Text Encode (Prompt)"
+  },
+  "ConditioningZeroOut": {
+    "required": {
+      "conditioning": {
+        "type": "CONDITIONING"
+      }
+    },
+    "optional": {},
+    "output": [
+      "CONDITIONING"
+    ],
+    "output_name": [
+      "CONDITIONING"
+    ],
+    "output_node": false,
+    "category": "model/conditioning/transform",
+    "display_name": "Conditioning Zero Out"
+  },
+  "CFGGuider": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "positive": {
+        "type": "CONDITIONING"
+      },
+      "negative": {
+        "type": "CONDITIONING"
+      },
+      "cfg": {
+        "type": "FLOAT",
+        "default": 8.0,
+        "min": 0.0,
+        "max": 100.0,
+        "step": 0.1
+      }
+    },
+    "optional": {},
+    "output": [
+      "GUIDER"
+    ],
+    "output_name": [
+      "GUIDER"
+    ],
+    "output_node": false,
+    "category": "model/sampling/guiders",
+    "display_name": "CFG Guider"
+  },
+  "RandomNoise": {
+    "required": {
+      "noise_seed": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 18446744073709551615
+      }
+    },
+    "optional": {},
+    "output": [
+      "NOISE"
+    ],
+    "output_name": [
+      "NOISE"
+    ],
+    "output_node": false,
+    "category": "model/sampling/noise",
+    "display_name": null
+  },
+  "KSamplerSelect": {
+    "required": {
+      "sampler_name": {
+        "type": "COMBO"
+      }
+    },
+    "optional": {},
+    "output": [
+      "SAMPLER"
+    ],
+    "output_name": [
+      "SAMPLER"
+    ],
+    "output_node": false,
+    "category": "model/sampling/samplers",
+    "display_name": null
+  },
+  "BasicScheduler": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "scheduler": {
+        "type": "COMBO"
+      },
+      "steps": {
+        "type": "INT",
+        "default": 20,
+        "min": 1,
+        "max": 10000
+      },
+      "denoise": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      }
+    },
+    "optional": {},
+    "output": [
+      "SIGMAS"
+    ],
+    "output_name": [
+      "SIGMAS"
+    ],
+    "output_node": false,
+    "category": "model/sampling/schedulers",
+    "display_name": null
+  },
+  "SamplerCustomAdvanced": {
+    "required": {
+      "noise": {
+        "type": "NOISE"
+      },
+      "guider": {
+        "type": "GUIDER"
+      },
+      "sampler": {
+        "type": "SAMPLER"
+      },
+      "sigmas": {
+        "type": "SIGMAS"
+      },
+      "latent_image": {
+        "type": "LATENT"
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT",
+      "LATENT"
+    ],
+    "output_name": [
+      "output",
+      "denoised_output"
+    ],
+    "output_node": false,
+    "category": "model/sampling/custom",
+    "display_name": null
+  },
+  "EmptyLatentImage": {
+    "required": {
+      "width": {
+        "type": "INT",
+        "default": 1024,
+        "min": 16,
+        "max": 16384,
+        "step": 8
+      },
+      "height": {
+        "type": "INT",
+        "default": 1024,
+        "min": 16,
+        "max": 16384,
+        "step": 8
+      },
+      "batch_size": {
+        "type": "INT",
+        "default": 1,
+        "min": 1,
+        "max": 4096
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT"
+    ],
+    "output_name": [
+      "LATENT"
+    ],
+    "output_node": false,
+    "category": "model/latent",
+    "display_name": "Empty Latent Image"
+  },
+  "VAEDecode": {
+    "required": {
+      "samples": {
+        "type": "LATENT"
+      },
+      "vae": {
+        "type": "VAE"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "model/latent",
+    "display_name": "VAE Decode"
+  },
+  "SaveImage": {
+    "required": {
+      "images": {
+        "type": "IMAGE"
+      },
+      "filename_prefix": {
+        "type": "STRING",
+        "default": "ComfyUI"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "images"
+    ],
+    "output_node": true,
+    "category": "image",
+    "display_name": "Save Image"
+  },
+  "CheckpointLoaderSimple": {
+    "required": {
+      "ckpt_name": {
+        "type": "COMBO",
+        "n": 2,
+        "opts": [
+          "yue2_3b_bf16.safetensors",
+          "yue2_3b_int8_convrot.safetensors"
+        ]
+      }
+    },
+    "optional": {},
+    "output": [
+      "MODEL",
+      "CLIP",
+      "VAE"
+    ],
+    "output_name": [
+      "MODEL",
+      "CLIP",
+      "VAE"
+    ],
+    "output_node": false,
+    "category": "model/loaders",
+    "display_name": "Load Checkpoint"
+  },
+  "KSampler": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "seed": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 18446744073709551615
+      },
+      "steps": {
+        "type": "INT",
+        "default": 20,
+        "min": 1,
+        "max": 10000
+      },
+      "cfg": {
+        "type": "FLOAT",
+        "default": 8.0,
+        "min": 0.0,
+        "max": 100.0,
+        "step": 0.1
+      },
+      "sampler_name": {
+        "type": "COMBO",
+        "n": 45,
+        "opts": [
+          "euler",
+          "euler_cfg_pp",
+          "euler_ancestral",
+          "euler_ancestral_cfg_pp",
+          "heun",
+          "heunpp2",
+          "exp_heun_2_x0",
+          "exp_heun_2_x0_sde",
+          "dpm_2",
+          "dpm_2_ancestral",
+          "lms",
+          "dpm_fast",
+          "dpm_adaptive",
+          "dpmpp_2s_ancestral"
+        ]
+      },
+      "scheduler": {
+        "type": "COMBO",
+        "n": 9,
+        "opts": [
+          "simple",
+          "sgm_uniform",
+          "karras",
+          "exponential",
+          "ddim_uniform",
+          "beta",
+          "normal",
+          "linear_quadratic",
+          "kl_optimal"
+        ]
+      },
+      "positive": {
+        "type": "CONDITIONING"
+      },
+      "negative": {
+        "type": "CONDITIONING"
+      },
+      "latent_image": {
+        "type": "LATENT"
+      },
+      "denoise": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT"
+    ],
+    "output_name": [
+      "LATENT"
+    ],
+    "output_node": false,
+    "category": "model/sampling",
+    "display_name": "KSampler"
+  },
+  "CLIPSetLastLayer": {
+    "required": {
+      "clip": {
+        "type": "CLIP"
+      },
+      "stop_at_clip_layer": {
+        "type": "INT",
+        "default": -1,
+        "min": -24,
+        "max": -1,
+        "step": 1
+      }
+    },
+    "optional": {},
+    "output": [
+      "CLIP"
+    ],
+    "output_name": [
+      "CLIP"
+    ],
+    "output_node": false,
+    "category": "model/conditioning",
+    "display_name": "CLIP Set Last Layer"
+  },
+  "LoraLoader": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "clip": {
+        "type": "CLIP"
+      },
+      "lora_name": {
+        "type": "COMBO",
+        "n": 16,
+        "opts": [
+          "krea2_airy_anime_watercolor.safetensors",
+          "krea2_cel_shaded_daytime_anime.safetensors",
+          "krea2_darkbrush.safetensors",
+          "krea2_flat_cel_anime.safetensors",
+          "krea2_golden_blue_anime_gouache.safetensors",
+          "krea2_golden_era_cel_animation.safetensors",
+          "krea2_kidsdrawing.safetensors",
+          "krea2_kroma_v031_turbo_opd_r384.safetensors",
+          "krea2_luminous_anime_film.safetensors",
+          "krea2_retroanime.safetensors",
+          "krea2_softwatercolor.safetensors",
+          "krea2_style_reference.safetensors",
+          "krea2_turbo_4step_rank_64_lora_comfyui.safetensors",
+          "minimax_h3_fl2v_lightx2v_turbo_4step_v0.1_comfy.safetensors"
+        ]
+      },
+      "strength_model": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": -100.0,
+        "max": 100.0,
+        "step": 0.01
+      },
+      "strength_clip": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": -100.0,
+        "max": 100.0,
+        "step": 0.01
+      }
+    },
+    "optional": {},
+    "output": [
+      "MODEL",
+      "CLIP"
+    ],
+    "output_name": [
+      "MODEL",
+      "CLIP"
+    ],
+    "output_node": false,
+    "category": "model/loaders",
+    "display_name": "Load LoRA (Model and CLIP)"
+  },
+  "UpscaleModelLoader": {
+    "required": {
+      "model_name": {
+        "type": "COMBO"
+      }
+    },
+    "optional": {},
+    "output": [
+      "UPSCALE_MODEL"
+    ],
+    "output_name": [
+      "UPSCALE_MODEL"
+    ],
+    "output_node": false,
+    "category": "model/loaders",
+    "display_name": "Load Upscale Model"
+  },
+  "ImageUpscaleWithModel": {
+    "required": {
+      "upscale_model": {
+        "type": "UPSCALE_MODEL"
+      },
+      "image": {
+        "type": "IMAGE"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/upscaling",
+    "display_name": "Upscale Image (using Model)"
+  },
+  "ImageScale": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      },
+      "upscale_method": {
+        "type": "COMBO",
+        "n": 5,
+        "opts": [
+          "nearest-exact",
+          "bilinear",
+          "area",
+          "bicubic",
+          "lanczos"
+        ]
+      },
+      "width": {
+        "type": "INT",
+        "default": 512,
+        "min": 0,
+        "max": 16384,
+        "step": 1
+      },
+      "height": {
+        "type": "INT",
+        "default": 512,
+        "min": 0,
+        "max": 16384,
+        "step": 1
+      },
+      "crop": {
+        "type": "COMBO",
+        "n": 2,
+        "opts": [
+          "disabled",
+          "center"
+        ]
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/upscaling",
+    "display_name": "Upscale Image"
+  },
+  "LoadImage": {
+    "required": {
+      "image": {
+        "type": "COMBO",
+        "n": 40,
+        "opts": [
+          "P01_红蜡笔.png",
+          "P02_烬之心.png",
+          "P03_龙之泪.png",
+          "P04_半枚异界硬币.png",
+          "P05_应急灯.png",
+          "P06_守约木牌.png",
+          "P07_真心契约书.png",
+          "P08_补拍合影名单.png",
+          "S01_田中便利店.png",
+          "S02_公寓203室.png",
+          "S03_锚门地下厅.png",
+          "S04_月读高中二年B组教室.png",
+          "S05_学校操场与防线.png",
+          "S06_湾岸圣所.png"
+        ]
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE",
+      "MASK"
+    ],
+    "output_name": [
+      "IMAGE",
+      "MASK"
+    ],
+    "output_node": false,
+    "category": "image",
+    "display_name": "Load Image"
+  },
+  "LoadImageMask": {
+    "required": {
+      "image": {
+        "type": "COMBO",
+        "n": 40,
+        "opts": [
+          "P01_红蜡笔.png",
+          "P02_烬之心.png",
+          "P03_龙之泪.png",
+          "P04_半枚异界硬币.png",
+          "P05_应急灯.png",
+          "P06_守约木牌.png",
+          "P07_真心契约书.png",
+          "P08_补拍合影名单.png",
+          "S01_田中便利店.png",
+          "S02_公寓203室.png",
+          "S03_锚门地下厅.png",
+          "S04_月读高中二年B组教室.png",
+          "S05_学校操场与防线.png",
+          "S06_湾岸圣所.png"
+        ]
+      },
+      "channel": {
+        "type": "COMBO",
+        "n": 4,
+        "opts": [
+          "alpha",
+          "red",
+          "green",
+          "blue"
+        ]
+      }
+    },
+    "optional": {},
+    "output": [
+      "MASK"
+    ],
+    "output_name": [
+      "MASK"
+    ],
+    "output_node": false,
+    "category": "image",
+    "display_name": "Load Image (as Mask)"
+  },
+  "BiRefNetRMBG": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      },
+      "model": {
+        "type": "COMBO",
+        "n": 12,
+        "opts": [
+          "BiRefNet-general",
+          "BiRefNet_512x512",
+          "BiRefNet-HR",
+          "BiRefNet-portrait",
+          "BiRefNet-matting",
+          "BiRefNet-HR-matting",
+          "BiRefNet_lite",
+          "BiRefNet_lite-2K",
+          "BiRefNet_dynamic",
+          "BiRefNet_lite-matting",
+          "BiRefNet_toonout",
+          "Lucida"
+        ]
+      }
+    },
+    "optional": {
+      "sensitivity": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "mask_blur": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 64,
+        "step": 1
+      },
+      "mask_offset": {
+        "type": "INT",
+        "default": 0,
+        "min": -20,
+        "max": 20,
+        "step": 1
+      },
+      "invert_output": {
+        "type": "BOOLEAN",
+        "default": false
+      },
+      "refine_foreground": {
+        "type": "BOOLEAN",
+        "default": false
+      },
+      "background": {
+        "type": "COMBO",
+        "n": 2,
+        "opts": [
+          "Alpha",
+          "Color"
+        ]
+      },
+      "background_color": {
+        "type": "COLORCODE",
+        "default": "#222222"
+      }
+    },
+    "output": [
+      "IMAGE",
+      "MASK",
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE",
+      "MASK",
+      "MASK_IMAGE"
+    ],
+    "output_node": false,
+    "category": "🧪AILab/🧽RMBG",
+    "display_name": "BiRefNet (RMBG)"
+  },
+  "RemoveBackground": {
+    "required": {
+      "bg_removal_model": {
+        "type": "BACKGROUND_REMOVAL"
+      },
+      "image": {
+        "type": "IMAGE"
+      }
+    },
+    "optional": {},
+    "output": [
+      "MASK"
+    ],
+    "output_name": [
+      "mask"
+    ],
+    "output_node": false,
+    "category": "image/background removal",
+    "display_name": "Remove Background"
+  },
+  "BriaRemoveImageBackground": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      },
+      "moderation": {
+        "type": "COMFY_DYNAMICCOMBO_V3"
+      },
+      "seed": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 2147483647
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "partner/image/Bria",
+    "display_name": "Bria Remove Image Background"
+  },
+  "ImageCompositeMasked": {
+    "required": {
+      "destination": {
+        "type": "IMAGE"
+      },
+      "source": {
+        "type": "IMAGE"
+      },
+      "x": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 16384,
+        "step": 1
+      },
+      "y": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 16384,
+        "step": 1
+      },
+      "resize_source": {
+        "type": "BOOLEAN",
+        "default": false
+      }
+    },
+    "optional": {
+      "mask": {
+        "type": "MASK"
+      }
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/compositing",
+    "display_name": "Image Composite Masked"
+  },
+  "VAEEncode": {
+    "required": {
+      "pixels": {
+        "type": "IMAGE"
+      },
+      "vae": {
+        "type": "VAE"
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT"
+    ],
+    "output_name": [
+      "LATENT"
+    ],
+    "output_node": false,
+    "category": "model/latent",
+    "display_name": "VAE Encode"
+  },
+  "SetLatentNoiseMask": {
+    "required": {
+      "samples": {
+        "type": "LATENT"
+      },
+      "mask": {
+        "type": "MASK"
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT"
+    ],
+    "output_name": [
+      "LATENT"
+    ],
+    "output_node": false,
+    "category": "model/latent",
+    "display_name": "Set Latent Noise Mask"
+  },
+  "VAEEncodeForInpaint": {
+    "required": {
+      "pixels": {
+        "type": "IMAGE"
+      },
+      "vae": {
+        "type": "VAE"
+      },
+      "mask": {
+        "type": "MASK"
+      },
+      "grow_mask_by": {
+        "type": "INT",
+        "default": 6,
+        "min": 0,
+        "max": 64,
+        "step": 1
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT"
+    ],
+    "output_name": [
+      "LATENT"
+    ],
+    "output_node": false,
+    "category": "model/latent",
+    "display_name": "VAE Encode (for Inpainting)"
+  },
+  "GrowMask": {
+    "required": {
+      "mask": {
+        "type": "MASK"
+      },
+      "expand": {
+        "type": "INT",
+        "default": 0,
+        "min": -16384,
+        "max": 16384,
+        "step": 1
+      },
+      "tapered_corners": {
+        "type": "BOOLEAN",
+        "default": true
+      }
+    },
+    "optional": {},
+    "output": [
+      "MASK"
+    ],
+    "output_name": [
+      "MASK"
+    ],
+    "output_node": false,
+    "category": "image/mask",
+    "display_name": "Grow Mask"
+  },
+  "JoinImageWithAlpha": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      },
+      "alpha": {
+        "type": "MASK"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/compositing",
+    "display_name": "Join Image with Alpha"
+  },
+  "SplitImageWithAlpha": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE",
+      "MASK"
+    ],
+    "output_name": [
+      "IMAGE",
+      "MASK"
+    ],
+    "output_node": false,
+    "category": "image/compositing",
+    "display_name": "Split Image with Alpha"
+  },
+  "IPAdapterUnifiedLoader": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "preset": {
+        "type": "COMBO",
+        "n": 6,
+        "opts": [
+          "LIGHT - SD1.5 only (low strength)",
+          "STANDARD (medium strength)",
+          "VIT-G (medium strength)",
+          "PLUS (high strength)",
+          "PLUS FACE (portraits)",
+          "FULL FACE - SD1.5 only (portraits stronger)"
+        ]
+      }
+    },
+    "optional": {
+      "ipadapter": {
+        "type": "IPADAPTER"
+      }
+    },
+    "output": [
+      "MODEL",
+      "IPADAPTER"
+    ],
+    "output_name": [
+      "model",
+      "ipadapter"
+    ],
+    "output_node": false,
+    "category": "ipadapter",
+    "display_name": "IPAdapter Unified Loader"
+  },
+  "IPAdapterAdvanced": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "ipadapter": {
+        "type": "IPADAPTER"
+      },
+      "image": {
+        "type": "IMAGE"
+      },
+      "weight": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": -1,
+        "max": 5,
+        "step": 0.05
+      },
+      "weight_type": {
+        "type": "COMBO",
+        "n": 15,
+        "opts": [
+          "linear",
+          "ease in",
+          "ease out",
+          "ease in-out",
+          "reverse in-out",
+          "weak input",
+          "weak output",
+          "weak middle",
+          "strong middle",
+          "style transfer",
+          "composition",
+          "strong style transfer",
+          "style and composition",
+          "style transfer precise"
+        ]
+      },
+      "combine_embeds": {
+        "type": "COMBO",
+        "n": 5,
+        "opts": [
+          "concat",
+          "add",
+          "subtract",
+          "average",
+          "norm average"
+        ]
+      },
+      "start_at": {
+        "type": "FLOAT",
+        "default": 0.0,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.001
+      },
+      "end_at": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.001
+      },
+      "embeds_scaling": {
+        "type": "COMBO",
+        "n": 4,
+        "opts": [
+          "V only",
+          "K+V",
+          "K+V w/ C penalty",
+          "K+mean(V) w/ C penalty"
+        ]
+      }
+    },
+    "optional": {
+      "image_negative": {
+        "type": "IMAGE"
+      },
+      "attn_mask": {
+        "type": "MASK"
+      },
+      "clip_vision": {
+        "type": "CLIP_VISION"
+      }
+    },
+    "output": [
+      "MODEL"
+    ],
+    "output_name": [
+      "MODEL"
+    ],
+    "output_node": false,
+    "category": "ipadapter",
+    "display_name": "IPAdapter Advanced"
+  },
+  "ImageBlend": {
+    "required": {
+      "image1": {
+        "type": "IMAGE"
+      },
+      "image2": {
+        "type": "IMAGE"
+      },
+      "blend_factor": {
+        "type": "FLOAT",
+        "default": 0.5,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "blend_mode": {
+        "type": "COMBO"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/filters",
+    "display_name": "Blend Images"
+  },
+  "ImageBatch": {
+    "required": {
+      "image1": {
+        "type": "IMAGE"
+      },
+      "image2": {
+        "type": "IMAGE"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/batch",
+    "display_name": "Batch Images (DEPRECATED)"
+  },
+  "TextEncodeQwenImageEditPlus": {
+    "required": {
+      "clip": {
+        "type": "CLIP"
+      },
+      "prompt": {
+        "type": "STRING",
+        "multiline": true,
+        "dynamicPrompts": true
+      }
+    },
+    "optional": {
+      "vae": {
+        "type": "VAE"
+      },
+      "image1": {
+        "type": "IMAGE"
+      },
+      "image2": {
+        "type": "IMAGE"
+      },
+      "image3": {
+        "type": "IMAGE"
+      }
+    },
+    "output": [
+      "CONDITIONING"
+    ],
+    "output_name": [
+      "CONDITIONING"
+    ],
+    "output_node": false,
+    "category": "model/conditioning/qwen image",
+    "display_name": "Text Encode Qwen Image Edit Plus"
+  },
+  "FluxKontextMultiReferenceLatentMethod": {
+    "required": {
+      "conditioning": {
+        "type": "CONDITIONING"
+      },
+      "reference_latents_method": {
+        "type": "COMBO"
+      }
+    },
+    "optional": {},
+    "output": [
+      "CONDITIONING"
+    ],
+    "output_name": [
+      "CONDITIONING"
+    ],
+    "output_node": false,
+    "category": "model/conditioning/flux",
+    "display_name": "Edit Model Reference Method"
+  },
+  "Krea2StyleReferenceNode": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      },
+      "strength": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": -2.0,
+        "max": 2.0,
+        "step": 0.05
+      }
+    },
+    "optional": {
+      "style_reference": {
+        "type": "KREA_STYLE_REF"
+      }
+    },
+    "output": [
+      "KREA_STYLE_REF"
+    ],
+    "output_name": [
+      "style_reference"
+    ],
+    "output_node": false,
+    "category": "partner/image/Krea",
+    "display_name": "Krea 2 Style Reference"
+  },
+  "ReferenceLatent": {
+    "required": {
+      "conditioning": {
+        "type": "CONDITIONING"
+      }
+    },
+    "optional": {
+      "latent": {
+        "type": "LATENT"
+      }
+    },
+    "output": [
+      "CONDITIONING"
+    ],
+    "output_name": [
+      "CONDITIONING"
+    ],
+    "output_node": false,
+    "category": "model/conditioning",
+    "display_name": "Set Reference Latent"
+  },
+  "InpaintModelConditioning": {
+    "required": {
+      "positive": {
+        "type": "CONDITIONING"
+      },
+      "negative": {
+        "type": "CONDITIONING"
+      },
+      "vae": {
+        "type": "VAE"
+      },
+      "pixels": {
+        "type": "IMAGE"
+      },
+      "mask": {
+        "type": "MASK"
+      },
+      "noise_mask": {
+        "type": "BOOLEAN",
+        "default": true
+      }
+    },
+    "optional": {},
+    "output": [
+      "CONDITIONING",
+      "CONDITIONING",
+      "LATENT"
+    ],
+    "output_name": [
+      "positive",
+      "negative",
+      "latent"
+    ],
+    "output_node": false,
+    "category": "model/conditioning",
+    "display_name": "InpaintModelConditioning"
+  },
+  "EmptyImage": {
+    "required": {
+      "width": {
+        "type": "INT",
+        "default": 512,
+        "min": 1,
+        "max": 16384,
+        "step": 1
+      },
+      "height": {
+        "type": "INT",
+        "default": 512,
+        "min": 1,
+        "max": 16384,
+        "step": 1
+      },
+      "batch_size": {
+        "type": "INT",
+        "default": 1,
+        "min": 1,
+        "max": 4096
+      },
+      "color": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 16777215,
+        "step": 1
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image",
+    "display_name": "Empty Image"
+  },
+  "ImageInvert": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/color",
+    "display_name": "Invert Image Colors"
+  },
+  "ConditioningSetTimestepRange": {
+    "required": {
+      "conditioning": {
+        "type": "CONDITIONING"
+      },
+      "start": {
+        "type": "FLOAT",
+        "default": 0.0,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.001
+      },
+      "end": {
+        "type": "FLOAT",
+        "default": 1.0,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.001
+      }
+    },
+    "optional": {},
+    "output": [
+      "CONDITIONING"
+    ],
+    "output_name": [
+      "CONDITIONING"
+    ],
+    "output_node": false,
+    "category": "model/conditioning/transform",
+    "display_name": "ConditioningSetTimestepRange"
+  },
+  "ModelSamplingDiscrete": {
+    "required": {
+      "model": {
+        "type": "MODEL"
+      },
+      "sampling": {
+        "type": "COMBO",
+        "n": 6,
+        "opts": [
+          "eps",
+          "v_prediction",
+          "lcm",
+          "x0",
+          "img_to_img",
+          "img_to_img_flow"
+        ]
+      },
+      "zsnr": {
+        "type": "BOOLEAN",
+        "default": false
+      }
+    },
+    "optional": {},
+    "output": [
+      "MODEL"
+    ],
+    "output_name": [
+      "MODEL"
+    ],
+    "output_node": false,
+    "category": "model/patch",
+    "display_name": "ModelSamplingDiscrete"
+  },
+  "LatentUpscale": {
+    "required": {
+      "samples": {
+        "type": "LATENT"
+      },
+      "upscale_method": {
+        "type": "COMBO",
+        "n": 5,
+        "opts": [
+          "nearest-exact",
+          "bilinear",
+          "area",
+          "bicubic",
+          "bislerp"
+        ]
+      },
+      "width": {
+        "type": "INT",
+        "default": 512,
+        "min": 0,
+        "max": 16384,
+        "step": 8
+      },
+      "height": {
+        "type": "INT",
+        "default": 512,
+        "min": 0,
+        "max": 16384,
+        "step": 8
+      },
+      "crop": {
+        "type": "COMBO",
+        "n": 2,
+        "opts": [
+          "disabled",
+          "center"
+        ]
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT"
+    ],
+    "output_name": [
+      "LATENT"
+    ],
+    "output_node": false,
+    "category": "model/latent",
+    "display_name": "Upscale Latent"
+  },
+  "ImageCrop": {
+    "required": {
+      "image": {
+        "type": "IMAGE"
+      },
+      "width": {
+        "type": "INT",
+        "default": 512,
+        "min": 1,
+        "max": 16384,
+        "step": 1
+      },
+      "height": {
+        "type": "INT",
+        "default": 512,
+        "min": 1,
+        "max": 16384,
+        "step": 1
+      },
+      "x": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 16384,
+        "step": 1
+      },
+      "y": {
+        "type": "INT",
+        "default": 0,
+        "min": 0,
+        "max": 16384,
+        "step": 1
+      }
+    },
+    "optional": {},
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_node": false,
+    "category": "image/transform",
+    "display_name": "Crop Image (DEPRECATED)"
+  },
+  "RepeatLatentBatch": {
+    "required": {
+      "samples": {
+        "type": "LATENT"
+      },
+      "amount": {
+        "type": "INT",
+        "default": 1,
+        "min": 1,
+        "max": 64
+      }
+    },
+    "optional": {},
+    "output": [
+      "LATENT"
+    ],
+    "output_name": [
+      "LATENT"
+    ],
+    "output_node": false,
+    "category": "model/latent/batch",
+    "display_name": "Repeat Latent Batch"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "星奏の首席奏者 リラ",
+  "frame": "effect",
+  "level": 3,
+  "attribute": "光",
+  "race": "天使族",
+  "atk": 1200,
+  "def": 800,
+  "type_flags": [
+    "调整"
+  ],
+  "text": "①：1回合1次，自己主要阶段才能发动。从卡组抽 1 张卡。",
+  "id": 210000012,
+  "archetype": "星奏",
+  "setcode": "0x1001",
+  "race_bits": 4,
+  "attr_bits": 16,
+  "type_bits": 4129,
+  "effect_tier": 1,
+  "detected_effects": [
+    "draw"
+  ],
+  "_lua": "--[[ 星奏の首席奏者 リラ\n     CardForge 自动生成 · 模板档:tier1/draw\n     效果：抽卡\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t-- 效果 1：抽卡（起动效果）\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_DRAW)\n\te1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_IGNITION)\n\te1:SetRange(LOCATION_MZONE)\n\te1:SetTarget(e1_drawtg)\n\te1:SetOperation(e1_drawop)\n\tc:RegisterEffect(e1)\nend\n\n-- ①：1回合1次，自己主要阶段才能发动。从卡组抽1张卡。\nfunction e1_drtg(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsPlayerCanDraw(tp,1) end\n\tDuel.SetTargetPlayer(tp)\n\tDuel.SetTargetParam(1)\n\tDuel.SetOperationInfo(0,CATEGORY_DRAW,nil,0,tp,1)\nend\nfunction e1_drop(e,tp,eg,ep,ev,re,r,rp)\n\tlocal p=Duel.GetChainInfo(0,CHAININFO_TARGET_PLAYER)\n\tDuel.Draw(p,1,REASON_EFFECT)\nend\n",
+  "_strings": [
+    "①：1回合1次，自己主要阶段才能发动。从卡组抽1张卡。"
+  ]
+}

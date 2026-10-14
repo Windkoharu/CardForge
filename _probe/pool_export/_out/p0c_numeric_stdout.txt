@@ -1,0 +1,49 @@
+=== atk/def 负值（'?' 编码候选）===
+  datas.atk < 0 : [(-2, 117)]
+    id=10000 万物创世龙: atk=-2 def=-2
+    id=2665273 永界王战 欧姆刚德王: atk=-2 def=-2
+    id=2948263 隆隆隆石人-黄金形态: atk=-2 def=1500
+    id=4068622 黑羽-极光之奥罗拉: atk=-2 def=0
+  datas.def < 0 : [(-2, 79)]
+    id=10000 万物创世龙: atk=-2 def=-2
+    id=2665273 永界王战 欧姆刚德王: atk=-2 def=-2
+    id=5008836 守护神 艾克佐迪亚: atk=-2 def=-2
+    id=8400623 邪龙 阿难陀: atk=-2 def=-2
+  atk 为 NULL 的数量 = 0
+  def 为 NULL 的数量 = 0
+
+=== 魔陷的 datas 行样本 ===
+  id=483 平行瞬间移动: type=0x10002 atk=0 def=0 level=0 race=0 attr=0 cat=262144
+  id=59080 圣魔 裁决之雷: type=0x2 atk=0 def=0 level=0 race=0 attr=0 cat=67371012
+  id=27551 限制苏生: type=0x20004 atk=0 def=0
+  id=41777 宝石优化: type=0x4 atk=0 def=0
+
+=== texts.str1..str16 使用率 ===
+  str1   非空 = 7129 / 15019
+  str2   非空 = 4056 / 15019
+  str3   非空 = 1838 / 15019
+  str4   非空 = 554 / 15019
+  str5   非空 = 166 / 15019
+  str6   非空 = 46 / 15019
+  str7   非空 = 10 / 15019
+  str8   非空 = 3 / 15019
+  str9   非空 = 2 / 15019
+  str10  非空 = 0 / 15019
+  str11  非空 = 0 / 15019
+  str12  非空 = 0 / 15019
+  str13  非空 = 0 / 15019
+  str14  非空 = 0 / 15019
+  str15  非空 = 0 / 15019
+  str16  非空 = 0 / 15019
+
+=== 两表一致性 ===
+  datas 无 texts: 0
+  texts 无 datas: 0
+
+=== 字段查重实测（archetype_hits 语义）===
+  field='星奏'       name=0    desc=0    union=0    FTS=0  FTS⊆LIKE? True
+  field='青眼'       name=44   desc=61   union=83   FTS=27  FTS⊆LIKE? True
+  field='焰刃'       name=0    desc=0    union=0    FTS=0  FTS⊆LIKE? True
+  field='水精鳞'      name=20   desc=27   union=31   FTS=31  FTS⊆LIKE? True
+  field='Cipher'   name=0    desc=0    union=0    FTS=0  FTS⊆LIKE? True
+  field='密码'       name=4    desc=1    union=5    FTS=0  FTS⊆LIKE? True

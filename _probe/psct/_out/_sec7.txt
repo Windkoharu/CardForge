@@ -1,0 +1,68 @@
+﻿【⑦速攻魔法】苍岚的急袭  frame=spell type_line(zh)=【速攻魔法】
+──────────────────────────────────────────────────────────────────────────────
+── zh_cn（used=zh_cn，行数估算 1/8，source=ir）
+①：以对方场上的1张卡为对象才能发动。把那张卡破坏。
+   · 注：魔法/陷阱没有「诱发即时效果」这一说法，已省略 (Quick Effect) 类时点措辞（速攻魔法/陷阱靠卡种获得 2 速）
+── ja（used=ja，行数估算 2/8，source=ir）
+①：相手フィールドのカード１枚を対象として発動できる。それを破壊する。
+   · 注：魔法/陷阱没有「诱发即时效果」这一说法，已省略 (Quick Effect) 类时点措辞（速攻魔法/陷阱靠卡种获得 2 速）
+   · 注：字段名「苍岚」没有 ja 译名（Archetype.name_i18n 可补）
+── en（used=en，行数估算 1/8，source=ir）
+① You can target 1 card your opponent controls; destroy it.
+   · 注：魔法/陷阱没有「诱发即时效果」这一说法，已省略 (Quick Effect) 类时点措辞（速攻魔法/陷阱靠卡种获得 2 速）
+---
+3. 24 段卡文跑 lint()，断言零 ERROR（生成器 ↔ 校验器一致性）
+══════════════════════════════════════════════════════════════════════════════
+
+【①通常怪兽】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ①通常怪兽：lint(spec) 零 ERROR
+
+【②效果怪兽·单效果】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ②效果怪兽·单效果：lint(spec) 零 ERROR
+
+【③双效果·卡名HOPT】lint(spec) → 1 条：ERROR 0 / WARN 0 / INFO 1
+   [INFO ] PSCT_TEXT_TOO_LONG           text_i18n.ja                 卡文长度超过文本框容量估算 —— 估算 8 行，已接近文本框容量 8 行
+  [PASS] ③双效果·卡名HOPT：lint(spec) 零 ERROR
+
+【④起动效果】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ④起动效果：lint(spec) 零 ERROR
+
+【⑤永续效果】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ⑤永续效果：lint(spec) 零 ERROR
+
+【⑥灵摆卡双文本】lint(spec) → 2 条：ERROR 0 / WARN 1 / INFO 1
+   [WARN ] PSCT_TEXT_TOO_LONG           pendulum_text_i18n.ja        卡文长度超过文本框容量估算 —— 估算 6 行，文本框约 5 行（每行约 30 全角字当量）
+   [INFO ] PSCT_TEXT_TOO_LONG           pendulum_text_i18n.zh_cn     卡文长度超过文本框容量估算 —— 估算 5 行，已接近文本框容量 5 行
+  [PASS] ⑥灵摆卡双文本：lint(spec) 零 ERROR
+
+【⑦速攻魔法】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ⑦速攻魔法：lint(spec) 零 ERROR
+
+【⑧反击陷阱】lint(spec) → 0 条：ERROR 0 / WARN 0 / INFO 0
+  [PASS] ⑧反击陷阱：lint(spec) 零 ERROR
+  [PASS] ①通常怪兽/zh_cn：lint_text 零 ERROR
+  [PASS] ①通常怪兽/ja：lint_text 零 ERROR
+  [PASS] ①通常怪兽/en：lint_text 零 ERROR
+  [PASS] ②效果怪兽·单效果/zh_cn：lint_text 零 ERROR
+  [PASS] ②效果怪兽·单效果/ja：lint_text 零 ERROR
+  [PASS] ②效果怪兽·单效果/en：lint_text 零 ERROR
+  [PASS] ③双效果·卡名HOPT/zh_cn：lint_text 零 ERROR
+  [PASS] ③双效果·卡名HOPT/ja：lint_text 零 ERROR
+  [PASS] ③双效果·卡名HOPT/en：lint_text 零 ERROR
+  [PASS] ④起动效果/zh_cn：lint_text 零 ERROR
+  [PASS] ④起动效果/ja：lint_text 零 ERROR
+  [PASS] ④起动效果/en：lint_text 零 ERROR
+  [PASS] ⑤永续效果/zh_cn：lint_text 零 ERROR
+  [PASS] ⑤永续效果/ja：lint_text 零 ERROR
+  [PASS] ⑤永续效果/en：lint_text 零 ERROR
+  [PASS] ⑥灵摆卡双文本/zh_cn：lint_text 零 ERROR
+  [PASS] ⑥灵摆卡双文本/ja：lint_text 零 ERROR
+  [PASS] ⑥灵摆卡双文本/en：lint_text 零 ERROR
+  [PASS] ⑦速攻魔法/zh_cn：lint_text 零 ERROR
+  [PASS] ⑦速攻魔法/ja：lint_text 零 ERROR
+  [PASS] ⑦速攻魔法/en：lint_text 零 ERROR
+  [PASS] ⑧反击陷阱/zh_cn：lint_text 零 ERROR
+  [PASS] ⑧反击陷阱/ja：lint_text 零 ERROR
+  [PASS] ⑧反击陷阱/en：lint_text 零 ERROR
+
+══════════════════════════════════════════════════════════════════════════════

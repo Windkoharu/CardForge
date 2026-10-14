@@ -1,0 +1,43 @@
+FRAGMENT -> KINDS
+frag_to_hand                     search, search_grave, recover, search_banished
+frag_special_summon              ssummon, ssummon_deck, ssummon_hand, ssummon_grave, ssummon_extra, ssummon_banished
+frag_special_summon_token        ssummon_token
+frag_draw                        draw
+frag_mill                        mill
+frag_excavate                    excavate
+frag_discard_opponent            discard_opponent
+frag_destroy                     destroy
+frag_destroy_all                 destroy_all
+frag_banish                      banish, banish_face_down
+frag_send_grave                  send_grave
+frag_return_hand                 return_hand
+frag_return_deck                 return_deck, shuffle_deck
+frag_set                         set_from_deck
+frag_negate                      negate, negate_effect
+frag_static                      cannot_activate, direct_attack, piercing, cannot_attack, cannot_be_destroyed, unaffected, cannot_be_targeted, continuous_gain_atk
+frag_stat_change                 gain_atk, lose_atk, set_atk, gain_def, set_def
+frag_change_position             change_position
+frag_take_control                take_control
+frag_counter                     place_counter
+frag_lp                          lp_damage, lp_gain
+(none)                           fusion_summon, synchro_summon, xyz_summon, link_summon, ritual_summon, pendulum_summon, extra_normal_summon
+frag_name_alias                  copy_name, treat_as_card
+frag_rule_text                   cannot_special_summon, cannot_normal_summon, must_first_ssummon
+
+SAMPLE KIND FULL DICT
+search {"frag": "frag_to_hand", "cat": "CATEGORY_TOHAND+CATEGORY_SEARCH", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": [], "target_required": true, "cost_allowed": true}
+ssummon_deck {"frag": "frag_special_summon", "cat": "CATEGORY_SPECIAL_SUMMON", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": [], "target_required": true, "cost_allowed": true}
+destroy {"frag": "frag_destroy", "cat": "CATEGORY_DESTROY", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": [], "target_required": true, "cost_allowed": true}
+gain_atk {"frag": "frag_stat_change", "cat": "CATEGORY_ATKCHANGE", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": ["value"], "target_required": true, "cost_allowed": true}
+negate {"frag": "frag_negate", "cat": "CATEGORY_NEGATE+CATEGORY_DESTROY", "triggers": ["OPPONENT_ACTIVATE", "ON_ACTIVATE", "QUICK"], "params": [], "target_required": false, "cost_allowed": false}
+place_counter {"frag": "frag_counter", "cat": "CATEGORY_COUNTER", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": ["counter", "count"], "target_required": true, "cost_allowed": true}
+fusion_summon {"frag": "", "cat": "CATEGORY_SPECIAL_SUMMON+CATEGORY_FUSION_SUMMON", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": [], "target_required": true, "cost_allowed": true}
+xyz_summon {"frag": "", "cat": "CATEGORY_SPECIAL_SUMMON", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": [], "target_required": true, "cost_allowed": true}
+link_summon {"frag": "", "cat": "CATEGORY_SPECIAL_SUMMON", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": [], "target_required": true, "cost_allowed": true}
+draw {"frag": "frag_draw", "cat": "CATEGORY_DRAW", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": ["count"], "target_required": false, "cost_allowed": true}
+lp_damage {"frag": "frag_lp", "cat": "CATEGORY_DAMAGE", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": ["value"], "target_required": false, "cost_allowed": true}
+set_atk {"frag": "frag_stat_change", "cat": "CATEGORY_ATKCHANGE", "triggers": ["IGNITION", "NORMAL_SUMMON_SUCCESS", "SPECIAL_SUMMON_SUCCESS", "FLIP_SUMMON", "SUMMON_ANY_SUCCESS", "WHEN_DESTROYED", "WHEN_SENT_GRAVE", "WHEN_BANISHED", "WHEN_TO_HAND", "ON_ACTIVATE", "DAMAGE_STEP_START", "BATTLE_DESTROY_SELF", "BATTLE_DESTROYED_SELF", "ATTACK_DECLARE", "OPPONENT_ACTIVATE", "END_PHASE", "STANDBY_PHASE", "EQUIP_RELATED", "QUICK"], "params": ["value"], "target_required": true, "cost_allowed": true}
+cannot_be_destroyed {"frag": "frag_static", "cat": 0, "triggers": ["CONTINUOUS"], "params": [], "target_required": false, "cost_allowed": false}
+must_first_ssummon {"frag": "frag_rule_text", "cat": 0, "triggers": ["CONTINUOUS"], "params": [], "target_required": false, "cost_allowed": false}
+
+EffectKind fields: ['key', 'zh', 'en', 'triggers', 'params', 'target_required', 'cost_allowed', 'lua_fragment', 'text_templates', 'category_bits']

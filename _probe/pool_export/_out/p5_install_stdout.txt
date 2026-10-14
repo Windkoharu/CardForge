@@ -1,0 +1,145 @@
+待安装的包 = D:\游戏王DIY设计\_probe\pool_export\_tmp\ws_build\out（来自自测 3 的真实产物，存在=True）
+
+── 7a. find_candidates() / find_edopro() 在本机的真实返回 ──
+  find_candidates() 返回 50 条未经校验的候选，前 12 条：
+    C:\Users\Administrator\AppData\Local\EDOPro（存在=False）
+    C:\Users\Administrator\AppData\Local\edopro（存在=False）
+    C:\Users\Administrator\AppData\Local\EDOPro-beta（存在=False）
+    C:\Users\Administrator\AppData\Local\YGOPro（存在=False）
+    C:\Users\Administrator\AppData\Local\ygopro（存在=False）
+    C:\Users\Administrator\AppData\Roaming\EDOPro（存在=False）
+    C:\Users\Administrator\AppData\Roaming\edopro（存在=False）
+    C:\Users\Administrator\AppData\Roaming\EDOPro-beta（存在=False）
+    C:\Users\Administrator\AppData\Roaming\YGOPro（存在=False）
+    C:\Users\Administrator\AppData\Roaming\ygopro（存在=False）
+    C:\Program Files\EDOPro（存在=False）
+    C:\Program Files\edopro（存在=False）
+  find_edopro() 返回 0 条**通过校验**的目录：[]
+  → 本机没装 EDOPro（空列表属正常）
+
+── 7b. is_edopro_dir 的判定（真的查文件系统）──
+  [PASS] is_edopro_dir(空目录) == False  —— 实际 False
+  [PASS] is_edopro_dir(有 expansions/) == True  —— 实际 True
+  [PASS] is_edopro_dir(有 ocgcore.dll) == True  —— 实际 True
+  [PASS] is_edopro_dir(有 libocgcore.so) == True  —— 实际 True
+  [PASS] is_edopro_dir(不存在的目录) == False  —— 实际 False
+  [PASS] is_edopro_dir(传一个文件而不是目录) == False  —— 实际 False
+
+── 7c. install()：复制清单 + 同名文件备份 ──
+  ok           = True
+  target       = D:\游戏王DIY设计\_probe\pool_export\_tmp\install\FakeEDOPro
+  expansions   = D:\游戏王DIY设计\_probe\pool_export\_tmp\install\FakeEDOPro\expansions
+  count        = 11
+  backup_dir   = D:\游戏王DIY设计\_probe\pool_export\_tmp\install\FakeEDOPro\expansions\.cardforge_backup\20261013-062455
+  copied(11) =
+      CardForge-ja.cdb
+      CardForge-zh-CN.cdb
+      CardForge.cdb
+      pics/210000000.jpg
+      pics/210000001.jpg
+      pics/field/210000002.jpg
+      README.txt
+      script/c210000000.lua
+      script/c210000001.lua
+      script/c210000003.lua
+      strings.conf
+  backed_up    = ['README.txt']
+  unchanged    = []
+  failed       = []
+  strings_merged = D:\游戏王DIY设计\_probe\pool_export\_tmp\install\FakeEDOPro\config\strings.conf
+  [PASS] install ok
+  [PASS] 复制了全部 11 个文件  —— 实际 11
+  [PASS] 同名旧文件被备份  —— ['README.txt']
+  [PASS] 备份内容 = 旧内容
+  [PASS] 现场 README 已被换成包里的
+  [PASS] 卡图复制到位
+  [PASS] 脚本复制到位
+
+── 7d. 再装一次：内容相同 → 全部跳过（unchanged），不留备份垃圾 ──
+  count=0  copied=[]  unchanged=11  backed_up=[]  backup_dir=''
+  [PASS] 第二次没有复制新文件  —— []
+  [PASS] 第二次全部识别为「内容相同」  —— ['CardForge-ja.cdb', 'CardForge-zh-CN.cdb', 'CardForge.cdb', 'pics/210000000.jpg', 'pics/210000001.jpg', 'pics/field/210000002.jpg', 'README.txt', 'script/c210000000.lua', 'script/c210000001.lua', 'script/c210000003.lua', 'strings.conf']
+  [PASS] 第二次不产生备份
+
+── 7e. config/strings.conf 合并（受管区块，重复安装不重复追加）──
+  合并后的 config/strings.conf：
+    │ # 用户自己维护的 strings.conf
+    │ !setname 0x9999 用户自己的系列
+    │ !system 1000 0
+    │ 
+    │ # >>> CardForge expansions >>>
+    │ !setname 0x1001 星奏
+    │ !setname 0x3001 焰刃
+    │ !counter 0x1 星奏指示物
+    │ # <<< CardForge expansions <<<
+  [PASS] 用户原有内容保留
+  [PASS] 我们的 !setname 已追加
+  [PASS] 我们的 !counter 已追加
+  [PASS] 受管区块标记存在
+  [PASS] 只出现一个受管区块
+  [PASS] 重复安装后区块仍只有一个  —— 1
+  [PASS] 重复安装后 !setname 只出现一次
+  [PASS] config/strings.conf 被备份过（第一次安装时）
+
+── 7f. dry_run 不落盘 ──
+  dry_run: count=11 首项=CardForge-ja.cdb
+  [PASS] dry_run 报告会复制 11 个
+  [PASS] dry_run 真的没落盘
+
+── 7g. 找不到 EDOPro / 包不合法时的降级返回 ──
+  install(pack, None) → ok=False
+    error = 没找到 EDOPro 安装目录
+    hint  = 手动指定：install(pack_dir, target=r'…\EDOPro')。EDOPro 目录里应当有 expansions/ 或 ocgcore 库。
+    candidates（前 5）= ['C:\\Users\\Administrator\\AppData\\Local\\EDOPro', 'C:\\Users\\Administrator\\AppData\\Local\\edopro', 'C:\\Users\\Administrator\\AppData\\Local\\EDOPro-beta', 'C:\\Users\\Administrator\\AppData\\Local\\YGOPro', 'C:\\Users\\Administrator\\AppData\\Local\\ygopro']
+  [PASS] 找不到 EDOPro 时返回 ok=False 且带中文 hint
+  install(不存在的包) → ok=False  error=包里没有 expansions/ 目录：D:\游戏王DIY设计\_probe\pool_export\_tmp\install\没有这个包
+  [PASS] 包不合法时返回 ok=False
+  install(pack, 不存在的目标) → ok=False  error=目标目录不存在：D:\游戏王DIY设计\_probe\pool_export\_tmp\install\不存在的目标
+  [PASS] 目标不存在时返回 ok=False
+
+── 7h. repo_config_block ──
+  repo_config_block('星奏包', 'https://github.com/me/xyz.git') = {'name': '星奏包', 'url': 'https://github.com/me/xyz.git', 'mode': 'git'}
+  [PASS]   结构含 name/url/mode（https://github.com/me/xyz.git）
+  repo_config_block('星奏包', 'https://example.com/pack.zip') = {'name': '星奏包', 'url': 'https://example.com/pack.zip', 'mode': 'git'}
+  [PASS]   结构含 name/url/mode（https://example.com/pack.zip）
+  repo_config_block('星奏包', 'file:///D:/packs/cardforge.zip') = {'name': '星奏包', 'url': 'file:///D:/packs/cardforge.zip', 'mode': 'local'}
+  [PASS]   结构含 name/url/mode（file:///D:/packs/cardforge.zip）
+  repo_config_block('星奏包', '') = {'name': '星奏包', 'url': '', 'mode': 'manual'}
+  [PASS]   结构含 name/url/mode（空 url）
+  repo_config_block('', 'https://a/b') = {'name': 'CardForge', 'url': 'https://a/b', 'mode': 'git'}
+  [PASS]   结构含 name/url/mode（https://a/b）
+  [PASS] 空 url → mode=manual
+  [PASS] file:// → mode=local
+  [PASS] https → mode=git
+  [PASS] 空名字回落 CardForge
+
+── 7i. make_repo_pack：zip + user_configs.json ──
+  zip = D:\游戏王DIY设计\_probe\pool_export\_tmp\install\星奏包.zip  (11472 字节)
+  zip 内 14 个条目：
+    星奏包/README.txt
+    星奏包/cardforge_manifest.json
+    星奏包/config/user_configs.json
+    星奏包/expansions/CardForge-ja.cdb
+    星奏包/expansions/CardForge-zh-CN.cdb
+    星奏包/expansions/CardForge.cdb
+    星奏包/expansions/README.txt
+    星奏包/expansions/pics/210000000.jpg
+    星奏包/expansions/pics/210000001.jpg
+    星奏包/expansions/pics/field/210000002.jpg
+    星奏包/expansions/script/c210000000.lua
+    星奏包/expansions/script/c210000001.lua
+    星奏包/expansions/script/c210000003.lua
+    星奏包/expansions/strings.conf
+  [PASS] zip 有顶层目录
+  [PASS] 含 expansions/*.cdb
+  [PASS] 含 pics 与 script
+  [PASS] 含 config/user_configs.json
+  [PASS] user_configs.json 结构正确  —— {"repos": [{"name": "星奏包", "url": "https://github.com/me/xingzou.git", "mode": "git"}]}
+  user_configs.json = {"repos": [{"name": "星奏包", "url": "https://github.com/me/xingzou.git", "mode": "git"}]}
+
+── 7j. make_repo_pack 对不合法包抛 FileNotFoundError（真错误，不是降级）──
+  [PASS] 应当抛 FileNotFoundError  —— 包里没有 expansions/ 目录：D:\游戏王DIY设计\_probe\pool_export\_tmp\install\没有这个包
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过
+════════════════════════════════════════════════════════════════════

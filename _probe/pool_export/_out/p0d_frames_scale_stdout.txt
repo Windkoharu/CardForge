@@ -1,0 +1,43 @@
+=== FRAMES[*].base 实测 ===
+  normal             base=effect    is_monster=True  has_level=True  has_def=True  extra=False
+  effect             base=effect    is_monster=True  has_level=True  has_def=True  extra=False
+  ritual             base=ritual    is_monster=True  has_level=True  has_def=True  extra=False
+  fusion             base=fusion    is_monster=True  has_level=True  has_def=True  extra=True
+  synchro            base=synchro   is_monster=True  has_level=True  has_def=True  extra=True
+  xyz                base=xyz       is_monster=True  has_level=True  has_def=True  extra=True
+  link               base=link      is_monster=True  has_level=False has_def=False extra=True
+  pendulum           base=effect    is_monster=True  has_level=True  has_def=True  extra=False
+  normal_pendulum    base=normal    is_monster=True  has_level=True  has_def=True  extra=False
+  ritual_pendulum    base=ritual    is_monster=True  has_level=True  has_def=True  extra=False
+  fusion_pendulum    base=fusion    is_monster=True  has_level=True  has_def=True  extra=True
+  synchro_pendulum   base=synchro   is_monster=True  has_level=True  has_def=True  extra=True
+  xyz_pendulum       base=xyz       is_monster=True  has_level=True  has_def=True  extra=True
+  spell              base=spell     is_monster=False has_level=False has_def=False extra=False
+  trap               base=trap      is_monster=False has_level=False has_def=False extra=False
+  token              base=token     is_monster=True  has_level=True  has_def=True  extra=False
+  skill              base=skill     is_monster=False has_level=False has_def=False extra=False
+
+=== CardSpec.type_bits 实测 ===
+  frame=normal             frame_def.base=effect    type_bits=0x21  is_monster=True  is_pendulum=False
+  frame=effect             frame_def.base=effect    type_bits=0x21  is_monster=True  is_pendulum=False
+  frame=normal_pendulum    frame_def.base=normal    type_bits=0x1000011  is_monster=True  is_pendulum=True
+  frame=pendulum           frame_def.base=effect    type_bits=0x1000021  is_monster=True  is_pendulum=True
+  frame=link               frame_def.base=link      type_bits=0x4000021  is_monster=True  is_pendulum=False
+  → 通常怪兽期望 0x11(MONSTER|NORMAL)，实测 0x21(MONSTER|EFFECT)：FRAMES['normal'].base 是 'effect'，疑似 core/enums.py 漏写 base='normal'
+
+=== 灵摆刻度在 cdb 的哪一列？（对比 desc 里的 ←N 与各列）===
+  id=41546     level列=101056520 desc头='←6 【灵摆】 6→'               name=DD 魔导贤者 托马斯
+  id=368382    level列=101056517 desc头='←6 【灵摆】 6→'               name=雾动机龙·腕龙
+  id=645794    level列=84213764 desc头='←5 【灵摆】 5→'               name=威风妖怪·蛤蟆
+  id=1186447   level列=16842757 desc头='←1 【灵摆】 1→'               name=星读之魔术师-星占之魔术士
+  id=1186448   level列=16842757 desc头='←1 【灵摆】 1→'               name=星读之魔术师-星占之魔术士
+  id=1580833   level列=50528260 desc头='←3 【灵摆】 3→'               name=雾动机龙·剑龙
+  id=2254222   level列=67371013 desc头='←4 【灵摆】 4→'               name=疾行机人 辉翼同调士
+  id=2396042   level列=84213764 desc头='←5 【灵摆】 5→'               name=迪隆的钢铁骑兵
+  id=3048768   level列=50528260 desc头='←3 【灵摆】 3→'               name=天使之声
+  id=3594985   level列=84213764 desc头='←5 【灵摆】 5→'               name=威风妖怪·龙
+  id=3611830   level列=134742023 desc头='←8 【灵摆】 8→'               name=创圣魔导王 恩底弥翁
+  id=3752422   level列=16842758 desc头='←1 【灵摆】 1→'               name=娱乐伙伴 调级钟行李员
+
+  → 若 level 列 != desc 里的刻度，说明 cdb 不存刻度（刻度由 Lua/客户端处理）；
+    若 level 列 == 刻度，说明 level 列存的是刻度。

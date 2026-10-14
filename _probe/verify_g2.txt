@@ -1,0 +1,201 @@
+报告：D:\游戏王DIY设计\workspace\logs\selfcheck_lua.txt
+产物：D:\游戏王DIY设计\workspace\out\_selfcheck_lua
+[PASS] normal 不出脚本
+[PASS] normal_pendulum 不出脚本
+[PASS] token 不出脚本
+[PASS] 墓地时点 syntax_ok
+[PASS] 墓地时点 0 ERROR
+[PASS] 墓地时点 stringid_sync 空
+[PASS] 墓地时点 unknown 三桶全空
+[PASS] 墓地时点 SetRange(LOCATION_GRAVE)
+[PASS] 墓地时点不是 MZONE
+[PASS] 除外时点 syntax_ok
+[PASS] 除外时点 0 ERROR
+[PASS] 除外时点 stringid_sync 空
+[PASS] 除外时点 unknown 三桶全空
+[PASS] 除外时点 SetRange(LOCATION_REMOVED)
+[PASS] activate 限制带 OATH
+[PASS] 召唤或特召 syntax_ok
+[PASS] 召唤或特召 0 ERROR
+[PASS] 召唤或特召 stringid_sync 空
+[PASS] 召唤或特召 unknown 三桶全空
+[PASS] SUMMON_ANY_SUCCESS 用 Clone 注册两份
+[PASS] 计数桶 syntax_ok
+[PASS] 计数桶 0 ERROR
+[PASS] 计数桶 stringid_sync 空
+[PASS] 计数桶 unknown 三桶全空
+[PASS] 计数桶互不相同
+[PASS] 没有裸 SetCountLimit(1)
+[PASS] fusion流程 syntax_ok
+[PASS] fusion流程 0 ERROR
+[PASS] fusion流程 stringid_sync 空
+[PASS] fusion流程 unknown 三桶全空
+[PASS] fusion 含 Fusion.AddProc
+[PASS] fusion 含 EnableReviveLimit
+[PASS] synchro流程 syntax_ok
+[PASS] synchro流程 0 ERROR
+[PASS] synchro流程 stringid_sync 空
+[PASS] synchro流程 unknown 三桶全空
+[PASS] synchro 含 Synchro.AddProcedure
+[PASS] synchro 含 EnableReviveLimit
+[PASS] 同步用新版签名（NonTuner）
+[PASS] xyz流程 syntax_ok
+[PASS] xyz流程 0 ERROR
+[PASS] xyz流程 stringid_sync 空
+[PASS] xyz流程 unknown 三桶全空
+[PASS] xyz 含 Xyz.AddProcedure
+[PASS] xyz 含 EnableReviveLimit
+[PASS] link流程 syntax_ok
+[PASS] link流程 0 ERROR
+[PASS] link流程 stringid_sync 空
+[PASS] link流程 unknown 三桶全空
+[PASS] link 含 Link.AddProcedure
+[PASS] link 含 EnableReviveLimit
+[PASS] ritual流程 syntax_ok
+[PASS] ritual流程 0 ERROR
+[PASS] ritual流程 stringid_sync 空
+[PASS] ritual流程 unknown 三桶全空
+[PASS] ritual 含 Ritual.AddProc
+[PASS] ritual 含 EnableReviveLimit
+[PASS] 仪式 AddProcGreater 的 desc 不写成 0
+[PASS] 灵摆 syntax_ok
+[PASS] 灵摆 0 ERROR
+[PASS] 灵摆 stringid_sync 空
+[PASS] 灵摆 unknown 三桶全空
+[PASS] 灵摆含 Pendulum.AddProcedure(c)
+[PASS] 灵摆框效果 SetRange(LOCATION_PZONE)
+[PASS] 灵摆两个框都注册了效果
+[PASS] 融合灵摆 syntax_ok
+[PASS] 融合灵摆 0 ERROR
+[PASS] 融合灵摆 stringid_sync 空
+[PASS] 融合灵摆 unknown 三桶全空
+[PASS] 融合灵摆同时有两条流程
+[PASS] 速攻魔法 syntax_ok
+[PASS] 速攻魔法 0 ERROR
+[PASS] 速攻魔法 stringid_sync 空
+[PASS] 速攻魔法 unknown 三桶全空
+[PASS] 速攻魔法用 ACTIVATE
+[PASS] ACTIVATE 不写多余 SetRange
+[PASS] 永续魔法 syntax_ok
+[PASS] 永续魔法 0 ERROR
+[PASS] 永续魔法 stringid_sync 空
+[PASS] 永续魔法 unknown 三桶全空
+[PASS] 永续魔法有从手卡发动的激活效果
+[PASS] 装备魔法 syntax_ok
+[PASS] 装备魔法 0 ERROR
+[PASS] 装备魔法 stringid_sync 空
+[PASS] 装备魔法 unknown 三桶全空
+[PASS] 装备魔法用 aux.AddEquipProcedure
+[PASS] 反击陷阱 syntax_ok
+[PASS] 反击陷阱 0 ERROR
+[PASS] 反击陷阱 stringid_sync 空
+[PASS] 反击陷阱 unknown 三桶全空
+[PASS] 反击陷阱用 QUICK_F
+[PASS] 反击陷阱不重复注册 ACTIVATE 激活效果
+[PASS] 永续陷阱 syntax_ok
+[PASS] 永续陷阱 0 ERROR
+[PASS] 永续陷阱 stringid_sync 空
+[PASS] 永续陷阱 unknown 三桶全空
+[PASS] 永续陷阱有静态效果码
+[PASS] 多 setcode syntax_ok
+[PASS] 多 setcode 0 ERROR
+[PASS] 多 setcode stringid_sync 空
+[PASS] 多 setcode unknown 三桶全空
+[PASS] 多 setcode 都进 listed_series
+[PASS] 无字段 syntax_ok
+[PASS] 无字段 0 ERROR
+[PASS] 无字段 stringid_sync 空
+[PASS] 无字段 unknown 三桶全空
+[PASS] 无 setcode 时不生成 listed_series
+[PASS] 降级 syntax_ok
+[PASS] 降级 0 ERROR
+[PASS] 降级 stringid_sync 空
+[PASS] 降级 unknown 三桶全空
+[PASS] 未知 kind 降级成注释
+[PASS] 降级效果没有注册 Effect
+入口清单（8）：Fusion.AddProcMix、Link.AddProcedure、Pendulum.AddProcedure、Ritual.AddProcGreater、Synchro.AddProcedure、Synchro.NonTuner、Xyz.AddProcedure、aux.AddEquipProcedure
+[PASS] 入口 Fusion.AddProcMix 在 vendor 里有定义
+[PASS] 入口 Link.AddProcedure 在 vendor 里有定义
+[PASS] 入口 Pendulum.AddProcedure 在 vendor 里有定义
+[PASS] 入口 Ritual.AddProcGreater 在 vendor 里有定义
+[PASS] 入口 Synchro.AddProcedure 在 vendor 里有定义
+[PASS] 入口 Synchro.NonTuner 在 vendor 里有定义
+[PASS] 入口 Xyz.AddProcedure 在 vendor 里有定义
+[PASS] 入口 aux.AddEquipProcedure 在 vendor 里有定义
+[PASS] 合法 IR：search 返回空
+[PASS] 合法 IR：gain_atk 带 value 返回空
+[PASS] 非法 IR（未知 kind）命中
+[PASS] 非法 IR（非法 trigger）命中
+[PASS] 非法 IR（缺必填参数）命中
+[PASS] 非法 IR（不允许的 cost）命中
+卡文来源：兜底原文
+卡文：①：这张卡召唤成功时才能发动。从卡组把 1 张「星奏」卡加入手卡。②：1回合1次，自己主要阶段才能发动。从手卡把 1 只「星奏」怪兽特殊召唤。
+[PASS] 真实卡文认出 2 条效果
+[PASS] ①kind=search
+[PASS] ①trigger=NORMAL_SUMMON_SUCCESS
+[PASS] ①target DECK/archetype
+[PASS] ②kind=ssummon_hand
+[PASS] ②trigger=IGNITION
+[PASS] ②limit=once_per_turn
+[PASS] ②target HAND
+[PASS] 真实卡 syntax_ok
+[PASS] 真实卡 0 ERROR
+[PASS] 真实卡 stringid_sync 空
+[PASS] 真实卡 unknown 三桶全空
+[PASS] 真实卡 2 个 Stringid
+[PASS] 真实卡描述里没有 {占位符}
+[PASS] gates.g2_script 无 ERROR
+[PASS] cli card script 不崩
+     cli script: exit=0 out=2203B err=0B
+[PASS] cli card verify 不崩
+     cli verify: exit=0 out=80B err=0B
+[PASS] cli card lint 不崩
+     cli lint: exit=0 out=16B err=0B
+[PASS] 50 个畸形规格 0 未捕获异常
+[PASS] 210000605 落盘无 BOM
+[PASS] 210000605 落盘 == emit_script
+[PASS] 210000611 落盘无 BOM
+[PASS] 210000611 落盘 == emit_script
+[PASS] 210000608 落盘无 BOM
+[PASS] 210000608 落盘 == emit_script
+[PASS] 210000609 落盘无 BOM
+[PASS] 210000609 落盘 == emit_script
+[PASS] 210000613 落盘无 BOM
+[PASS] 210000613 落盘 == emit_script
+[PASS] 210000616 落盘无 BOM
+[PASS] 210000616 落盘 == emit_script
+[PASS] 210000605 cdb 行读回
+[PASS] 210000605 cdb str 与 Stringid 对齐
+[PASS] 210000611 cdb 行读回
+[PASS] 210000611 cdb str 与 Stringid 对齐
+[PASS] 210000608 cdb 行读回
+[PASS] 210000608 cdb str 与 Stringid 对齐
+[PASS] 210000609 cdb 行读回
+[PASS] 210000609 cdb str 与 Stringid 对齐
+[PASS] 210000613 cdb 行读回
+[PASS] 210000613 cdb str 与 Stringid 对齐
+[PASS] 210000616 cdb 行读回
+[PASS] 210000616 cdb str 与 Stringid 对齐
+[PASS] expansions.build 无 ERROR
+[PASS] 脚本进 expansions/script
+     build: n_cards=6 n_scripts=6
+[PASS] expansions.verify(G5) 0 ERROR
+[PASS] effects 需要的 23 个具名片段全实现
+[PASS] FRAGMENTS 无孤儿
+走卡种骨架（无片段）的 kind 7：extra_normal_summon、fusion_summon、link_summon、pendulum_summon、ritual_summon、synchro_summon、xyz_summon
+
+==== FAIL ====
+
+
+==== WARN(11) ====
+灵摆 G2_REGISTER_UNDEFINED :: `tc:RegisterEffect(...)` 的 `tc` 未用 `Effect.CreateEffect` 创建
+永续魔法 G2_TARGET_NO_OPERATION :: 设置了 SetTarget 但没有 SetOperation
+装备魔法 G2_REGISTER_UNDEFINED :: `tc:RegisterEffect(...)` 的 `tc` 未用 `Effect.CreateEffect` 创建
+反击陷阱 G2_OPERATION_NO_TARGET :: 设置了 SetOperation 但没有 SetTarget
+G5 G5_PIC_MISSING :: 卡 210000605 没有卡图，也没标记 pending
+G5 G5_PIC_MISSING :: 卡 210000608 没有卡图，也没标记 pending
+G5 G5_PIC_MISSING :: 卡 210000609 没有卡图，也没标记 pending
+G5 G5_PIC_MISSING :: 卡 210000611 没有卡图，也没标记 pending
+G5 G5_PIC_MISSING :: 卡 210000613 没有卡图，也没标记 pending
+G5 G5_PIC_MISSING :: 卡 210000616 没有卡图，也没标记 pending
+G5 G5_STRINGS_MISSING :: 包里没有 strings.conf

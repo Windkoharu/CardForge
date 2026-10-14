@@ -1,0 +1,207 @@
+
+═══ 带 Data/ 的路径（47）═══
+    ../../../Game/Steam/steamapps/common/Yu-Gi-Oh! Duel Links/LocalData/92a05e34/
+    ../../../Game/Steam/steamapps/common/Yu-Gi-Oh! Duel Links/dlpc_Data/StreamingAssets/
+    Card/Data/b0ea6a33a5e8917c/#/CARD_Genre
+    Card/Data/b0ea6a33a5e8917c/#/CARD_IntID
+    Card/Data/b0ea6a33a5e8917c/#/CARD_Named
+    Card/Data/b0ea6a33a5e8917c/#/CARD_Prop
+    Card/Data/b0ea6a33a5e8917c/MD/CARD_Link
+    Card/Data/b0ea6a33a5e8917c/MD/CARD_Same
+    Card/Data/b0ea6a33a5e8917c/MD/CARD_SearchName
+    Card/Data/b0ea6a33a5e8917c/MD/all_gadget_monsters
+    Card/Data/b0ea6a33a5e8917c/MD/all_monsters
+    Card/Data/b0ea6a33a5e8917c/MD/builtin_card
+    Card/Data/b0ea6a33a5e8917c/MD/cards_all
+    Card/Data/b0ea6a33a5e8917c/MD/cards_in_maindeck
+    Card/Data/b0ea6a33a5e8917c/MD/monsters_in_maindeck
+    D:/Game/Steam/steamapps/common/Yu-Gi-Oh!  Master Duel/LocalData/16165626/0000/
+    D:/Game/Steam/steamapps/common/Yu-Gi-Oh!  Master Duel/LocalData/Android/0000/
+    D:/Game/Steam/steamapps/common/Yu-Gi-Oh!  Master Duel/LocalData/Swtich/
+    D:/Game/Steam/steamapps/common/Yu-Gi-Oh!  Master Duel/LocalData/iOS/0000/
+    Data/
+    Data/Duel Links Ids.txt
+    Data/DuelLinks_NPC_NAME.json
+    Data/DuelLinks_Profile.json
+    Data/FileGroups.json
+    Data/Rarity.json
+    Data/Settings.json
+    Data/SpecialCards.json
+    Data/Windbot/
+    Data/Windbot/Decks/AI_
+    Data/Windbot/Dialogs/
+    Data/cards.json
+    Data/cards_Alt.json
+    Data/cards_Lite.json
+    Data/config.conf
+    Data/hosts.conf
+    Data/hosts2.conf
+    Data/idChangelog.jsonp
+    Data/lflist.conf
+    Data/lflist_genesys.conf
+    Data/locales/
+    Data/locales/ja-JP/voice/V
+    Data/locales/zh-CN/cards.cdb
+    Data/locales/zh-CN/voice/
+    Data/mycard_apps.json
+    Data/pack
+    Data/pack/
+    Data/script.zip
+
+═══ 带 Picture/ 的路径（17）═══
+    Picture/Art/
+    Picture/Art2/
+    Picture/CardGenerated/
+    Picture/CardGenerated/MissingAndFailedCards.txt
+    Picture/Closeup/
+    Picture/DIY/
+    Picture/DIY/Background
+    Picture/DIY/Background.png
+    Picture/DIY/Me.png
+    Picture/DIY/MeTag.png
+    Picture/DIY/Op.png
+    Picture/DIY/OpTag.png
+    Picture/DIY/Paper.png
+    Picture/DIY/Rock.png
+    Picture/DIY/Scissors.png
+    Picture/MyCardAvatars/
+    Picture/OverFrame/
+
+═══ 带 .cdb 的（7）═══
+    *.cdb
+    .cdb
+    /cards.cdb
+    /rush_cards.cdb
+    Data/locales/zh-CN/cards.cdb
+    Please place cards.cdb next to WindBot.exe or Bot.exe .
+    cards.cdb
+
+═══ Deck / .ydk（4）═══
+    *.ydk
+    .ydk
+    Deck/
+    DummyDeck/DummyCardModel_back
+
+═══ Addon/Mod/Custom/Extra/Local 目录感（134）═══
+    &YGOSharp.Addons|StandardStreamProtocol
+    .\Assets\Scripts\YGOSharp\YGOSharp\AddonBase.cs
+    2\Assets\Scripts\YGOSharp\YGOSharp\AddonsManager.cs
+    <Addons>k__BackingField
+    ANDROID_MANNER_MODE_MUTE
+    ARGNAME_GAMEMODE
+    ARGNAME_MODE
+    ARGS_KEY_AUTOMODE
+    ARG_MODE
+    AVATARMODEL_ROOT_LABEL
+    AddonBase
+    AddonsManager
+    BUTTON_VIEWMODE
+    B\Assets\Scripts\YGOSharp\YGOSharp\Addons\StandardStreamProtocol.cs
+    CardPack/CardPackOpen
+    DMENU_PREVIOUSMODE
+    DUELMODE_01
+    DUELMODE_02
+    DUELMODE_03
+    DUELMODE_04
+    DUELMODE_05
+    DUELMODE_06
+    DUELMODE_07
+    DUELMODE_08
+    DUELMODE_09
+    DUELMODE_10
+    DUELMODE_11
+    DUELMODE_12
+    DUELMODE_13
+    DUELMODE_14
+    DUELMODE_15
+    DUELMODE_16
+    DUELMODE_17
+    DUELMODE_18
+    DUELMODE_19
+    DUELMODE_20
+    DUELMODE_21
+    DUELMODE_917
+    EXPLANATION_SCREENMODE_FULLSCREEN
+    EXPLANATION_SCREENMODE_WINDOW
+    FMODSoundType
+    Images/CardPack/<_RESOURCE_TYPE_>/<_CARD_ILLUST_>/{0}
+    Images/PackTicket/<_RESOURCE_TYPE_>/PackTicket
+    KEY_ENTRY_MODE
+    LABEL_RT_DISPLAYMODE0
+    LABEL_RT_DISPLAYMODE1
+    LABEL_RT_DISPLAYMODE2
+    LABEL_SBN_DISPLAYMODE
+    LABEL_SBN_MODE
+    LABEL_SBN_SCREENMODE
+    MODE_001
+    MODE_002
+    MODE_003
+    MODE_004
+    MODE_005
+    MODE_006
+    MODE_007
+    MODE_008
+    MODE_009
+    MODE_010
+
+═══ Virtual/FileSystem/Mount（92）═══
+    "YgomGame.Enquete|InputAmountWidget
+    $YgomSystem.LocalFileSystem|EntryItem
+    $YgomSystem.LocalFileSystem|LocalFile
+    $YgomSystem.LocalFileSystem|StorageIO
+    &YgomSystem.LocalFileSystem|ReadRequest
+    &YgomSystem.LocalFileSystem|StorageData
+    'YgomSystem.LocalFileSystem|FileLocation
+    'YgomSystem.LocalFileSystem|IFileHandler
+    *YgomSystem.LocalFileSystem.Internal|Helper
+    *YgomSystem.LocalFileSystem|LocalFileStream
+    +YgomSystem.LocalFileSystem|CustomFileStream
+    +YgomSystem.LocalFileSystem|LocalFileManager
+    +YgomSystem.LocalFileSystem|WindowsStorageIO
+    ,YgomSystem.LocalFileSystem|StandardStorageIO
+    -YgomSystem.LocalFileSystem|WindowsFileHandler
+    /YgomGame.Enquete.InputAmountWidget|ToggleWidget
+    /YgomGame.Enquete|SheetContentInputAmountContext
+    0YgomSystem.LocalFileSystem.StorageIO|StorageInfo
+    1YgomSystem.LocalFileSystem|LocalFileOpenException
+    3YgomSystem.LocalFileSystem|InvalidLocationException
+    4YgomSystem.LocalFileSystem|UndefinedStorageException
+    :YgomSystem.LocalFileSystem|LocalFileAssetBundleLoadRequest
+    <VirtualWorldKyubiShenshenSummon>b__0
+    <VirtualWorldKyubiShenshenSummon>b__1
+    @\Assets\Scripts\MasterDuel\YgomGame\Enquete\InputAmountWidget.cs
+    B\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\EntryItem.cs
+    B\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\LocalFile.cs
+    B\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\StorageIO.cs
+    BlueMountainButterspy
+    CalcCheckEntityVirtualPositions
+    CheckFromLocalFileSystem
+    CinemachineVirtualCamera
+    D\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\ReadRequest.cs
+    D\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\StorageData.cs
+    E\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\FileLocation.cs
+    E\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\IFileHandler.cs
+    FileSystemInfo
+    GetMountNativePath
+    GetMovementAmount
+    H\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\Internal\Helper.cs
+    H\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\LocalFileStream.cs
+    I\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\CustomFileStream.cs
+    I\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\LocalFileManager.cs
+    I\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\WindowsStorageIO.cs
+    J\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\StandardStorageIO.cs
+    K\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\WindowsFileHandler.cs
+    KeyCostAmount
+    M\Assets\Scripts\MasterDuel\YgomGame\Enquete\SheetContentInputAmountContext.cs
+    Mountain
+    O\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\LocalFileOpenException.cs
+    Q\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\InvalidLocationException.cs
+    R\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\UndefinedStorageException.cs
+    RefreshTicketAmount
+    SetEntityVirtualPositions
+    SetInputAmountWidget
+    SheetContentInputAmountContext
+    VirtualWorldGateChuche
+    VirtualWorldKyubiShenshen
+    VirtualWorldKyubiShenshenEffect
+    VirtualWorldKyubiShenshenSummon

@@ -1,0 +1,133 @@
+临时 WORKSPACE = D:\游戏王DIY设计\_probe\pool_export\_tmp\ws_repo
+paths.CARDS   = D:\游戏王DIY设计\_probe\pool_export\_tmp\ws_repo\cards
+
+── 1. save_card → load_card 往返 ──
+  save_card(210000000) → _probe\pool_export\_tmp\ws_repo\cards\焰刃\210000000\spec.json
+  save_card(210000001) → _probe\pool_export\_tmp\ws_repo\cards\星奏\210000001\spec.json
+  save_card(210000002) → _probe\pool_export\_tmp\ws_repo\cards\星奏\210000002\spec.json
+
+  [PASS] 210000000 读得回来
+  [PASS] 210000000 普通字段往返一致
+  [PASS] 210000000 派生属性往返一致
+  [PASS] 210000000 effects 条数一致  —— 1 vs 1
+  [PASS] 210000000 render.rarity 往返
+  [PASS] 210000001 读得回来
+  [PASS] 210000001 普通字段往返一致
+  [PASS] 210000001 派生属性往返一致
+  [PASS] 210000001 effects 条数一致  —— 1 vs 1
+  [PASS] 210000001 render.rarity 往返
+  [PASS] 210000002 读得回来
+  [PASS] 210000002 普通字段往返一致
+  [PASS] 210000002 派生属性往返一致
+  [PASS] 210000002 effects 条数一致  —— 0 vs 0
+  [PASS] 210000002 render.rarity 往返
+  派生值实测：
+    210000000 焰刃的见习剑士            frame=effect    type_bits=0x21(33) def_value=1000 race_bits=1 attr_bits=4 level=4
+    210000001 星奏的指挥者 艾莉娅         frame=pendulum  type_bits=0x1000021(16777249) def_value=1200 race_bits=2 attr_bits=16 level=4
+    210000002 星奏的圆舞曲             frame=spell     type_bits=0x80002(524290) def_value=0 race_bits=1 attr_bits=32 level=4
+
+── 2. 落盘格式检查（UTF-8 无 BOM / ensure_ascii=False / indent=2）──
+  [PASS] 无 BOM  —— 前 3 字节 = b'{\n '
+  [PASS] 中文未被转义
+  [PASS] indent=2
+  [PASS] 含 schema_version  —— 当前 SCHEMA_VERSION=2
+  spec.json 前 12 行：
+    {
+      "id": 210000000,
+      "name": "焰刃的见习剑士",
+      "frame": "effect",
+      "attribute": "炎",
+      "race": "战士族",
+      "level": 4,
+      "atk": 1700,
+      "dfd": 1000,
+      "archetype": "焰刃",
+      "setcode": "0x3001",
+      "text_i18n": {
+
+── 3. 幂等保存不产生新快照 ──
+  首存后快照 = [(1, '', '2026-10-13T06:24:55.007662')]
+  [PASS] 内容未变 → 快照数不变  —— 1 → 1
+  [PASS] 内容未变 → updated 不推进  —— '2026-10-13T06:24:55.006689' vs '2026-10-13T06:24:55.006689'
+
+── 4. 改一次再存 → 生成第二个快照 ──
+  改后快照 = [(1, '', '2026-10-13T06:24:55.007662', 'b69a1aee28c79477'), (2, '把攻击力提到 1900', '2026-10-13T06:24:55.034466', '06fc2e59fd296af5')]
+  [PASS] 快照数 = 2  —— 实际 2
+  [PASS] 现场 atk = 1900
+  [PASS] updated 已推进  —— '2026-10-13T06:24:55.006689' → '2026-10-13T06:24:55.033674'
+
+── 5. rollback 到 v1 ──
+  rollback 返回 = {k: res[k] for k in ('ok','kind','key','version','path','new_version','ts')}
+    ok=True version=1 new_version=3
+    path=_probe\pool_export\_tmp\ws_repo\cards\焰刃\210000000\spec.json
+  [PASS] atk 回到旧值 1700  —— 实际 1700
+  [PASS] 卡文回到旧值
+  [PASS] updated 回到旧值  —— '2026-10-13T06:24:55.006689' vs '2026-10-13T06:24:55.006689'
+  回滚后快照 = [(1, ''), (2, '把攻击力提到 1900'), (3, 'rollback ← v1')]
+  [PASS] 历史只追加不重写（v1 仍在）  —— 版本 = [1, 2, 3]
+
+── 6. list_cards / delete_card ──
+  list_cards() = 3 张
+    id=210000000 name=焰刃的见习剑士 frame=效果 level=4 atk=1700 def=1000 archetype=焰刃 schema_version=2
+    id=210000001 name=星奏的指挥者 艾莉娅 frame=灵摆 level=4 atk=1600 def=1200 archetype=星奏 schema_version=2
+    id=210000002 name=星奏的圆舞曲 frame=魔法 level=4 atk=0 def=0 archetype=星奏 schema_version=2
+  [PASS] 列出 3 张
+  [PASS] 按卡号升序
+  list_cards('星奏') = [210000001, 210000002]
+  [PASS] 按系列过滤
+  [PASS] delete_card(210000002) = True
+  [PASS] 删除后 list_cards = 2
+  [PASS] 删除后 load_card = None
+  [PASS] 删除后能 rollback 救回
+
+── 7. 系列圣经 + 卡组 ──
+  save_archetype → _probe\pool_export\_tmp\ws_repo\archetypes\星奏\archetype.json
+  [PASS] 系列往返  —— roster_total=5
+  [PASS] 系列快照 v1
+  [PASS] 系列第二次快照
+  list_archetypes() = [{'name': '星奏', 'setcode': '0x1001', 'concept': '改过的概念', 'target_power': 'rogue', 'n_roster': 2, 'roster_total': 5, 'updated': '2026-10-13T06:24:55.079750', 'path': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_repo\\archetypes\\星奏\\archetype.json'}]
+  save_deck → _probe\pool_export\_tmp\ws_repo\decks\星奏标准.json
+  [PASS] 卡组往返
+  [PASS] 卡组快照
+  list_decks() = [{'name': '星奏标准', 'archetype': '星奏', 'target': 'casual', 'main': 6, 'extra': 2, 'side': 2, 'path': 'D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_repo\\decks\\星奏标准.json'}]
+
+── 8. v0.x 旧 JSON 自动迁移并写回 ──
+  迁移前键 = ['_lua', '_strings', 'archetype', 'atk', 'attr_bits', 'attribute', 'def', 'detected_effects', 'effect_tier', 'frame', 'id', 'level', 'name', 'race', 'race_bits', 'setcode', 'text', 'type_bits', 'type_flags']
+  迁移前 schema_version = （无）
+  迁移前 has 'def' = True  has 'text' = True  has '_lua' = True  has '_strings' = True
+  迁移后键 = ['archetype', 'atk', 'attr_bits', 'attribute', 'created', 'def_value', 'dfd', 'effects', 'frame', 'id', 'level', 'link_bits', 'lua', 'name', 'race', 'race_bits', 'render', 'schema_version', 'setcode', 'strings', 'text_i18n', 'type_bits', 'updated']
+  迁移后 schema_version = 2
+  [PASS] load 成功
+  [PASS] def → dfd  —— dfd=1200
+  [PASS] text → text_i18n
+  [PASS] _lua → lua
+  [PASS] _strings → strings  —— ['①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。', '②：1回合1次，自己主要阶段才能发动。从手卡把1只「星奏」怪兽特殊召唤。']
+  [PASS] type_flags → tags
+  [PASS] 写回后 schema_version = 2
+  [PASS] 写回后不再有 'def' 键
+  [PASS] 写回后不再有 '_lua' 键
+  迁移快照 = [(1, 'migrate schema v0 → v2')]
+
+── 9. 归属系列改变时不留下重复卡 ──
+  先存平铺目录 → _probe\pool_export\_tmp\ws_repo\cards\210000050\spec.json  存在=True
+  [PASS] 平铺目录里有 spec.json
+  改系列后再存 → _probe\pool_export\_tmp\ws_repo\cards\焰刃\210000050\spec.json
+  旧文件还在吗 = False
+  [PASS] 写到了系列目录
+  [PASS] 旧文件被清掉（不留重复卡）
+  [PASS] list_cards 里只出现一次  —— [210000000, 210000001, 210000011, 210000050]
+  [PASS] load_card 仍读得到，且内容没丢
+  [PASS] 平铺空目录被删掉  —— D:\游戏王DIY设计\_probe\pool_export\_tmp\ws_repo\cards\210000050
+
+── 10. strings.conf：两个入口逐字节一致 ──
+  [PASS] pool.cdb.write_strings_conf == export.strings.render（逐字节）
+  文件内容：
+    # CardForge 自动生成 —— DIY 系列名 / 计数器名
+    !setname 0x1001 星奏
+    !setname 0x1002 焰刃
+    !counter 0x1 星奏指示物
+    !counter 0x2 焰刃指示物
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过（共 131 行输出）
+════════════════════════════════════════════════════════════════════

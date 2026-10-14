@@ -1,0 +1,25 @@
+{
+  "name": "星奏の歌姫 セレナ",
+  "frame": "effect",
+  "level": 4,
+  "attribute": "光",
+  "race": "魔法师族",
+  "atk": 1500,
+  "def": 1400,
+  "text": "①：1回合1次，自己主要阶段才能发动。从卡组把 1 只「星奏」怪兽特殊召唤。",
+  "id": 210000014,
+  "archetype": "星奏",
+  "setcode": "0x1001",
+  "type_flags": [],
+  "race_bits": 2,
+  "attr_bits": 16,
+  "type_bits": 33,
+  "effect_tier": 1,
+  "detected_effects": [
+    "ssummon"
+  ],
+  "_lua": "--[[ 星奏の歌姫 セレナ\n     CardForge 自动生成 · 模板档:tier1/ssummon\n     效果：从手卡·卡组特殊召唤\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t-- 效果 1：从手卡·卡组特殊召唤（起动效果）\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_SPECIAL_SUMMON)\n\te1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_IGNITION)\n\te1:SetRange(LOCATION_MZONE)\n\te1:SetTarget(e1_ssummontg)\n\te1:SetOperation(e1_ssummonop)\n\tc:RegisterEffect(e1)\nend\n\n-- ①：1回合1次，自己主要阶段才能发动。从卡组把1只「星奏」怪兽特殊召唤。\nlocal e1_ssfilter=function(c) return c:IsSetCard(0x1001) and c:IsMonster() and c:IsCanBeSpecialSummoned(e,0,tp,false,false) end\nfunction e1_sstg(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0\n\t\tand Duel.IsExistingMatchingCard(e1_ssfilter,tp,LOCATION_HAND,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_HAND)\nend\nfunction e1_ssop(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)\n\tlocal g=Duel.SelectMatchingCard(tp,e1_ssfilter,tp,LOCATION_HAND,0,1,1,nil)\n\tif g:GetCount()>0 then\n\t\tDuel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)\n\tend\nend\n",
+  "_strings": [
+    "①：1回合1次，自己主要阶段才能发动。从卡组把1只「星奏」怪兽特殊召唤。"
+  ]
+}

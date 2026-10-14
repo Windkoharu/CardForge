@@ -1,0 +1,93 @@
+﻿4. 故意写错的卡文 → 断言 linter 报出对应 code
+══════════════════════════════════════════════════════════════════════════════
+
+【中文用了分号】期望 ERROR PSCT_PUNCT_CJK_SEMICOLON
+   文本：①：1回合1次，自己主要阶段才能发动；从卡组把1张「苍岚」卡加入手卡。
+   [ERROR] PSCT_PUNCT_CJK_SEMICOLON     中文/日文卡文出现「；」分号 —— 第 1 段出现「；」
+  [PASS] 中文用了分号：命中 PSCT_PUNCT_CJK_SEMICOLON
+
+【英文把 cost 写在分号之后】期望 ERROR PSCT_COST_AFTER_SEMI
+   文本：① Once per turn: You can target 1 monster you control; Tribute it, and if you do, draw 1 card.
+   [ERROR] PSCT_COST_AFTER_SEMI         代价（cost）写在分号之后 —— 第 1 段：分号之后出现「Tribute」
+  [PASS] 英文把 cost 写在分号之后：命中 PSCT_COST_AFTER_SEMI
+
+【编号跳号（①→③）】期望 ERROR PSCT_NUM_SEQUENCE
+   文本：①：自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡。 / ③：这张卡被破坏时才能发动。自己从卡组抽1张卡。
+   [ERROR] PSCT_NUM_SEQUENCE            效果编号不连续（跳号／未从①开始） —— 实际编号 ①③，应为 ①②
+   [ERROR] PSCT_HOPT_MISSING            检索／特殊召唤／抽卡类效果，全文没有任何回合限制 —— 命中的效果：「从卡组把1张「苍岚」卡加入手卡」
+  [PASS] 编号跳号（①→③）：命中 PSCT_NUM_SEQUENCE
+
+【检索没有回合限制】期望 ERROR PSCT_HOPT_MISSING
+   文本：①：自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡。
+   [ERROR] PSCT_HOPT_MISSING            检索／特殊召唤／抽卡类效果，全文没有任何回合限制 —— 命中的效果：「从卡组把1张「苍岚」卡加入手卡」
+  [PASS] 检索没有回合限制：命中 PSCT_HOPT_MISSING
+
+【中文里混入英文连接词】期望 ERROR PSCT_CONJ_FOREIGN_IN_CJK
+   文本：①：1回合1次，自己主要阶段才能发动。then 从卡组抽1张卡。
+   [ERROR] PSCT_CONJ_FOREIGN_IN_CJK     中文/日文卡文里出现英文连接词 —— 出现了英文连接词「then」
+  [PASS] 中文里混入英文连接词：命中 PSCT_CONJ_FOREIGN_IN_CJK
+
+【中文写取对象、英文没写】期望 ERROR PSCT_TARGET_MISSING_EN
+   文本：①：以对方场上的1张卡为对象才能发动。把那张卡破坏。
+   [ERROR] PSCT_TARGET_MISSING_EN       中文写了「以〜为对象」，英文却没有 target —— zh_cn 写了取对象，en 没有 target
+  [PASS] 中文写取对象、英文没写：命中 PSCT_TARGET_MISSING_EN
+
+【英文有 target、中文没写】期望 WARN PSCT_TARGET_MISSING_ZH
+   文本：①：1回合1次，自己主要阶段才能发动。把对方场上的1张卡破坏。
+   [WARN ] PSCT_TARGET_MISSING_ZH       英文有 target，中文却没写「以〜为对象」 —— en 有 target，zh_cn 没写「以…为对象」
+  [PASS] 英文有 target、中文没写：命中 PSCT_TARGET_MISSING_ZH
+
+【HOPT 写在条件之后（英文）】期望 WARN PSCT_HOPT_POSITION
+   文本：① You can target 1 card in your GY: Once per turn, add it to your hand.
+   [WARN ] PSCT_PUNCT_EN_MISSING_SEMI   英文出现代价或取对象，但没有「;」分隔效果处理 —— 第 1 段：① You can target 1 card in your GY: Once per tur…
+   [WARN ] PSCT_HOPT_POSITION           「1回合1次」写在发动条件之后（位置不对） —— 第 1 段：Once per turn 出现在冒号之后
+  [PASS] HOPT 写在条件之后（英文）：命中 PSCT_HOPT_POSITION
+
+【编号没在段首】期望 ERROR PSCT_NUM_MID_PARAGRAPH
+   文本：①：1回合1次，自己主要阶段才能发动。③：把对方场上的1张卡破坏。
+   [ERROR] PSCT_NUM_MID_PARAGRAPH       效果编号没有出现在段落起始 —— 「①：1回合1次，自己主要阶段才能发动。③：把对方场上的1张卡破坏。…」中的③未在段首
+  [PASS] 编号没在段首：命中 PSCT_NUM_MID_PARAGRAPH
+
+【民间误译（同调）】期望 WARN PSCT_FOLK_TERM
+   文本：①：1回合1次，自己主要阶段才能发动。把1只同调怪兽特殊召唤。
+   [WARN ] PSCT_FOLK_TERM               官方简中卡文里出现民间误译 —— 「同调」→ 官方写法「同步」
+  [PASS] 民间误译（同调）：命中 PSCT_FOLK_TERM
+
+【同一段里时/场合混用】期望 WARN PSCT_TIMING_MIXED
+   文本：①：自己场上有「苍岚」卡存在的场合，这张卡被破坏时才能发动。自己从卡组抽1张卡。
+   [ERROR] PSCT_HOPT_MISSING            检索／特殊召唤／抽卡类效果，全文没有任何回合限制 —— 命中的效果：「从卡组抽1张卡」
+   [WARN ] PSCT_TIMING_MIXED            同一段里「时」与「场合」混用（时点语义冲突） —— 第 1 段
+  [PASS] 同一段里时/场合混用：命中 PSCT_TIMING_MIXED
+
+【英文有两段结构却缺分号】期望 WARN PSCT_PUNCT_EN_MISSING_SEMI
+   文本：① Once per turn: You can target 1 card in your GY add it to your hand.
+   [WARN ] PSCT_PUNCT_EN_MISSING_SEMI   英文出现代价或取对象，但没有「;」分隔效果处理 —— 第 1 段：① Once per turn: You can target 1 card in your G…
+  [PASS] 英文有两段结构却缺分号：命中 PSCT_PUNCT_EN_MISSING_SEMI
+
+【中文用半角双引号】期望 WARN PSCT_QUOTE_STYLE
+   文本：①：1回合1次，自己主要阶段才能发动。从卡组把1张"苍岚"卡加入手卡。
+   [WARN ] PSCT_QUOTE_STYLE             字段／卡名引号用法与该语言不符 —— 中文/日文里出现了半角双引号 "…"
+  [PASS] 中文用半角双引号：命中 PSCT_QUOTE_STYLE
+
+【引用了卡名但没加引号】期望 WARN PSCT_NAME_UNQUOTED
+   文本：①：1回合1次，自己主要阶段才能发动。从卡组把1张苍岚的双刃龙加入手卡。
+   [WARN ] PSCT_NAME_UNQUOTED           引用了卡名／字段名但没加引号 —— 「苍岚的双刃龙」
+  [PASS] 引用了卡名但没加引号：命中 PSCT_NAME_UNQUOTED
+
+【卡文超出文本框容量】期望 WARN PSCT_TEXT_TOO_LONG
+   文本：①：1回合1次，自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡，那之后，把1张手卡送去墓地，并且自己从卡组抽1张卡，此外，直到回合结束时自己场上的怪兽的攻击力上升500。 / ②：这张卡被破坏的场合才能发动。从墓地把1只「苍岚」怪兽特殊召唤，那个场合，自己回复1000点LP，此外，那之后，把对方场上的1张卡破坏。 / ③：把这张卡解放才能发动。把对方场上的1张卡除外，并且自己抽1张卡。 / 这个卡名的①②的效果1回合各能使用1次。
+   [WARN ] PSCT_EFFECT_COUNT            单卡效果条数偏多 —— 共 3 条编号效果
+   [WARN ] PSCT_TEXT_TOO_LONG           卡文长度超过文本框容量估算 —— 估算 9 行，文本框约 8 行（每行约 30 全角字当量）
+  [PASS] 卡文超出文本框容量：命中 PSCT_TEXT_TOO_LONG
+
+【编号超过⑩】期望 WARN PSCT_NUM_BEYOND_TABLE
+   文本：①：自己主要阶段才能发动。从卡组把1张「苍岚」卡加入手卡。 / ⑪：1回合1次，这张卡被破坏时才能发动。自己从卡组抽1张卡。
+   [ERROR] PSCT_NUM_SEQUENCE            效果编号不连续（跳号／未从①开始） —— 实际编号 ①⑪，应为 ①②
+   [WARN ] PSCT_NUM_BEYOND_TABLE        效果编号超过 ⑩（词表只收录到 ⑩） —— 最大编号 11
+   [INFO ] PSCT_HOPT_NAME_HINT          多效果卡只用了「1回合1次」（可被离场重置） —— 检测到「1回合1次」但没有卡名级限制
+  [PASS] 编号超过⑩：命中 PSCT_NUM_BEYOND_TABLE
+
+【反向对照】正文引用编号「这个卡名的③效果」不应触发 PSCT_NUM_MID_PARAGRAPH
+  [PASS] 引用编号不算段落起始违规（实得 []）
+
+══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,38 @@
+[
+  {
+    "ts": 1791823861.3968902,
+    "action": "edit",
+    "preset": "bg",
+    "preset_label": "换背景",
+    "instruction": "把 <image_1> 的背景替换成：极尽宏大的星空音乐厅，穹顶敞开可见银河，观众席上漂浮着无数光点。严格保持 <image_1> 中的人物身份、面部特征、姿势、动作、服装和构图完全不变，只替换背景，并让新背景的光照方向与原图一致。",
+    "resolution": "standard",
+    "version": 1,
+    "history": "210000011-1.png",
+    "inline": true,
+    "style_ref": null
+  },
+  {
+    "ts": 1791823967.4908042,
+    "action": "edit",
+    "preset": "bg",
+    "preset_label": "换背景",
+    "instruction": "把 <image_1> 的背景替换成：极尽宏大的星空音乐厅，穹顶敞开可见银河，观众席上漂浮着无数光点。严格保持 <image_1> 中的人物身份、面部特征、姿势、动作、服装和构图完全不变，只替换背景，并让新背景的光照方向与原图一致。",
+    "resolution": "standard",
+    "version": 2,
+    "history": "210000011-2.png",
+    "inline": true,
+    "style_ref": null
+  },
+  {
+    "ts": 1791824045.069652,
+    "action": "edit",
+    "preset": "bg",
+    "preset_label": "换背景",
+    "instruction": "把 <image_1> 的背景替换成：极尽宏大的星空音乐厅，穹顶敞开可见银河，观众席上漂浮着无数光点。严格保持 <image_1> 中的人物身份、面部特征、姿势、动作、服装和构图完全不变，只替换背景，并让新背景的光照方向与原图一致。",
+    "resolution": "standard",
+    "version": 3,
+    "history": "210000011-3.png",
+    "inline": true,
+    "style_ref": null
+  }
+]

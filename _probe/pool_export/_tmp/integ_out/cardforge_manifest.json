@@ -1,0 +1,62 @@
+{
+  "generator": "CardForge 2.0",
+  "ts": "2026-10-13T06:24:56",
+  "name": "CardForge",
+  "langs": [
+    "zh_cn"
+  ],
+  "cdbs": {
+    "": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\integ_out\\expansions\\CardForge.cdb",
+    "zh_cn": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\integ_out\\expansions\\CardForge-zh-CN.cdb"
+  },
+  "card_ids": [
+    210000000,
+    210000001
+  ],
+  "pending_pics": [
+    210000000,
+    210000001
+  ],
+  "cards": [
+    {
+      "id": 210000000,
+      "name": "集成效果怪",
+      "frame": "effect",
+      "archetype": "",
+      "setcode": "0x1001",
+      "needs_script": true,
+      "has_script": true,
+      "has_pic": false
+    },
+    {
+      "id": 210000001,
+      "name": "集成通常怪",
+      "frame": "normal",
+      "archetype": "",
+      "setcode": "0x0",
+      "needs_script": false,
+      "has_script": false,
+      "has_pic": false
+    }
+  ],
+  "skipped": [
+    {
+      "kind": "pic",
+      "id": 210000000,
+      "name": "集成效果怪",
+      "reason": "卡图不存在"
+    },
+    {
+      "kind": "pic",
+      "id": 210000001,
+      "name": "集成通常怪",
+      "reason": "卡图不存在"
+    }
+  ],
+  "stats": {
+    "n_cards": 2,
+    "n_pics": 0,
+    "n_field_pics": 0,
+    "n_scripts": 1
+  }
+}

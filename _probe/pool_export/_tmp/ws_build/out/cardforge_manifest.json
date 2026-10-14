@@ -1,0 +1,110 @@
+{
+  "generator": "CardForge 2.0",
+  "ts": "2026-10-13T06:24:55",
+  "name": "CardForge",
+  "langs": [
+    "zh_cn",
+    "ja"
+  ],
+  "cdbs": {
+    "": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_build\\out\\expansions\\CardForge.cdb",
+    "zh_cn": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_build\\out\\expansions\\CardForge-zh-CN.cdb",
+    "ja": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_build\\out\\expansions\\CardForge-ja.cdb"
+  },
+  "card_ids": [
+    210000000,
+    210000001,
+    210000002,
+    210000003,
+    210000004
+  ],
+  "pending_pics": [
+    210000002,
+    210000003,
+    210000004
+  ],
+  "cards": [
+    {
+      "id": 210000000,
+      "name": "焰刃的见习剑士",
+      "frame": "effect",
+      "archetype": "焰刃",
+      "setcode": "0x3001",
+      "needs_script": true,
+      "has_script": true,
+      "has_pic": true
+    },
+    {
+      "id": 210000001,
+      "name": "星奏的指挥者 艾莉娅",
+      "frame": "pendulum",
+      "archetype": "星奏",
+      "setcode": "0x1001",
+      "needs_script": true,
+      "has_script": true,
+      "has_pic": true
+    },
+    {
+      "id": 210000002,
+      "name": "星奏的圆舞曲",
+      "frame": "spell",
+      "archetype": "星奏",
+      "setcode": "0x1001",
+      "needs_script": true,
+      "has_script": false,
+      "has_pic": false
+    },
+    {
+      "id": 210000003,
+      "name": "星奏的连接兽",
+      "frame": "link",
+      "archetype": "星奏",
+      "setcode": "0x1001",
+      "needs_script": true,
+      "has_script": true,
+      "has_pic": false
+    },
+    {
+      "id": 210000004,
+      "name": "古老的奏者",
+      "frame": "normal",
+      "archetype": "",
+      "setcode": "0x0",
+      "needs_script": false,
+      "has_script": false,
+      "has_pic": false
+    }
+  ],
+  "skipped": [
+    {
+      "kind": "pic",
+      "id": 210000002,
+      "name": "星奏的圆舞曲",
+      "reason": "卡图不存在"
+    },
+    {
+      "kind": "pic",
+      "id": 210000003,
+      "name": "星奏的连接兽",
+      "reason": "卡图不存在"
+    },
+    {
+      "kind": "pic",
+      "id": 210000004,
+      "name": "古老的奏者",
+      "reason": "卡图不存在"
+    },
+    {
+      "kind": "script",
+      "id": 210000002,
+      "name": "星奏的圆舞曲",
+      "reason": "spec.lua 为空"
+    }
+  ],
+  "stats": {
+    "n_cards": 5,
+    "n_pics": 2,
+    "n_field_pics": 1,
+    "n_scripts": 3
+  }
+}

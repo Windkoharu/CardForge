@@ -1,0 +1,46 @@
+﻿act_search || 从卡组把…加入手卡 || デッキから…手札に加える || add ... from your Deck to your hand
+act_add_to_hand || 加入手卡 || 手札に加える || add to hand
+act_special_summon || 特殊召唤 || 特殊召喚 || Special Summon
+act_normal_summon || 通常召唤 || 通常召喚 || Normal Summon
+act_tribute_summon || 上级召唤 || Ａ召喚 || Tribute Summon
+act_flip_summon || 反转召唤 || 反転召喚 || Flip Summon
+act_set || 放置 || セット || Set
+act_fusion_summon || 融合召唤 || 融合召喚 || Fusion Summon
+act_synchro_summon || 同步召唤 || Ｓ召喚 || Synchro Summon
+act_xyz_summon || 超量召唤 || Ｘ召喚 || Xyz Summon
+act_pendulum_summon || 灵摆召唤 || Ｐ召喚 || Pendulum Summon
+act_link_summon || 连接召唤 || Ｌ召喚 || Link Summon
+act_ritual_summon || 仪式召唤 || 儀式召喚 || Ritual Summon
+act_destroy || 破坏 || 破壊 || destroy
+act_banish || 除外 || 除外 || banish
+act_send || 送去墓地 || 墓地へ送る || send (to the Graveyard)
+act_return || 回到 || 戻す || return (to the hand / Deck)
+act_tribute || 解放 || リリース || Tribute
+act_discard || 舍弃 || 捨てる || discard
+act_draw || 抽牌 || ドロー || draw
+act_place_counter || 放置计数物 || カウンターを置く || place a Counter
+act_change_battle_position || 变更表示形式 || 表示形式を変更する || change its battle position
+act_attack || 攻击 || 攻撃 || attack
+act_direct_attack || 直接攻击 || 直接攻撃 || attack directly
+act_destroyed_by_battle || 被战斗破坏 || 戦闘で破壊される || destroyed by battle
+act_piercing || 给予穿刺战斗伤害 || 貫通ダメージを与える || inflict piercing battle damage
+act_negate || 无效 || 無効 || negate
+act_negate_activation || 发动无效 || 発動を無効 || negate the activation
+act_negate_effect || 效果无效化 || 効果を無効にする || negate the effect / its effects are negated
+act_target || 以…为对象 || …を対象とする || target
+act_take_control || 获得控制权 || コントロールを得る || take control of
+act_copy || 复制 || コピーする || copy (a card name / effect)
+act_replace || 代替 || 代わりに || instead / replace
+act_flip_face_down || 变成里侧表示 || 裏側表示にする || change to face-down (Set)
+act_flip_face_up || 变成表侧表示 || 表側表示にする || flip face-up
+act_shuffle || 洗牌 || シャッフル || shuffle
+act_reveal || 公开 || 公開する || reveal
+act_confirm || 确认 || 確認する || confirm / look at
+act_declare || 宣言 || 宣言 || declare
+act_gain || 上升 || アップする || gain (ATK/DEF)
+act_lose || 下降 || ダウンする || lose (ATK/DEF)
+act_detach || 去除 || 取り除く || detach
+act_attach || 重叠 || 重ねる || attach
+act_pay_lp || 支付LP || ＬＰを払う || pay Life Points
+act_control || 控制 || コントロール || control
+act_gain_this_effect || 获得这个效果 || この効果を得る || gain this effect (You can only gain this effect once per turn.)

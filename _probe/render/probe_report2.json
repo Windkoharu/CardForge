@@ -1,0 +1,65 @@
+{
+  "resolve_for": {
+    "zh_cn": {
+      "role": "sc",
+      "coverage": 1.0,
+      "font": "ygo-sc.ttf"
+    },
+    "ja": {
+      "role": "sc",
+      "coverage": 1.0,
+      "font": "ygo-sc.ttf"
+    },
+    "en": {
+      "role": "en_name",
+      "coverage": 1.0,
+      "font": "ygo-en-name.ttf"
+    },
+    "zh_tw": {
+      "role": "sc",
+      "coverage": 1.0,
+      "font": "ygo-sc.ttf"
+    }
+  },
+  "load_for_ink_ratio": 0.0424,
+  "system_fallback": {
+    "sc": {
+      "path": "C:\\Windows\\Fonts\\msyh.ttc",
+      "coverage": 1.0
+    },
+    "en": {
+      "path": "C:\\Windows\\Fonts\\msyh.ttc",
+      "coverage": 1.0
+    },
+    "en_name": {
+      "path": "C:\\Windows\\Fonts\\msyh.ttc",
+      "coverage": 1.0
+    },
+    "en_race": {
+      "path": "C:\\Windows\\Fonts\\msyh.ttc",
+      "coverage": 1.0
+    },
+    "atk_def": {
+      "path": "C:\\Windows\\Fonts\\NotoSansSC-VF.ttf",
+      "coverage": 1.0
+    },
+    "link": {
+      "path": "C:\\Windows\\Fonts\\NotoSansSC-VF.ttf",
+      "coverage": 1.0
+    }
+  },
+  "woff2_convert": {
+    "file": "ygo-link.ttf",
+    "size": 8308,
+    "pillow_name": [
+      "ygo-link",
+      "Regular"
+    ],
+    "ink": 0.109
+  },
+  "hook_degrade": {
+    "failed_hook": "None + missing 登记",
+    "raising_hook": "None（异常被吞）",
+    "restored": "rasterize_svg"
+  }
+}

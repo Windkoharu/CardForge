@@ -1,0 +1,43 @@
+{
+  "kind": "decks",
+  "key": "星奏标准",
+  "version": 1,
+  "ts": "2026-10-13T06:24:55.089905",
+  "note": "",
+  "digest": "ce30fcdbf5381188",
+  "path": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_repo\\decks\\星奏标准.json",
+  "payload": {
+    "name": "星奏标准",
+    "main": [
+      {
+        "card_id": 210000001,
+        "count": 3,
+        "role": "starter",
+        "name": "星奏的指挥者 艾莉娅"
+      },
+      {
+        "card_id": 89631139,
+        "count": 3,
+        "name": "青眼白龙"
+      }
+    ],
+    "extra": [
+      {
+        "card_id": 210000010,
+        "count": 2,
+        "role": "trump",
+        "name": "星奏的终曲"
+      }
+    ],
+    "side": [
+      {
+        "card_id": 210000000,
+        "count": 2,
+        "name": "焰刃的见习剑士"
+      }
+    ],
+    "archetype": "星奏",
+    "target": "casual",
+    "schema_version": 2
+  }
+}

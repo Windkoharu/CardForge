@@ -1,0 +1,79 @@
+cdb = D:\游戏王DIY设计\vendor\data\cards_zh.cdb
+size = 11.08 MB
+
+=== sqlite_master ===
+-- table card_fts (tbl=card_fts)
+CREATE VIRTUAL TABLE card_fts USING fts5(name, desc, content='texts', content_rowid='id', tokenize='unicode61')
+
+-- table card_fts_config (tbl=card_fts_config)
+CREATE TABLE 'card_fts_config'(k PRIMARY KEY, v) WITHOUT ROWID
+
+-- table card_fts_data (tbl=card_fts_data)
+CREATE TABLE 'card_fts_data'(id INTEGER PRIMARY KEY, block BLOB)
+
+-- table card_fts_docsize (tbl=card_fts_docsize)
+CREATE TABLE 'card_fts_docsize'(id INTEGER PRIMARY KEY, sz BLOB)
+
+-- table card_fts_idx (tbl=card_fts_idx)
+CREATE TABLE 'card_fts_idx'(segid, term, pgno, PRIMARY KEY(segid, term)) WITHOUT ROWID
+
+-- table datas (tbl=datas)
+CREATE TABLE datas(id integer primary key,ot integer,alias integer,setcode integer,type integer,atk integer,def integer,level integer,race integer,attribute integer,category integer)
+
+-- table texts (tbl=texts)
+CREATE TABLE texts(id integer primary key,name text,desc text,str1 text,str2 text,str3 text,str4 text,str5 text,str6 text,str7 text,str8 text,str9 text,str10 text,str11 text,str12 text,str13 text,str14 text,str15 text,str16 text)
+
+=== PRAGMA table_info(datas) ===
+ cid name         type       notnull   dflt  pk
+   0 id           INTEGER          0   None   1
+   1 ot           INTEGER          0   None   0
+   2 alias        INTEGER          0   None   0
+   3 setcode      INTEGER          0   None   0
+   4 type         INTEGER          0   None   0
+   5 atk          INTEGER          0   None   0
+   6 def          INTEGER          0   None   0
+   7 level        INTEGER          0   None   0
+   8 race         INTEGER          0   None   0
+   9 attribute    INTEGER          0   None   0
+  10 category     INTEGER          0   None   0
+
+=== PRAGMA table_info(texts) ===
+ cid name         type       notnull   dflt  pk
+   0 id           INTEGER          0   None   1
+   1 name         TEXT             0   None   0
+   2 desc         TEXT             0   None   0
+   3 str1         TEXT             0   None   0
+   4 str2         TEXT             0   None   0
+   5 str3         TEXT             0   None   0
+   6 str4         TEXT             0   None   0
+   7 str5         TEXT             0   None   0
+   8 str6         TEXT             0   None   0
+   9 str7         TEXT             0   None   0
+  10 str8         TEXT             0   None   0
+  11 str9         TEXT             0   None   0
+  12 str10        TEXT             0   None   0
+  13 str11        TEXT             0   None   0
+  14 str12        TEXT             0   None   0
+  15 str13        TEXT             0   None   0
+  16 str14        TEXT             0   None   0
+  17 str15        TEXT             0   None   0
+  18 str16        TEXT             0   None   0
+
+COUNT(datas) = 15019
+COUNT(texts) = 15019
+
+FTS5 虚拟表 = [('card_fts', "CREATE VIRTUAL TABLE card_fts USING fts5(name, desc, content='texts', content_rowid='id', tokenize='unicode61')")]
+
+=== indexes ===
+
+=== 样本 datas 行（青眼）===
+(23545031, 11, 0, 7667828, 67108897, 1600, 5, 2, 262144, 2, 270856)
+(89631139, 11, 0, 221, 17, 3000, 2500, 8, 8192, 16, 0)
+
+=== 样本 texts 行 ===
+(23545031, '水精鳞-萨拉深渊后', '鱼族·海龙族·水族怪兽2只\r\n这个卡名的②③的效果1回合各能使用1次。\r\n①：这张卡所连接区的怪兽的攻击力·守备力上升500。\r\n②：对方回合把1张手卡送去墓地才能发动。从卡组把1只「水精鳞」怪兽加入手卡。\r\n③：这张卡被对方怪兽的攻击或者对方的效果破坏的场合，从卡组把1只水属性怪兽送去墓地，以自己墓地1只水属性怪兽为对象才能发动。那只怪兽守备表示特殊召唤。', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '')
+(89631139, '青眼白龙', '以高攻击力著称的传说之龙。任何对手都能粉碎，其破坏力不可估量。', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '')
+
+=== D:\游戏王DIY设计\vendor\data 目录清单 ===
+  cards_zh.cdb  11.08 MB
+

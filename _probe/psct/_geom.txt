@@ -1,0 +1,9 @@
+﻿effect_text None
+pendulum_text (118, 752, 578, 122)
+pendulum_monster_text (63.5, 905, 686, 173)
+flavor None
+text_panel (65.5, 889, 682.5, 222)
+FONT_SIZE {'type_line': 31, 'st_label': 40}
+LINE_HEIGHT {'description': 30.0, 'description_lore': 28.0}
+TEXT_MAX_H {'monster': 160.0, 'spell_trap': 210.0, 'pendulum': 122.0}
+FIT {'description': [{'id': 'large', 'fontSize': 30.0, 'lineHeight': 30.0, 'maxLines': 5}, {'id': 'medium', 'fontSize': 24.4, 'lineHeight': 25.0, 'maxLines': 6}, {'id': 'small', 'fontSize': 21.0, 'lineHeight': 22.0, 'maxLines': 7}, {'id': 'extra-small', 'fontSize': 17.0, 'lineHeight': 16.67, 'maxLines': 9}], 'lore': [{'id': 'large', 'fontSize': 28.0, 'lineHeight': 28.0, 'maxLines': 2}, {'id': 'medium', 'fontSize': 26.5, 'lineHeight': 27.0, 'maxLines': 3}, {'id': 'small', 'fontSize': 25.0, 'lineHeight': 25.5, 'maxLines': 4}, {'id': 'extra-small', 'fontSize': 22.0, 'lineHeight': 22.5, 'maxLines': 5}], 'type_line': [{'id': 'type-big', 'fontSize': 31.0}, {'id': 'type-small', 'fontSize': 24.0}]}

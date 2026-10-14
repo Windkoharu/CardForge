@@ -1,0 +1,76 @@
+{
+  "kind": "cards",
+  "key": "210000001",
+  "version": 1,
+  "ts": "2026-10-13T06:24:55.009314",
+  "note": "",
+  "digest": "02cfce339830fc00",
+  "path": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_repo\\cards\\星奏\\210000001\\spec.json",
+  "payload": {
+    "id": 210000001,
+    "name": "星奏的指挥者 艾莉娅",
+    "frame": "pendulum",
+    "attribute": "光",
+    "race": "魔法师族",
+    "level": 4,
+    "atk": 1600,
+    "dfd": 1200,
+    "pendulum_scale": 8,
+    "archetype": "星奏",
+    "setcode": "0x1001",
+    "text_i18n": {
+      "zh_cn": "①：这张卡召唤成功时才能发动。从卡组把1张「星奏」卡加入手卡。"
+    },
+    "pendulum_text_i18n": {
+      "zh_cn": "①：自己主要阶段才能发动。从卡组把1只「星奏」怪兽加入手卡。"
+    },
+    "effects": [
+      {
+        "kind": "search",
+        "trigger": "NORMAL_SUMMON_SUCCESS",
+        "limit": "once_per_turn",
+        "source": "manual"
+      }
+    ],
+    "render": {
+      "rarity": "common",
+      "fullart": {
+        "mode": "none",
+        "bleed_top": 0.0,
+        "bleed_bottom": 0.0,
+        "panel_opacity": 0.86,
+        "name_stroke": 1.6,
+        "fade_px": 0.0
+      },
+      "lang_name": "zh_cn",
+      "lang_text": "zh_cn",
+      "lang_flavor": "zh_cn",
+      "art_fit": "cover",
+      "art_offset_y": 0.0,
+      "art_scale": 1.0,
+      "art_ring": 0.0,
+      "font_scale_name": 1.0,
+      "font_scale_text": 1.0,
+      "text_align": "left",
+      "psct_bold": true,
+      "show_password": true,
+      "show_copyright": true,
+      "show_stamp20": false,
+      "show_laser": true,
+      "preview_width": 480,
+      "output_size": "edopro"
+    },
+    "lua": "--[[ 星奏的指挥者 ]]\nlocal s,id=GetID()\n",
+    "strings": [
+      "①：从卡组把1张「星奏」卡加入手卡。"
+    ],
+    "created": "2026-10-13T06:24:55.008526",
+    "updated": "2026-10-13T06:24:55.008531",
+    "schema_version": 2,
+    "race_bits": 2,
+    "attr_bits": 16,
+    "type_bits": 16777249,
+    "link_bits": 0,
+    "def_value": 1200
+  }
+}

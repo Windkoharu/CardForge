@@ -1,0 +1,96 @@
+── 1. render 基本形态 ──
+  │ # CardForge 自动生成 —— DIY 系列名 / 计数器名
+  │ !setname 0x1001 星奏
+  │ !setname 0x3001 焰刃
+  │ !counter 0x1 星奏指示物
+  │ !counter_alias 0x2 星奏计数器
+  [PASS] 首行是注释
+  [PASS] !setname 按十六进制升序
+  [PASS] !counter_alias 也支持
+  [PASS] 以单个 \n 结尾
+
+── 2. hexkey 归一化 ──
+  [PASS] hexkey(4097) == '0x1001'  —— 实际 '0x1001'
+  [PASS] hexkey('0x1001') == '0x1001'  —— 实际 '0x1001'
+  [PASS] hexkey('0X1001') == '0x1001'  —— 实际 '0x1001'
+  [PASS] hexkey('1001') == '0x1001'  —— 实际 '0x1001'
+  [PASS] hexkey(0) == '0x0'  —— 实际 '0x0'
+  [PASS] hexkey('') == '0x0'  —— 实际 '0x0'
+  [PASS] hexkey('不是十六进制') == '不是十六进制'  —— 实际 '不是十六进制'
+  [PASS] hexkey(True) == '0x1'  —— 实际 '0x1'
+  [PASS] 小写 0x 也被收敛成大写
+
+── 3. parse：注释 / 空行 / 未知指令 ──
+  setnames       = {'0x1001': '星奏', '0x1002': '带 空格 的 名字'}
+  counters       = {'0x1': '星奏指示物'}
+  counters_alias = {}
+  unknown        = ['!victory 0x1 自定义胜利条件', '这不是指令行']
+  comments       = ['# 顶部注释', '', '# 中间注释']
+  [PASS] 解析出 2 个 setname
+  [PASS] 名字里的空格被保留  —— '带 空格 的 名字'
+  [PASS] 未知指令进 unknown
+  [PASS] 非指令行进 unknown
+  [PASS] 注释与空行进 comments
+
+── 4. 往返：render(**parse(text)) 保留 unknown 与 comments ──
+  往返结果：
+  │ # 顶部注释
+  │ #
+  │ # 中间注释
+  │ !setname 0x1001 星奏
+  │ !setname 0x1002 带 空格 的 名字
+  │ !counter 0x1 星奏指示物
+  │ !victory 0x1 自定义胜利条件
+  │ 这不是指令行
+  [PASS] setnames 往返不变
+  [PASS] unknown 往返不变
+  [PASS] 再次往返逐字节相同
+
+── 5. 对照旧工程真实产物 ──
+  D:\workbuddy workspace\2026-10-12-12-38-13\cardforge\workspace\out\expansions\strings.conf
+  字节 = b'# CardForge \xe8\x87\xaa\xe5\x8a\xa8\xe7\x94\x9f\xe6\x88\x90 \xe2\x80\x94\xe2\x80\x94 DIY \xe7\xb3\xbb\xe5\x88\x97\xe5\x90\x8d / \xe8\xae\xa1\xe6\x95\xb0\xe5\x99\xa8\xe5\x90\x8d\r\n!setname 0x1001 \xe6\x98\x9f\xe5\xa5\x8f\r\n'
+  解析 = {'0x1001': '星奏'} / unknown=[]
+  [PASS] 旧产物的 !setname 0x1001 星奏 解析正确  —— {'0x1001': '星奏'}
+  [PASS] 旧产物无 unknown  —— []
+  [PASS] 重写后语义等价
+  重写后 = '# CardForge 自动生成 —— DIY 系列名 / 计数器名\n!setname 0x1001 星奏\n'
+
+── 6. write / read：UTF-8 无 BOM ──
+  前 3 字节 = b'# C'  大小 = 113
+  [PASS] 无 BOM
+  [PASS] read 回来一致
+  [PASS] 读不存在的文件返回空结构（不抛异常）
+  [PASS] 带 BOM 的历史文件也能读（utf-8-sig 容错）
+
+── 7. merge：受管区块替换而非追加 ──
+  第一次：
+    │ # 用户自己的
+    │ !system 1000 0
+    │ 
+    │ # >>> CardForge t >>>
+    │ !setname 0x1 A
+    │ # <<< CardForge t <<<
+  第二次：
+    │ # 用户自己的
+    │ !system 1000 0
+    │ 
+    │ # >>> CardForge t >>>
+    │ !setname 0x2 B
+    │ # <<< CardForge t <<<
+  第三次：
+    │ # 用户自己的
+    │ !system 1000 0
+    │ 
+    │ # >>> CardForge t >>>
+    │ !setname 0x2 B
+    │ # <<< CardForge t <<<
+  [PASS] 用户内容始终保留
+  [PASS] 第二次替换掉旧指令（0x1 消失）
+  [PASS] 第二次写入新指令
+  [PASS] 幂等：第三次与第二次逐字节相同
+  [PASS] 区块标记成对且只有一组
+  [PASS] 不同 tag 互不干扰
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过
+════════════════════════════════════════════════════════════════════

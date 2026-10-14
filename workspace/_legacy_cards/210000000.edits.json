@@ -1,0 +1,13 @@
+[
+  {
+    "ts": 1791801514.4084597,
+    "action": "edit",
+    "preset": "light",
+    "preset_label": "光影强化",
+    "instruction": "为 <image_1> 重新设计光照：侧逆光，强烈的明暗对比，背景进一步压暗，火光从右后方打来。保持人物、姿势、构图与画面内容完全不变，只改变光照与阴影，增强体积感、边缘高光与整体戏剧性，画面不要变亮或变灰。",
+    "resolution": "standard",
+    "version": 1,
+    "history": "210000000-1.png",
+    "style_ref": null
+  }
+]

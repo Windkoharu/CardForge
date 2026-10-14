@@ -1,0 +1,22 @@
+{
+  "name": "星奏の見習い ソル",
+  "frame": "normal",
+  "level": 3,
+  "attribute": "光",
+  "race": "魔法师族",
+  "atk": 1200,
+  "def": 1000,
+  "text": "在星海尽头练习演奏的见习乐师。她始终相信，总有一天自己的旋律能传遍整片星空。",
+  "id": 210000010,
+  "archetype": "星奏",
+  "setcode": "0x1001",
+  "type_flags": [],
+  "effect_kind": "none",
+  "race_bits": 2,
+  "attr_bits": 16,
+  "type_bits": 17,
+  "effect_tier": 1,
+  "detected_effects": [],
+  "_lua": "--[[ 星奏の見習い ソル\n     CardForge 自动生成 · 模板档:none\n     效果：无效果\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\n",
+  "_strings": []
+}

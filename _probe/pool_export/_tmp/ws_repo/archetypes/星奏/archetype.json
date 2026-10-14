@@ -1,0 +1,34 @@
+{
+  "name": "星奏",
+  "setcode": "0x1001",
+  "concept": "改过的概念",
+  "win_method": "EFFECT",
+  "trumps": [
+    "FUSION",
+    "XYZ"
+  ],
+  "binding": {
+    "attribute": "光"
+  },
+  "dialects": [
+    "从卡组把1张「星奏」卡加入手卡。",
+    "那张「星奏」卡破坏。"
+  ],
+  "roster": [
+    {
+      "role": "starter",
+      "count": 3,
+      "brief": "零前置启动"
+    },
+    {
+      "role": "trump",
+      "count": 2,
+      "frame_hint": "fusion"
+    }
+  ],
+  "target_power": "rogue",
+  "notes": "测试用",
+  "created": "2026-10-13T06:24:55.071070",
+  "updated": "2026-10-13T06:24:55.079750",
+  "schema_version": 2
+}

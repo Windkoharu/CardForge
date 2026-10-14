@@ -1,0 +1,161 @@
+==============================================================================
+【自测 5】导出 t2i_single 的 UI 格式 workflow JSON，并把它 POST 回 /prompt 跑一遍
+==============================================================================
+导出路径 : D:\游戏王DIY设计\_probe\art\workflow_t2i.json
+导出耗时 : 16.27 s
+根字段   : ['config', 'extra', 'groups', 'last_link_id', 'last_node_id', 'links', 'nodes', 'version']
+version  : 0.4
+节点数   : 15 | 连线数: 16 | last_node_id: 15 | last_link_id: 16
+
+--- 每个节点的 widgets_values（纯值数组，注意 seed 后的 control_after_generate 占位）---
+  id= 1 order= 0 UNETLoader                   widgets=["krea2_turbo_bf16.safetensors", "default"]
+  id= 2 order= 1 CLIPLoader                   widgets=["qwen3vl_4b_fp8_scaled.safetensors", "krea2", "default"]
+  id= 3 order= 2 VAELoader                    widgets=["qwen_image_vae.safetensors"]
+  id= 4 order= 3 ModelSamplingFlux            widgets=[1.15, 0.5, 832, 1216]
+  id= 5 order= 4 CLIPTextEncode               widgets=["A highly atmospheric anime illustration in a cinematic key-visual style, rendered with clean lineart and soft cel shading, pa...
+  id= 6 order= 5 CLIPTextEncode               widgets=["text, watermark, signature, username, logo, artist name, border, frame, letterboxed, multiple views, character sheet, lowres,...
+  id= 7 order= 6 ConditioningZeroOut          widgets=[]
+  id= 8 order= 7 CFGGuider                    widgets=[1.0]
+  id= 9 order= 8 RandomNoise                  widgets=[880001, "fixed"]
+  id=10 order= 9 KSamplerSelect               widgets=["euler"]
+  id=11 order=10 BasicScheduler               widgets=["simple", 8, 1.0]
+  id=12 order=11 EmptyLatentImage             widgets=[832, 1216, 1]
+  id=13 order=12 SamplerCustomAdvanced        widgets=[]
+  id=14 order=13 VAEDecode                    widgets=[]
+  id=15 order=14 SaveImage                    widgets=["cardforge/t2i_single"]
+
+--- links（数组式 [id, origin_id, origin_slot, target_id, target_slot, type]）---
+   [1, 1, 0, 4, 0, 'MODEL']
+   [2, 2, 0, 5, 0, 'CLIP']
+   [3, 2, 0, 6, 0, 'CLIP']
+   [4, 6, 0, 7, 0, 'CONDITIONING']
+   [5, 4, 0, 8, 0, 'MODEL']
+   [6, 5, 0, 8, 1, 'CONDITIONING']
+   [7, 7, 0, 8, 2, 'CONDITIONING']
+   [8, 4, 0, 11, 0, 'MODEL']
+   [9, 9, 0, 13, 0, 'NOISE']
+   [10, 8, 0, 13, 1, 'GUIDER']
+   [11, 10, 0, 13, 2, 'SAMPLER']
+   [12, 11, 0, 13, 3, 'SIGMAS']
+   [13, 12, 0, 13, 4, 'LATENT']
+   [14, 13, 0, 14, 0, 'LATENT']
+   [15, 3, 0, 14, 1, 'VAE']
+   [16, 14, 0, 15, 0, 'IMAGE']
+
+--- README ---
+   README_character_sheet.md (5583 bytes)
+   README_inpaint_edit.md (7029 bytes)
+   README_remove_bg.md (6628 bytes)
+   README_style_ref.md (7079 bytes)
+   README_t2i_series.md (6658 bytes)
+   README_t2i_single.md (6960 bytes)
+   README_upscale.md (6650 bytes)
+
+ui_to_api 自检 : 通过（无问题）
+ui_to_api 节点数: 15
+
+==============================================================================
+【自测 5b】把导出的工作流 POST 回 /prompt 真跑一遍（这是真正的验证）
+==============================================================================
+--- 5b-1：ui_to_api(导出的 JSON) 与原始 API 图逐字段对比 ---
+原始 API 图节点数 : 15 | ui_to_api 节点数: 15
+往返差异字段数 : 0 ✅ 完全一致
+
+--- 5b-2：POST ui_to_api 的结果到 /prompt，真跑一遍 ---
+POST /prompt 成功, prompt_id = a5b8424c-06c3-44e6-b6f7-aeb3e3c564d2
+耗时 : 21.30 s
+history.outputs : [{"filename": "t2i_single_00019_.png", "subfolder": "cardforge", "type": "output"}]
+已下载 : D:\游戏王DIY设计\_probe\art\from_exported_workflow_t2i_single_00019_.png (1305861 bytes)
+=> 导出的工作流能被 ComfyUI 跑通 ✅
+
+--- 5b-3：export_workflow(submit=True) 这条代码路径也走一遍 ---
+export_workflow(submit=True) 成功 : D:\游戏王DIY设计\_probe\art\workflow_t2i_submit.json
+对应用例 : export_workflow(submit=True) 已把工作流转回 API 并提交，未抛异常 ✅
+
+==============================================================================
+【自测 6】capabilities() + 不存在的模型名断言
+==============================================================================
+online          : True
+summary         : {"online": true, "host": "http://127.0.0.1:8188", "comfyui_version": "0.38.2", "python": "3.13.11 (tags/v3.13.11:6278944, Dec  5 2025, 16:26:58) [MSC v.1944 64 bit (AMD64)]", "torch": "2.13.0+cu130", "device": "cuda:0 NVIDIA GeForce RTX 4080 SUPER : cudaMallocAsync", "vram_total_gb": 32.0, "vram_free_gb": 2.7}
+active_profile  : krea2 | Krea 2 Turbo（本机首选）
+profile_reason  : 在 unets/krea2_turbo_bf16.safetensors 上命中关键词 ['krea2'] → 选择档案「Krea 2 Turbo（本机首选）」（优先级 1/8）。
+ready           : True
+node_total      : 1911
+missing_models  : ["CLIP Vision（models/clip_vision/ 为空）→ IPAdapter 不可用", "ControlNet（models/controlnet/ 为空）"]
+degraded        :
+   - 没有 CLIP Vision 模型（models/clip_vision/ 为空）→ IPAdapter 链路不可用，系列一致性只能靠固定风格前缀 + 每张换 seed。
+   - 没有 ControlNet 模型（models/controlnet/ 为空）→ 姿势/构图锁定不可用。
+bg_nodes        : ['BiRefNetRMBG', 'RemoveBackground', 'BriaRemoveImageBackground', 'LoadBackgroundRemovalModel']
+upscale_models  : ['4x_NMKD-Superscale-SP_178000_G.pth', '4x_NMKD-YandereNeoXL_200k.pth', '4x_fatal_Anime_500000_G.pth']
+loras_krea2     : 13
+
+档案可用性：
+  krea2        usable=True  本机有匹配权重：krea2_turbo_bf16.safetensors
+  qwen_image   usable=True  本机有匹配权重：qwen_image_2.1_int8_convrot.safetensors
+  illustrious  usable=False 本机没有匹配的权重
+  noobai       usable=False 本机没有匹配的权重
+  animagine    usable=False 本机没有匹配的权重
+  pony         usable=False 本机没有匹配的权重
+  sdxl         usable=False 本机没有匹配的权重
+  sd15         usable=False 本机没有匹配的权重
+
+预设：
+  t2i_single             单张文生图
+  t2i_series             系列批量（共享风格前缀）
+  style_ref              画风参考（垫图定风格）
+  ipadapter_consistency  IPAdapter 风格锚点（本机不可用）
+  character_sheet        角色三视图（设定稿）
+  upscale                放大 + 精确降采样
+  remove_bg              抠底（输出透明 PNG）
+  inpaint_edit           局部重绘 / 指令编辑
+
+upgrade_paths:
+   - 想要干净的商用授权 + Danbooru 标签体系：装 Animagine XL 4.0（CreativeML OpenRAIL++-M，允许商用）→ 档案自动切到 animagine。
+   - 想要更强的标签依从性与社区 LoRA 生态：装 Illustrious/NoobAI（注意其授权禁止闭源专有商业化）。
+   - 想要「一张风格母版统一整个系列」：往 models/clip_vision/ 放 CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors + models/ipadapter/ 放 ip-adapter-plus_sdxl_vit-h.safetensors（**注意 IPAdapter 对 DiT 模型无效**）。
+   - 想要更好的放大：往 models/upscale_models/ 放 RealESRGAN_x4plus_anime_6B.pth（动漫首选）或 4x-UltraSharp.pth。
+
+--- 方式 A：generate() 返回 ok=False + meta['kind']（符合降级约定）---
+结果 ok = False
+error   : 底模 `THIS_MODEL_DOES_NOT_EXIST.safetensors` 不在 ComfyUI 的候选列表里
+hint    : 把 `THIS_MODEL_DOES_NOT_EXIST.safetensors` 放进 ComfyUI/models/diffusion_models 或 models/checkpoints，然后在界面点一次刷新（或重启）让 /object_info 重新枚举。本机现有底模 7 个，调 client.models() 看完整清单。
+kind    : model_missing
+断言通过：ok=False 且 kind == 'model_missing' ✅
+hint 是中文 : True ✅
+
+--- 方式 B：raise_on_error=True → 抛 ComfyError(kind='model_missing') ---
+kind : model_missing
+msg  : 底模 `THIS_MODEL_DOES_NOT_EXIST.safetensors` 不在 ComfyUI 的候选列表里
+hint : 把 `THIS_MODEL_DOES_NOT_EXIST.safetensors` 放进 ComfyUI/models/diffusion_models 或 models/checkpoints，然后在界面点一次刷新（或重启）让 /object_info 重新枚举。本机现有底模 7 个，调 client.models() 看完整清单。
+断言通过：ComfyError(kind='model_missing') + 中文 hint ✅
+
+--- 方式 C：直接调 _strict_models 看抛出的 ComfyError ---
+kind : model_missing
+msg  : 底模 `NOPE.safetensors` 不在 ComfyUI 的候选列表里
+hint : 把 `NOPE.safetensors` 放进 ComfyUI/models/diffusion_models 或 models/checkpoints，然后在界面点一次刷新（或重启）让 /object_info 重新枚举。本机现有底模 7 个，调 client.models() 看完整清单。
+断言通过：ComfyError(kind='model_missing') + 中文 hint ✅
+
+==============================================================================
+【自测 7】抠底链路：拿自测 3 的图跑 remove_bg
+==============================================================================
+源图 : D:\游戏王DIY设计\workspace\pics\art\_probe_烬霞\970001\v1.png True
+upload -> {"name": "v1.png", "subfolder": "CardForge", "type": "input", "ref": "CardForge/v1.png"}
+抠底图节点 : [('1', 'LoadImage'), ('2', 'LoadBackgroundRemovalModel'), ('3', 'RemoveBackground'), ('4', 'InvertMask'), ('5', 'ThresholdMask'), ('6', 'GrowMask'), ('7', 'JoinImageWithAlpha'), ('8', 'SaveImage')]
+warnings   : []
+background_removal 候选 : ['BiRefNet\\model.safetensors', 'RMBG-1.4\\model.safetensors']
+   [1] LoadImage                    {"image": "CardForge/v1.png"}
+   [2] LoadBackgroundRemovalModel   {"bg_removal_name": "BiRefNet\\model.safetensors"}
+   [3] RemoveBackground             {"bg_removal_model": ["2", 0], "image": ["1", 0]}
+   [4] InvertMask                   {"mask": ["3", 0]}
+   [5] ThresholdMask                {"value": 0.25, "mask": ["4", 0]}
+   [6] GrowMask                     {"expand": 1, "tapered_corners": true, "mask": ["5", 0]}
+   [7] JoinImageWithAlpha           {"image": ["1", 0], "alpha": ["6", 0]}
+   [8] SaveImage                    {"filename_prefix": "cardforge/probe_removebg", "images": ["7", 0]}
+queued     : 8d30134c-f653-44b4-aa9e-cb871e6d2b79
+耗时       : 1.53 s
+产物       : ['D:\\游戏王DIY设计\\_probe\\art\\removebg\\probe_removebg_00004_.png']
+   probe_removebg_00004_.png mode = RGBA size = (832, 1216)
+      alpha: 全透明(0)=585318 (57.85%) | 不透明(255)=426394 (42.15%) | 半透明=0 (0.00%)
+      透明区平均亮度=124.4 | 不透明区平均亮度=63.0
+      背景透明? 是 ✅
+      边缘带占比 0.00% （正常 2%–15%；>40% 说明 mask 是灰度渐变而非二值前景）

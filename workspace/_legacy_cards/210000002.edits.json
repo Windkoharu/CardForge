@@ -1,0 +1,13 @@
+[
+  {
+    "ts": 1791802183.5594168,
+    "action": "edit",
+    "preset": "bg",
+    "preset_label": "换背景",
+    "instruction": "把 <image_1> 的背景替换成：燃烧的城堡大厅，破碎的旗帜与飘落的余烬。严格保持 <image_1> 中的人物身份、面部特征、姿势、动作、服装和构图完全不变，只替换背景，并让新背景的光照方向与原图一致。",
+    "resolution": "standard",
+    "version": 1,
+    "inline": true,
+    "style_ref": null
+  }
+]

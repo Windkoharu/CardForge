@@ -1,0 +1,43 @@
+{
+  "kind": "archetypes",
+  "key": "星奏",
+  "version": 1,
+  "ts": "2026-10-13T06:24:55.071490",
+  "note": "",
+  "digest": "1273e79a7bccb9b7",
+  "path": "D:\\游戏王DIY设计\\_probe\\pool_export\\_tmp\\ws_repo\\archetypes\\星奏\\archetype.json",
+  "payload": {
+    "name": "星奏",
+    "setcode": "0x1001",
+    "concept": "以灵摆召唤为核心的音律使团",
+    "win_method": "EFFECT",
+    "trumps": [
+      "FUSION",
+      "XYZ"
+    ],
+    "binding": {
+      "attribute": "光"
+    },
+    "dialects": [
+      "从卡组把1张「星奏」卡加入手卡。",
+      "那张「星奏」卡破坏。"
+    ],
+    "roster": [
+      {
+        "role": "starter",
+        "count": 3,
+        "brief": "零前置启动"
+      },
+      {
+        "role": "trump",
+        "count": 2,
+        "frame_hint": "fusion"
+      }
+    ],
+    "target_power": "rogue",
+    "notes": "测试用",
+    "created": "2026-10-13T06:24:55.071070",
+    "updated": "2026-10-13T06:24:55.071074",
+    "schema_version": 2
+  }
+}

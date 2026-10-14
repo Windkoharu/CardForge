@@ -1,0 +1,127 @@
+{
+ "c01_normal": {
+  "ms": 125.8,
+  "path": "D:\\游戏王DIY设计\\_probe\\c01_normal.png",
+  "ok": true
+ },
+ "c02_effect": {
+  "ms": 249.1,
+  "path": "D:\\游戏王DIY设计\\_probe\\c02_effect.png",
+  "ok": true
+ },
+ "c03_pendulum": {
+  "ms": 115.5,
+  "path": "D:\\游戏王DIY设计\\_probe\\c03_pendulum.png",
+  "ok": true
+ },
+ "c04_link": {
+  "ms": 243.2,
+  "path": "D:\\游戏王DIY设计\\_probe\\c04_link.png",
+  "ok": true
+ },
+ "c05_spell": {
+  "ms": 126.0,
+  "path": "D:\\游戏王DIY设计\\_probe\\c05_spell.png",
+  "ok": true
+ },
+ "c06_trap": {
+  "ms": 112.9,
+  "path": "D:\\游戏王DIY设计\\_probe\\c06_trap.png",
+  "ok": true
+ },
+ "c07_xyz": {
+  "ms": 234.5,
+  "path": "D:\\游戏王DIY设计\\_probe\\c07_xyz.png",
+  "ok": true
+ },
+ "c08_synchro": {
+  "ms": 231.9,
+  "path": "D:\\游戏王DIY设计\\_probe\\c08_synchro.png",
+  "ok": true
+ },
+ "c09_fusion": {
+  "ms": 238.1,
+  "path": "D:\\游戏王DIY设计\\_probe\\c09_fusion.png",
+  "ok": true
+ },
+ "c10_ritual": {
+  "ms": 238.4,
+  "path": "D:\\游戏王DIY设计\\_probe\\c10_ritual.png",
+  "ok": true
+ },
+ "x01_noart_effect": {
+  "ms": 195.9,
+  "path": "D:\\游戏王DIY设计\\_probe\\x01_noart_effect.png",
+  "ok": true
+ },
+ "x02_noart_pend": {
+  "ms": 71.6,
+  "path": "D:\\游戏王DIY设计\\_probe\\x02_noart_pend.png",
+  "ok": true
+ },
+ "x03_noart_link": {
+  "ms": 68.7,
+  "path": "D:\\游戏王DIY设计\\_probe\\x03_noart_link.png",
+  "ok": true
+ },
+ "x04_tallart": {
+  "ms": 197.8,
+  "path": "D:\\游戏王DIY设计\\_probe\\x04_tallart.png",
+  "ok": true
+ },
+ "x05_wideart": {
+  "ms": 199.2,
+  "path": "D:\\游戏王DIY设计\\_probe\\x05_wideart.png",
+  "ok": true
+ },
+ "x06_longtext": {
+  "ms": 2738.8,
+  "path": "D:\\游戏王DIY设计\\_probe\\x06_longtext.png",
+  "ok": true
+ },
+ "x07_jpmix": {
+  "ms": 90.6,
+  "path": "D:\\游戏王DIY设计\\_probe\\x07_jpmix.png",
+  "ok": true
+ },
+ "x08_question": {
+  "ms": 83.4,
+  "path": "D:\\游戏王DIY设计\\_probe\\x08_question.png",
+  "ok": true
+ },
+ "x09_numeric_edge": {
+  "ms": 82.8,
+  "path": "D:\\游戏王DIY设计\\_probe\\x09_numeric_edge.png",
+  "ok": true
+ },
+ "x10_13star": {
+  "ms": 86.7,
+  "path": "D:\\游戏王DIY设计\\_probe\\x10_13star.png",
+  "ok": true
+ },
+ "x11_eightlink": {
+  "ms": 84.5,
+  "path": "D:\\游戏王DIY设计\\_probe\\x11_eightlink.png",
+  "ok": true
+ },
+ "x12_longname": {
+  "ms": 227.7,
+  "path": "D:\\游戏王DIY设计\\_probe\\x12_longname.png",
+  "ok": true
+ },
+ "x13_noattr": {
+  "ms": 217.1,
+  "path": "D:\\游戏王DIY设计\\_probe\\x13_noattr.png",
+  "ok": true
+ },
+ "x14_token": {
+  "ms": 107.4,
+  "path": "D:\\游戏王DIY设计\\_probe\\x14_token.png",
+  "ok": true
+ },
+ "x15_procedural": {
+  "ms": 226.9,
+  "path": "D:\\游戏王DIY设计\\_probe\\x15_procedural.png",
+  "ok": true
+ }
+}

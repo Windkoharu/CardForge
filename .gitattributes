@@ -1,0 +1,27 @@
+# 默认：文本文件仓库内统一 LF，检出跟随 git 配置
+* text=auto
+
+# 启动批处理必须保持 CRLF——cmd 按代码页逐行解码，LF 会让多行 if 块解析失稳
+# （缺陷 #31：双击启动.bat 一闪而过的根因之一）。不要让 git 换行归一化碰它。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# shell 脚本保持 LF
+*.sh text eol=lf
+
+# 二进制素材（不做任何换行/文本处理）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.svg binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.cdb binary
+*.ypk binary
+*.zip binary
+*.dll binary
+*.so binary
+*.dylib binary

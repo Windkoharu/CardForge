@@ -1,0 +1,380 @@
+{
+  "_meta": {
+    "generated": "2026-10-13",
+    "scope": "PSCT（Problem-Solving Card Text）与 OCG 标准卡片文本的标点／连接词／HOPT／编号规则",
+    "note": "本文件描述可编程的语法规则；具体短语的多语言对照见 terms.json 的 psct_phrase 分类。",
+    "sources": [
+      "https://www.yugioh-card.com/en/play/psct/psct-3/",
+      "https://www.yugioh-card.com/en/play/psct/psct-7/",
+      "https://www.yugioh-card.com/en/play/psct/psct-5/",
+      "https://yugipedia.com/wiki/Problem-Solving_Card_Text?action=raw",
+      "https://yugipedia.com/wiki/Once_per_turn?action=raw",
+      "https://yugipedia.com/wiki/Only_once_per_turn?action=raw",
+      "https://yugipedia.com/wiki/Cost?action=raw",
+      "https://yugipedia.com/wiki/Activation_condition?action=raw",
+      "https://yugipedia.com/wiki/Quick_Effect?action=raw",
+      "https://yugipedia.com/wiki/Card_text?action=raw"
+    ]
+  },
+  "punctuation": [
+    {
+      "symbol": "：",
+      "role": "condition_separator",
+      "en": ":",
+      "ja": "：",
+      "zh_cn": "：",
+      "zh_tw": "：",
+      "position": "before",
+      "note": "冒号前是发动条件（何时/如何/多少次能发动）；有冒号或分号即入连锁。有条件时小写 when/if 引导。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-3/"
+    },
+    {
+      "symbol": "；",
+      "role": "activation_separator",
+      "en": ";",
+      "ja": "；",
+      "zh_cn": "；",
+      "zh_tw": "；",
+      "position": "between",
+      "note": "分号前（冒号之后）是发动时要做的事：cost 与 target。分号后是效果处理（resolution）。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-3/"
+    },
+    {
+      "symbol": "。",
+      "role": "sentence_terminator",
+      "en": ".",
+      "ja": "。",
+      "zh_cn": "。",
+      "zh_tw": "。",
+      "position": "after",
+      "note": "句号只是句子边界，不代表入连锁。真正判定入连锁的标记是「：」或「；」。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-3/"
+    },
+    {
+      "symbol": "（）",
+      "role": "built_in_special_summon",
+      "en": "()",
+      "ja": "（）",
+      "zh_cn": "（）",
+      "zh_tw": "（）",
+      "position": "inline",
+      "note": "括号标注 Built-In Special Summon 的召唤来源，如「（从手卡）」/“(from your hand)”。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-5/"
+    },
+    {
+      "symbol": "●",
+      "role": "bulleted_effect",
+      "en": "●",
+      "ja": "●",
+      "zh_cn": "●",
+      "zh_tw": "●",
+      "position": "inline",
+      "note": "同一连锁内处理的分支效果。写「按顺序」= 依次处理；写「（同时）」= 同时处理；两者都没写 = 各自另开连锁。",
+      "source": "https://yugipedia.com/wiki/Problem-Solving_Card_Text?action=raw"
+    },
+    {
+      "symbol": "①",
+      "role": "effect_number",
+      "en": "①",
+      "ja": "①",
+      "zh_cn": "①",
+      "zh_tw": "①",
+      "position": "prefix",
+      "note": "OCG 自 Starter Deck 2014 起为每个效果编号；编号本身不是效果文的一部分，但「这个卡名的①②效果」句式依赖编号。",
+      "source": "https://yugipedia.com/wiki/Card_text?action=raw"
+    }
+  ],
+  "conjunctions": [
+    {
+      "key": "and",
+      "en": "and",
+      "ja": "し",
+      "zh_cn": "并且",
+      "zh_tw": "並且",
+      "resolution_order": "simultaneous",
+      "both_required": true,
+      "requires_a_for_b": false,
+      "aborts_b_if_a_fails": false,
+      "note": "同时处理，A 与 B 都必须执行；两者任一做不到就整段都不做（全有或全无）。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-7/"
+    },
+    {
+      "key": "then",
+      "en": "then",
+      "ja": "その後",
+      "zh_cn": "那之后",
+      "zh_tw": "那之後",
+      "resolution_order": "sequential",
+      "both_required": false,
+      "requires_a_for_b": true,
+      "aborts_b_if_a_fails": true,
+      "note": "依次处理，B 在 A 之后。A 是 B 的前提，反之不然：A 没做成则停止；B 做不成就只做 A。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-7/"
+    },
+    {
+      "key": "also",
+      "en": "also",
+      "ja": "また",
+      "zh_cn": "此外",
+      "zh_tw": "此外",
+      "resolution_order": "simultaneous",
+      "both_required": false,
+      "requires_a_for_b": false,
+      "aborts_b_if_a_fails": false,
+      "note": "视为同时处理。互不为前提，能做到多少做多少。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-7/"
+    },
+    {
+      "key": "and_if_you_do",
+      "en": "and if you do",
+      "ja": "その場合",
+      "zh_cn": "那个场合",
+      "zh_tw": "那個場合",
+      "resolution_order": "simultaneous",
+      "both_required": true,
+      "requires_a_for_b": true,
+      "aborts_b_if_a_fails": true,
+      "note": "时间轴上等同 and（同时），因果上等同 then（A 是 B 的前提）。A 未发生则停止；B 做不成仍做 A。",
+      "source": "https://www.yugioh-card.com/en/play/psct/psct-7/"
+    },
+    {
+      "key": "also_after_that",
+      "en": "also, after that",
+      "ja": "また、その後",
+      "zh_cn": "此外，那之后",
+      "zh_tw": "此外，那之後",
+      "resolution_order": "sequential",
+      "both_required": false,
+      "requires_a_for_b": false,
+      "aborts_b_if_a_fails": false,
+      "note": "依次处理，B 在 A 之后。互不为前提（2014 年新增，未见于 PSCT 原始连载）。",
+      "source": "https://yugipedia.com/wiki/Problem-Solving_Card_Text?action=raw"
+    }
+  ],
+  "conjunction_quadrants": {
+    "axes": [
+      "resolution_order (sequential | simultaneous)",
+      "both_required / a_required_for_b"
+    ],
+    "grid": [
+      {
+        "resolution_order": "sequential",
+        "neither_required": "also_after_that",
+        "a_required_for_b": "then",
+        "both_required": null
+      },
+      {
+        "resolution_order": "simultaneous",
+        "neither_required": "also",
+        "a_required_for_b": "and_if_you_do",
+        "both_required": "and"
+      }
+    ],
+    "note": "不存在「两部分都必需且又不同时」的连接词；融合召唤/仪式召唤的效果文因此不使用连接词。",
+    "source": "https://yugipedia.com/wiki/Problem-Solving_Card_Text?action=raw"
+  },
+  "hopt": [
+    {
+      "key": "once_per_turn",
+      "en": "Once per turn:",
+      "ja": "１ターンに１度、",
+      "zh_cn": "1回合1次，",
+      "zh_tw": "1回合1次，",
+      "scope": "this_card",
+      "scope_note": "限制作用于「这一张卡」在当前所在位置（整个场上视为同一位置）。同名不同卡各自可用。",
+      "strictness": "activate",
+      "strictness_note": "等同 activate：发动被无效也不可再次发动。",
+      "reset_on_leave": true,
+      "reset_note": "该卡离开当前所在位置或被翻成里侧表示后，同一回合可以再次发动。",
+      "placement": "activation_condition",
+      "placement_note": "写在冒号之前的发动条件段落。",
+      "source": "https://yugipedia.com/wiki/Once_per_turn?action=raw"
+    },
+    {
+      "key": "hopt_name_use",
+      "en": "You can only use each effect of \"X\" once per turn.",
+      "ja": "このカード名の①②の効果はそれぞれ１ターンに１度しか使用できない。",
+      "zh_cn": "这个卡名的①②的效果1回合各能使用1次。",
+      "zh_tw": "這個卡名的①②的效果1回合各能使用1次。",
+      "scope": "player_and_original_name",
+      "scope_note": "限制作用于「玩家 + 卡名」，与具体是哪一张卡无关；卡名被改写也不解除限制。",
+      "strictness": "use",
+      "strictness_note": "最严格：即使发动被无效，本回合也不能再用。",
+      "reset_on_leave": false,
+      "reset_note": "不会因离场/翻里侧重置。",
+      "placement": "separate_sentence",
+      "placement_note": "写在独立句子里（通常在效果文段之后另起一句），不出现在冒号前。",
+      "variants": [
+        "You can only use this effect of \"X\" once per turn.",
+        "You can only use 1 \"X\" effect per turn, and only once that turn.",
+        "You can only use each effect of \"X\" once per Duel."
+      ],
+      "source": "https://yugipedia.com/wiki/Once_per_turn?action=raw"
+    },
+    {
+      "key": "hopt_name_activate",
+      "en": "You can only activate 1 \"X\" per turn.",
+      "ja": "「X」は１ターンに１枚しか発動できない。",
+      "zh_cn": "「X」1回合只能发动1张。",
+      "zh_tw": "「X」1回合只能發動1張。",
+      "scope": "player_and_original_name",
+      "scope_note": "同样作用于玩家 + 卡名。",
+      "strictness": "activate",
+      "strictness_note": "比 use 宽松：若这次发动被无效，本回合还可以再发动另一张同名卡。",
+      "reset_on_leave": false,
+      "placement": "separate_sentence",
+      "source": "https://yugipedia.com/wiki/Once_per_turn?action=raw"
+    },
+    {
+      "key": "hopt_name_apply",
+      "en": "You can only apply this effect of \"X\" once per Duel.",
+      "ja": "このカード名の効果はデュエル中に１度しか適用できない。",
+      "zh_cn": "这个卡名的效果1场决斗中只能适用1次。",
+      "zh_tw": "這個卡名的效果1場決鬥中只能適用1次。",
+      "scope": "player_and_original_name",
+      "strictness": "apply",
+      "strictness_note": "最宽松的一档：效果被改写或无效后，之后仍可再次尝试。",
+      "reset_on_leave": false,
+      "note": "strictness 由宽到严：apply < activate < use。",
+      "source": "https://yugipedia.com/wiki/Once_per_turn?action=raw"
+    },
+    {
+      "key": "hopt_gain_effect_once",
+      "en": "(You can only gain this effect once per turn.)",
+      "ja": "（この効果は１ターンに１度しか得られない。）",
+      "zh_cn": "（这个效果1回合只能获得1次。）",
+      "zh_tw": "（這個效果1回合只能獲得1次。）",
+      "scope": "player",
+      "scope_note": "限制作用于玩家，与卡名、卡的种类都无关（例如追加通常召唤类效果）。",
+      "strictness": "gain",
+      "reset_on_leave": false,
+      "source": "https://yugipedia.com/wiki/Once_per_turn?action=raw"
+    },
+    {
+      "key": "hopt_once_while_face_up",
+      "en": "Once while face-up on the field: ...",
+      "ja": "このカードがモンスターゾーンに表側表示で存在する場合に１度、…",
+      "zh_cn": "这张卡在怪兽区域表侧表示存在的场合，1次…",
+      "zh_tw": "此卡在怪獸區表側表示存在的場合，1次…",
+      "scope": "this_card",
+      "strictness": "use",
+      "reset_on_leave": true,
+      "note": "旧句式「This effect can only be used once while this card is face-up on the field.」的现行写法（自 Code of the Duelist 起）。",
+      "source": "https://yugipedia.com/wiki/Problem-Solving_Card_Text?action=raw"
+    }
+  ],
+  "numbering": {
+    "symbols": [
+      "①",
+      "②",
+      "③",
+      "④",
+      "⑤",
+      "⑥",
+      "⑦",
+      "⑧",
+      "⑨",
+      "⑩"
+    ],
+    "ascii_aliases": [
+      "(1)",
+      "(2)",
+      "(3)",
+      "(4)",
+      "(5)"
+    ],
+    "rule": "OCG 自 Starter Deck 2014 起为标准格式：卡片文本中的每个效果按出现顺序连续编号，编号仅作为「这个卡名的①②效果」这类交叉引用的锚点，本身不是效果内容。",
+    "rules": [
+      "编号只按顺序给「效果」编号；召唤条件、素材行、flavor text、灵摆效果（P效果单独另起 ① ②）不参与编号。",
+      "灵摆怪兽有两个独立编号序列：怪兽效果用 ①②…，灵摆效果在「P效果」栏另起 ① ②…。",
+      "「这个卡名的①②的效果1回合各能使用1次」引用的是编号，不是效果种类；因此新增或删除效果时必须重排编号。",
+      "被「这个卡名的①的效果1回合只能使用1次」单独点名的，只有该编号的效果受限制。",
+      "翻转怪兽的「FLIP:」效果在现行 Type line 记作 /反转，其效果文一般置于编号效果之前或作为独立段落。",
+      "若一张卡同时有怪兽效果与灵摆效果，两者的 HOPT 限制互相独立。"
+    ],
+    "source": "https://yugipedia.com/wiki/Card_text?action=raw"
+  },
+  "structure": {
+    "template": "CONDITIONS : ACTIVATION ; RESOLUTION",
+    "segments": [
+      {
+        "role": "conditions",
+        "separator": ":",
+        "en_label": "green text",
+        "ja_label": "発動条件",
+        "zh_cn_label": "发动条件",
+        "contains": [
+          "when / if timing",
+          "once per turn",
+          "activation requirement",
+          "optional 'you can'"
+        ],
+        "note": "只要求在发动时满足；处理时不需再满足。"
+      },
+      {
+        "role": "activation",
+        "separator": ";",
+        "en_label": "red text",
+        "ja_label": "発動時にすること",
+        "zh_cn_label": "发动时要做的事",
+        "contains": [
+          "cost",
+          "target"
+        ],
+        "note": "在发动瞬间完成，不可被无效（属于 cost 的部分）。"
+      },
+      {
+        "role": "resolution",
+        "separator": ".",
+        "en_label": "blue text",
+        "ja_label": "効果の処理",
+        "zh_cn_label": "效果处理",
+        "contains": [
+          "what actually happens"
+        ],
+        "note": "连锁逆处理时才执行。"
+      }
+    ],
+    "chain_rule": "效果文中出现「：」或「；」即表示该效果会入连锁；两者都没有则不入连锁、不能被连锁。",
+    "spell_trap_exception": "魔法/陷阱卡只要发动就一定入连锁，即使效果文里没有冒号或分号（例：Creature Swap）。",
+    "source": "https://www.yugioh-card.com/en/play/psct/psct-3/"
+  },
+  "timing_keywords": {
+    "when": {
+      "en": "when",
+      "ja": "時",
+      "zh_cn": "时",
+      "zh_tw": "時",
+      "strictness": "strict",
+      "note": "严格的触发时机：只在该事件是「最后发生的事」时才能发动。"
+    },
+    "if": {
+      "en": "if",
+      "ja": "場合",
+      "zh_cn": "的场合",
+      "zh_tw": "的場合",
+      "strictness": "loose",
+      "note": "宽松的触发时机：即使该事件之后又发生了别的事，仍可发动。"
+    },
+    "you_can": {
+      "en": "You can",
+      "ja": "できる",
+      "zh_cn": "可以",
+      "zh_tw": "可以",
+      "optionality": "optional",
+      "note": "可选效果；没有 You can／できる 的是必发效果。"
+    }
+  },
+  "sources": [
+    "https://www.yugioh-card.com/en/play/psct/psct-3/",
+    "https://www.yugioh-card.com/en/play/psct/psct-7/",
+    "https://www.yugioh-card.com/en/play/psct/psct-5/",
+    "https://yugipedia.com/wiki/Problem-Solving_Card_Text?action=raw",
+    "https://yugipedia.com/wiki/Once_per_turn?action=raw",
+    "https://yugipedia.com/wiki/Only_once_per_turn?action=raw",
+    "https://yugipedia.com/wiki/Cost?action=raw",
+    "https://yugipedia.com/wiki/Activation_condition?action=raw",
+    "https://yugipedia.com/wiki/Quick_Effect?action=raw",
+    "https://yugipedia.com/wiki/Card_text?action=raw"
+  ]
+}

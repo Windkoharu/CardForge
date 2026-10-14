@@ -1,0 +1,14 @@
+[
+  {
+    "ts": 1791824169.9653144,
+    "action": "edit",
+    "preset": "fx",
+    "preset_label": "加魔法特效",
+    "instruction": "在 <image_1> 的画面上叠加以下魔法特效：叠加更强烈的金色光环与扩散的声波涟漪，增强压倒性的存在感。特效要自然融入原有光照与透视，不遮挡人物面部与关键轮廓，保持人物身份、姿势、服装与构图完全不变。",
+    "resolution": "standard",
+    "version": 1,
+    "history": "210000019-1.png",
+    "inline": true,
+    "style_ref": null
+  }
+]

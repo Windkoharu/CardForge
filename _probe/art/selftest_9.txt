@@ -1,0 +1,40 @@
+==============================================================================
+【自测 9a】style_ref 端到端：垫一张风格参考图真跑一遍
+==============================================================================
+upload -> {"name": "v1.png", "subfolder": "CardForge", "type": "input", "ref": "CardForge/v1.png"}
+节点 : [('1', 'UNETLoader'), ('2', 'CLIPLoader'), ('3', 'VAELoader'), ('4', 'LoraLoaderModelOnly'), ('5', 'ModelSamplingFlux'), ('7', 'CLIPTextEncode'), ('8', 'ConditioningZeroOut'), ('9', 'CFGGuider'), ('10', 'RandomNoise'), ('11', 'KSamplerSelect'), ('12', 'BasicScheduler'), ('13', 'EmptyLatentImage'), ('14', 'SamplerCustomAdvanced'), ('15', 'VAEDecode'), ('16', 'TextEncodeQwenImageEditPlus'), ('17', 'LoadImage'), ('18', 'FluxKontextMultiReferenceLatentMethod'), ('19', 'SaveImage')]
+warnings : []
+耗时 1.95 s | prompt_id=35938afa-0691-4b8b-a0bd-7c4f1ade07e7
+产物: ['D:\\游戏王DIY设计\\_probe\\art\\styleref\\probe_styleref_00001_.png']
+
+==============================================================================
+【自测 9b】用 export_workflow 导出 style_ref，再 POST 回 /prompt
+==============================================================================
+9b-1 正确抛出 PlaceholderRef ✅
+      kind : model_missing
+      msg  : 导出的工作流里还有占位图片名，无法直接提交：cardforge_style_ref.png
+      hint : 导出本身成功了 —— 这些占位符是给用户导入后自己换图的。要在这里就地跑一遍验证，请把真实图片传进来：① export_workflow(..., request=ArtRequest(style_refs=['D:/x.png'])) （本地路径会被自动 upload）；② 或直接给 images={'D:/x.png': 'CardForge/x.png'}。t2i_single / character_sheet 这类不需要参考图的预设可以直接 submit=True。
+
+9b-2：给真实本地参考图（会被自动 upload）→ 应该能提交
+export_workflow(submit=True) OK : D:\游戏王DIY设计\_probe\art\final_style_ref_submit.json
+placeholders : []
+LoadImage 节点 : [['CardForge/v1.png']]
+
+==============================================================================
+【自测 9c】remove_bg 预设：导出 + 提交（用已 upload 的真实图）
+==============================================================================
+导出的占位符 : ['cardforge_input.png']
+替换占位图后自检 : 通过
+remove_bg 提交成功 ✅ 耗时 16.69 s | 产物 ['D:\\游戏王DIY设计\\_probe\\art\\removebg\\art_00002_.png']
+
+==============================================================================
+【自测 9d】修正后的 by_capability
+==============================================================================
+  t2i_single             available=True  可用
+  t2i_series             available=True  可用
+  style_ref              available=True  部分依赖缺失，会自动降级：FluxKontextMultiReferenceLatentMethod
+  ipadapter_consistency  available=False 本机没有 CLIP Vision 模型（models/clip_vision/ 为空）
+  character_sheet        available=True  可用
+  upscale                available=True  可用
+  remove_bg              available=True  可用
+  inpaint_edit           available=True  可用

@@ -1,0 +1,24 @@
+{
+  "cardCount": 1,
+  "failedRequests": [],
+  "fetchCalls": 0,
+  "gatesText": "G1G2G3G4G5",
+  "imgs": [
+    {
+      "ok": true,
+      "src": "blob:http://127.0.0.1:8790/4d0c64cc-3c03-4edd-955b-14f"
+    },
+    {
+      "ok": true,
+      "src": "blob:http://127.0.0.1:8790/dd42cf6c-8fe0-434d-b1e6-439"
+    }
+  ],
+  "jsErrors": [],
+  "levelsText": "L0\nL1\nL2\nL3",
+  "stages": [
+    "spec->spec",
+    "text->text",
+    "art->art",
+    "pack->pack"
+  ]
+}

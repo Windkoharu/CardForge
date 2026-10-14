@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\__init__.py", line 285, in finditer
+    return _compile(pattern, flags).finditer(string)
+           ~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\__init__.py", line 350, in _compile
+    p = _compiler.compile(pattern, flags)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\_compiler.py", line 748, in compile
+    p = _parser.parse(p, flags)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\_parser.py", line 980, in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\_parser.py", line 459, in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+                ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       not nested and not items))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\_parser.py", line 863, in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\_parser.py", line 459, in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+                ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       not nested and not items))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\_parser.py", line 543, in _parse
+    code = _escape(source, this, state)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\re\_parser.py", line 385, in _escape
+    raise source.error("incomplete escape %s" % escape, len(escape))
+re.PatternError: incomplete escape \x at position 39

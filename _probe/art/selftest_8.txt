@@ -1,0 +1,72 @@
+==============================================================================
+【自测 8a】generate_series：系列批量（风格前缀冻结 + 每张换 seed）
+==============================================================================
+批次耗时 : 51.35 s
+  [0] card_id=970011 name=烬霞龙·幼体 ok=True seed=990001 took=37642ms
+       series_style = A highly atmospheric anime illustration in a cinematic key-visual style, rendered with clean lineart and soft cel shadin
+       images = ['_probe_烬霞_970011_00001_.png']
+  [1] card_id=970012 name=烬霞龙·煌炎 ok=True seed=990003 took=13689ms
+       series_style = A highly atmospheric anime illustration in a cinematic key-visual style, rendered with clean lineart and soft cel shadin
+       images = ['_probe_烬霞_970012_00001_.png']
+每张 seed 都不同? True [990001, 990003]
+风格前缀是否冻结（两张一致）? True
+
+==============================================================================
+【自测 8b】t2i + upscale（本机放大模型：['4x_NMKD-Superscale-SP_178000_G.pth', '4x_NMKD-YandereNeoXL_200k.pth', '4x_fatal_Anime_500000_G.pth']）
+==============================================================================
+ok = True | 耗时 34.78 s
+images : ['D:\\游戏王DIY设计\\workspace\\.cache\\art\\e3021e30\\_probe_upscale_970021_00001_.png']
+节点 : [('1', 'UNETLoader'), ('2', 'CLIPLoader'), ('3', 'VAELoader'), ('4', 'ModelSamplingFlux'), ('5', 'CLIPTextEncode'), ('6', 'CLIPTextEncode'), ('7', 'ConditioningZeroOut'), ('8', 'CFGGuider'), ('9', 'RandomNoise'), ('10', 'KSamplerSelect'), ('11', 'BasicScheduler'), ('12', 'EmptyLatentImage'), ('13', 'SamplerCustomAdvanced'), ('14', 'VAEDecode'), ('15', 'UpscaleModelLoader'), ('16', 'ImageUpscaleWithModel'), ('17', 'ImageScale'), ('18', 'SaveImage')]
+尺寸 : (842, 1228) （放大到 4x 再降采样到 842×1228）
+warnings : []
+
+==============================================================================
+【自测 8c】t2i + remove_bg（走 generate 的 remove_bg 分支）
+==============================================================================
+ok = True | 耗时 31.81 s
+images : ['D:\\游戏王DIY设计\\workspace\\.cache\\art\\757a63bc\\_probe_removebg_970022_00001_.png']
+节点 : [('1', 'UNETLoader'), ('2', 'CLIPLoader'), ('3', 'VAELoader'), ('4', 'ModelSamplingFlux'), ('5', 'CLIPTextEncode'), ('6', 'CLIPTextEncode'), ('7', 'ConditioningZeroOut'), ('8', 'CFGGuider'), ('9', 'RandomNoise'), ('10', 'KSamplerSelect'), ('11', 'BasicScheduler'), ('12', 'EmptyLatentImage'), ('13', 'SamplerCustomAdvanced'), ('14', 'VAEDecode'), ('15', 'LoadBackgroundRemovalModel'), ('16', 'RemoveBackground'), ('17', 'InvertMask'), ('18', 'ThresholdMask'), ('19', 'GrowMask'), ('20', 'JoinImageWithAlpha'), ('21', 'SaveImage')]
+mode : RGBA size : (832, 1216)
+alpha: 全透明 70.52% | 不透明 29.48% | 半透明 0.00%
+
+==============================================================================
+【自测 8d】其余预设的 export_workflow（只建图导出，不提交）
+==============================================================================
+upload 用于 inpaint : {"name": "probe_removebg_00003_.png", "subfolder": "CardForge", "type": "input", "ref": "CardForge/probe_removebg_00003_.png"}
+upload mask : {"name": "inpaint_mask.png", "subfolder": "CardForge", "type": "input", "ref": "CardForge/inpaint_mask.png"}
+  t2i_single             OK  节点= 15 连线= 16 自检=通过
+  t2i_series             OK  节点= 15 连线= 16 自检=通过
+  style_ref              OK  节点= 18 连线= 20 自检=通过
+  ipadapter_consistency  失败 kind=model_missing
+      msg  : IPAdapter 不适用于 krea2（krea2）链路
+      hint : IPAdapter 是 SD1.5 / SDXL 的 UNet cross-attention 补丁，Krea 2 / Qwen-Image 这类 DiT + 流匹配模型没有对应的 IPAdapter 权重。要统一画风请改用：① krea2 的画风参考链路（build_style_ref）；② 固定风格前缀 + 不同 seed 的系列批。
+  character_sheet        OK  节点= 15 连线= 16 自检=通过
+  upscale                OK  节点=  5 连线=  4 自检=通过
+  remove_bg              OK  节点=  3 连线=  2 自检=通过
+  inpaint_edit           OK  节点= 20 连线= 26 自检=通过
+
+==============================================================================
+【自测 8e】presets / by_capability / postprocess / library rollback
+==============================================================================
+preset('t2i_single') 键: ['builder', 'bytes_hint', 'defaults', 'degrade', 'needs', 'optional', 'requires', 'use', 'zh']
+preset 是深拷贝? True
+  t2i_single             available=True  部分增强节点缺失，会自动降级：ComfyUI 核心节点
+  t2i_series             available=True  部分增强节点缺失，会自动降级：ComfyUI 核心节点
+  style_ref              available=True  部分增强节点缺失，会自动降级：FluxKontextMultiReferenceLatentMethod
+  ipadapter_consistency  available=False 本机没有 CLIP Vision 模型（models/clip_vision/ 为空）
+  character_sheet        available=True  部分增强节点缺失，会自动降级：ComfyUI 核心节点
+  upscale                available=True  可用
+  remove_bg              available=True  部分增强节点缺失，会自动降级：BiRefNetRMBG 或 LoadBackgroundRemovalModel+RemoveBackground 或 BriaRemoveImageBackground
+  inpaint_edit           available=True  部分增强节点缺失，会自动降级：LoadImageMask、VAEEncode、SetLatentNoiseMask、ImageCompositeMasked
+postprocess: {"ok": true, "src": "D:\\游戏王DIY设计\\workspace\\pics\\art\\_probe_烬霞\\970001\\v1.png", "dst": "D:\\游戏王DIY设计\\workspace\\pics\\art\\_probe_烬霞\\970001\\v1_pp.png", "size": [842, 1228], "mode": "RGB", "bytes": 335113}
+postprocess+flatten: {"ok": true, "src": "D:\\游戏王DIY设计\\workspace\\pics\\art\\_probe_烬霞\\970001\\v1.png", "dst": "D:\\游戏王DIY设计\\_probe\\art\\pp_421x614.jpg", "size": [421, 614], "mode": "RGB", "bytes": 120837}
+library.versions(970001): [{"version": 1, "bytes": 1130150, "is_current": false}, {"version": 2, "bytes": 1052665, "is_current": true}]
+library.current(970001): {"version": 2, "file": "v2.png", "updated": "2026-10-13T06:20:49+08:00"}
+rollback -> v1: {"ok": true, "card_id": 970001, "version": 1, "image": "D:\\游戏王DIY设计\\workspace\\pics\\art\\_probe_烬霞\\970001\\v1.png", "current": {"version": 1, "file": "v1.png", "updated": "2026-10-13T06:49:38+08:00"}}
+set_current -> v2 restored
+list_all():
+    {"card_id": 970022, "archetype": "_probe_removebg", "versions": 1, "version": 1}
+    {"card_id": 970021, "archetype": "_probe_upscale", "versions": 1, "version": 1}
+    {"card_id": 970001, "archetype": "_probe_烬霞", "versions": 2, "version": 2}
+    {"card_id": 970011, "archetype": "_probe_烬霞", "versions": 1, "version": 1}
+    {"card_id": 970012, "archetype": "_probe_烬霞", "versions": 1, "version": 1}

@@ -1,0 +1,77 @@
+造出来的卡组：main=40 extra=10 side=15 total=65
+
+── write / read 往返 ──
+  write → D:\游戏王DIY设计\_probe\pool_export\_tmp\ydk\星奏标准.ydk
+  文件大小 = 695 字节，前 3 字节 = b'#cr'（无 BOM: True）
+  [PASS] 文件无 BOM
+    │ #created by CardForge 2.0
+    │ #main
+    │ 210000100
+    │ 210000100
+    │ 210000100
+    │ 210000101
+    │ …（共 69 行）
+    │ !side
+    │ 210000404
+
+  [PASS] read 回来不是 None
+  [PASS] name = 文件名  —— 星奏标准
+  [PASS] main 张数一致  —— {'main': 40, 'main_kinds': 14, 'extra': 10, 'extra_kinds': 5, 'side': 15, 'side_kinds': 5, 'total': 65}
+  [PASS] extra 张数一致  —— {'main': 40, 'main_kinds': 14, 'extra': 10, 'extra_kinds': 5, 'side': 15, 'side_kinds': 5, 'total': 65}
+  [PASS] side 张数一致  —— {'main': 40, 'main_kinds': 14, 'extra': 10, 'extra_kinds': 5, 'side': 15, 'side_kinds': 5, 'total': 65}
+  [PASS] main 展开后逐卡号一致  —— 40 vs 40
+  [PASS] extra 逐卡号一致
+  [PASS] side 逐卡号一致
+  [PASS] main 种类数一致（14 种）  —— 14 vs 14
+  [PASS] count 字段被合并回张数  —— [3, 3, 3]
+  [PASS] 注释行被保留到 notes  —— #created by CardForge 2.0
+  [PASS] 再写一次结果逐字节相同
+
+── validate：合规卡组（40 张）──
+  共 0 条：（空）
+  [PASS] 合规卡组 0 条 ERROR
+
+── validate：39 张主卡组（应报 ERROR）──
+    [ERROR] YDK_MAIN_SIZE        主卡组 39 张，必须 40–60 张
+        hint: 主卡组还差 1 张就合规。
+  [PASS] 39 张报 ERROR  —— [('YDK_MAIN_SIZE', 'ERROR')]
+  [PASS] ERROR 信息里带实际张数  —— 主卡组 39 张，必须 40–60 张
+
+── validate：其余越界情形 ──
+  61 张主卡组：
+    [ERROR] YDK_MAIN_SIZE        主卡组 61 张，必须 40–60 张
+  [PASS]   61 张主卡组 触发 YDK_MAIN_SIZE  —— {'YDK_MAIN_SIZE'}
+  额外 16 张：
+    [ERROR] YDK_EXTRA_SIZE       额外卡组 16 张，上限 15 张
+  [PASS]   额外 16 张 触发 YDK_EXTRA_SIZE  —— {'YDK_EXTRA_SIZE'}
+  副卡 16 张：
+    [ERROR] YDK_SIDE_SIZE        副卡组 16 张，上限 15 张
+  [PASS]   副卡 16 张 触发 YDK_SIDE_SIZE  —— {'YDK_SIDE_SIZE'}
+  同名 4 张：
+    [ERROR] YDK_COPY_LIMIT       「主卡组卡1」放了 4 张，同名卡上限 3 张
+  [PASS]   同名 4 张 触发 YDK_COPY_LIMIT  —— {'YDK_COPY_LIMIT'}
+  空卡组：
+    [ERROR] YDK_MAIN_SIZE        主卡组 0 张，必须 40–60 张
+    [WARN ] YDK_EMPTY            卡组是空的
+    [INFO ] YDK_NAME_EMPTY       卡组没有名字
+  [PASS]   空卡组 触发 YDK_EMPTY + YDK_NAME_EMPTY  —— {'YDK_MAIN_SIZE', 'YDK_EMPTY', 'YDK_NAME_EMPTY'}
+
+── validate(pool_ids=…) 存在性校验 ──
+  [PASS] 池里有全部 DIY 卡 → 无 YDK_CARD_UNKNOWN  —— []
+    [ERROR] YDK_CARD_UNKNOWN: DIY 卡号 210000101 不在给定卡池里  hint: 先把它加进导出包并写进卡池，或改用已存在的卡号。
+    [ERROR] YDK_CARD_UNKNOWN: DIY 卡号 210000102 不在给定卡池里  hint: 先把它加进导出包并写进卡池，或改用已存在的卡号。
+  [PASS] 池里缺 2 个 DIY 卡号 → 报 2 条 ERROR  —— ['DIY 卡号 210000101 不在给定卡池里', 'DIY 卡号 210000102 不在给定卡池里']
+  [PASS] 官方卡号（< 2.1 亿）不做池存在性校验  —— []
+  [PASS] pool_ids=None 时跳过存在性校验
+
+── 容错：读一个手工写坏的文件 ──
+  main=[(210000100, 1)]  extra=[(210000300, 1)]  side=[(210000100, 1)]
+  notes='#created by hand\n# 注释\nbadline'
+  [PASS] 坏行不炸，被记进 notes
+  [PASS] !side 段被正确识别
+  [PASS] 段顺序错乱也不丢卡（#extra 在 !side 之后仍进 extra）
+  [PASS] 读不存在的文件返回空 DeckSpec（不抛异常）
+
+════════════════════════════════════════════════════════════════════
+断言：全部通过
+════════════════════════════════════════════════════════════════════

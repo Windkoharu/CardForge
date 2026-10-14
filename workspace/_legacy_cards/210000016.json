@@ -1,0 +1,27 @@
+{
+  "name": "星奏の夜想曲",
+  "frame": "spell",
+  "type_flags": [
+    "速攻"
+  ],
+  "text": "①：以自己场上 1 只「星奏」怪兽为对象才能发动。那只怪兽的攻击力上升 1000。",
+  "id": 210000016,
+  "archetype": "星奏",
+  "setcode": "0x1001",
+  "level": 0,
+  "atk": 0,
+  "def": 0,
+  "race": 0,
+  "attribute": "",
+  "race_bits": 0,
+  "attr_bits": 0,
+  "type_bits": 65538,
+  "effect_tier": 1,
+  "detected_effects": [
+    "boost"
+  ],
+  "_lua": "--[[ 星奏の夜想曲\n     CardForge 自动生成 · 模板档:tier1/boost\n     效果：攻击力上升\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t-- 效果 1：攻击力上升\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_ATKCHANGE)\n\te1:SetType(EFFECT_TYPE_QUICK_O)\n\te1:SetCode(EVENT_FREE_CHAIN)\n\te1:SetTarget(e1_boosttg)\n\te1:SetOperation(e1_boostop)\n\tc:RegisterEffect(e1)\nend\n\n-- ①：以自己场上1只「星奏」怪兽为对象才能发动。那只怪兽的攻击力上升1000。\nfunction e1_botg(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return true end\n\tDuel.SetOperationInfo(0,CATEGORY_ATKCHANGE,e:GetHandler(),1,tp,1000)\nend\nfunction e1_boop(e,tp,eg,ep,ev,re,r,rp)\n\tlocal c=e:GetHandler()\n\tif c:IsRelateToEffect(e) and c:IsFaceup() then\n\t\tlocal e1=Effect.CreateEffect(c)\n\t\te1:SetType(EFFECT_TYPE_SINGLE)\n\t\te1:SetCode(EFFECT_UPDATE_ATTACK)\n\t\te1:SetValue(1000)\n\t\te1:SetReset(RESET_EVENT+RESETS_STANDARD)\n\t\tc:RegisterEffect(e1)\n\tend\nend\n",
+  "_strings": [
+    "①：以自己场上1只「星奏」怪兽为对象才能发动。那只怪兽的攻击力上升1000。"
+  ]
+}

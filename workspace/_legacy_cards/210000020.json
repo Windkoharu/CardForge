@@ -1,0 +1,23 @@
+{
+  "id": 210000020,
+  "name": "星奏の二重奏 デュエット",
+  "frame": "fusion",
+  "level": 6,
+  "attribute": "光",
+  "race": "天使族",
+  "atk": 2200,
+  "def": 1800,
+  "archetype": "星奏",
+  "setcode": "0x1001",
+  "text": "①：这张卡特殊召唤成功时才能发动。这张卡的攻击力上升 500。",
+  "type_flags": [],
+  "effect_kind": "none",
+  "effect_trigger": "summon",
+  "race_bits": 4,
+  "attr_bits": 16,
+  "type_bits": 97,
+  "effect_tier": 1,
+  "detected_effects": [],
+  "_lua": "--[[ 星奏の二重奏 デュエット\n     CardForge 自动生成 · 模板档:none\n     效果：无效果\n     ⚠ 本文件由模板生成，可自由编辑；重新生成会覆盖。\n--]]\nlocal s,id=GetID()\n",
+  "_strings": []
+}

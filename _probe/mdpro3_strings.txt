@@ -1,0 +1,303 @@
+
+═══ 含 'expansion' 的字符串（1 条）═══
+    aisHollywoodexpansionstandards</style>
+
+═══ 含 'DIY' 的字符串（36 条）═══
+    ,MDPro3.BackgroundManager+<SetDIYBGAsync>d__5
+    <SetDIYBGAsync>d__5
+    CODE_DIY
+    CardArea/IconDIY
+    DIY Classic
+    DIY Classic2
+    DIY DeepDarkFantasy
+    DIY Green
+    DIY Knowledge
+    DIY Pink
+    DIY PinkShine
+    DIY Red
+    DIY SHOP
+    DIY WCS
+    DIY by
+    IconDIY
+    LABEL_IMG_ICONDIY
+    LABEL_IMG_ICON_DIY
+    ListHaveDIY
+    Menu-DIY
+    PATH_DIY
+    PATH_ICON_DIY
+    Picture/DIY/
+    Picture/DIY/Background
+    Picture/DIY/Background.png
+    Picture/DIY/Me.png
+    Picture/DIY/MeTag.png
+    Picture/DIY/Op.png
+    Picture/DIY/OpTag.png
+    Picture/DIY/Paper.png
+    Picture/DIY/Rock.png
+    Picture/DIY/Scissors.png
+    SetDIYBGAsync
+    cardPoolDIY
+    get_IconDIY
+    m_IconDIY
+
+═══ 含 'diy' 的字符串（2 条）═══
+    <diy>5__3
+    diyDeck
+
+═══ 含 'script.zip' 的字符串（2 条）═══
+    Data/script.zip
+    script.zip
+
+═══ 含 'cards.cdb' 的字符串（5 条）═══
+    /cards.cdb
+    /rush_cards.cdb
+    Data/locales/zh-CN/cards.cdb
+    Please place cards.cdb next to WindBot.exe or Bot.exe .
+    cards.cdb
+
+═══ 含 'ypk' 的字符串（15 条）═══
+    https://cdn02.moecube.com:444/ygopro-super-pre/archive/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/DE/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/EN/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/ES/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/FR/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/IT/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/JP/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/KR/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/PT/ygopro-super-pre.ypk
+    https://github.com/ElderLich/TransSuperpre/raw/main/ZH-TW/ygopro-super-pre.ypk
+    ygopro-super-pre.ypk
+    ypkServerConfigInitialized
+    ypkServerConfigs
+    ypkSuperScrollView
+    ypkTasks
+
+═══ 含 'Picture' 的字符串（85 条）═══
+      attemptpair ofmake itKontaktAntoniohaving ratings activestreamstrapped").css(hostilelead tolittle groups,Picture-->
+     YgomGame.Card|CardPictureCreator
+     YgomGame.Card|CardPictureManager
+    #YgomGame.Card|CardPictureFontHelper
+    $YgomGame.Card|AutoReleaseCardPicture
+    $YgomGame.Card|CardPictureFontSetting
+    %|CardPictureSystemCheckViewController
+    'YgomGame.CardPictureSetting|FrameSprite
+    .YgomGame.CardPictureSetting|FrameCardNameColor
+    7\Assets\Scripts\MasterDuel\YgomGame\Card\CardPicture.cs
+    9\Assets\Scripts\MasterDuel\YgomGame\CardPictureSetting.cs
+    :\Assets\Scripts\MasterDuel\YgomGame\Card\CardPictureTop.cs
+    ;YgomGame.Card.CardPictureFontSetting|CardidFontSizePairData
+    <ChooseBGPicture>b__6_0
+    <OnClearPicture>b__492_0
+    <\Assets\Scripts\MasterDuel\CardPictureSystemCheckLauncher.cs
+    >\Assets\Scripts\MasterDuel\YgomGame\Card\CardPictureCreator.cs
+    >\Assets\Scripts\MasterDuel\YgomGame\Card\CardPictureManager.cs
+    A\Assets\Scripts\MasterDuel\YgomGame\Card\CardPictureFontHelper.cs
+    AutoReleaseCardPicture
+    B\Assets\Scripts\MasterDuel\CardPictureSystemCheckViewController.cs
+    B\Assets\Scripts\MasterDuel\YgomGame\Card\AutoReleaseCardPicture.cs
+    B\Assets\Scripts\MasterDuel\YgomGame\Card\CardPictureFontSetting.cs
+    CancelCardPictureTask
+    Card/ScriptableObjects/#/CardPictureFontSetting
+    Card/ScriptableObjects/CardPictureSetting
+    CardPictureDebugMessage
+    CardPictureFontHelper
+    CardPictureFontSetting
+    CardPictureSaveOption
+    CardPictureSetting
+    CardPictureSystemCheckLauncher
+    CardPictureSystemCheckViewController
+    CardPictureTop
+    ChooseBGPicture
+    CreateCardPictureCreator
+    Debug/CardPictureSystemCheck
+    ExportAllPictures
+    GetCardPictureTransform
+    LoadCardPicture
+    MovePictureToGameBG
+    OnCardPictureSave
+    OnClearPicture
+    OnExportPicture
+    OnFinishSetCardPicture
+
+═══ 含 'pics' 的字符串（39 条）═══
+    "YgomSystem.Home|TopicsBannerWidget
+    #YgomSystem.Home|BindingTopicsBanner
+    #YgomSystem.Home|BindingTopicsCardUV
+    &YgomSystem.Home|InstantiateTopicsPacks
+    )YgomGame.Notification|TopicsCardUVSetting
+    .YgomGame.Menu.HomeViewController|TopicsContext
+    /YgomGame.Menu.Common|TopicsBannerResourceBinder
+    3YgomSystem.Home|ActiveTargetWithBindingTopicsCardUV
+    4YgomGame.Notification.TopicsCardUVSetting|SettingMap
+    6YgomGame.Notification.TopicsCardUVSetting|ThumbSetting
+    @\Assets\Scripts\MasterDuel\YgomSystem\Home\TopicsBannerWidget.cs
+    A\Assets\Scripts\MasterDuel\YgomSystem\Home\BindingTopicsBanner.cs
+    A\Assets\Scripts\MasterDuel\YgomSystem\Home\BindingTopicsCardUV.cs
+    ActiveTargetWithBindingTopicsCardUV
+    BindTopicsThumb
+    BindingTopicsBanner
+    CreateTopics
+    D\Assets\Scripts\MasterDuel\YgomSystem\Home\InstantiateTopicsPacks.cs
+    G\Assets\Scripts\MasterDuel\YgomGame\Notification\TopicsCardUVSetting.cs
+    GetTopics
+    GetTopicsThumbPath
+    InstantiateTopicsPacks
+    M\Assets\Scripts\MasterDuel\YgomGame\Menu\Common\TopicsBannerResourceBinder.cs
+    OpenTopicsList
+    Q\Assets\Scripts\MasterDuel\YgomSystem\Home\ActiveTargetWithBindingTopicsCardUV.cs
+    SetTopicsButton
+    SetTopicsData
+    TopicsBannerResourceBinder
+    TopicsBannerWidget
+    TopicsCardUVSetting
+    TopicsView
+    get_topicsBanner
+    m_TopicsBanner
+    m_TopicsContext
+    pastSecTopics
+    pics/
+    quer.csssickmeatmin.binddellhirepicsrent:36ZHTTP-201fotowolfEND xbox:54ZBODYdick;
+    topicsList
+    topicsThumbPath
+
+═══ 含 'lflist' 的字符串（7 条）═══
+    Data/lflist.conf
+    Data/lflist_genesys.conf
+    https://cdntx.moecube.com/ygopro-genesys/lflist.conf
+    lflist
+    lflist.conf
+    lflist_genesys.conf
+    lflist_merged.conf
+
+═══ 含 'strings.conf' 的字符串（1 条）═══
+    /strings.conf
+
+═══ 含 'Custom' 的字符串（57 条）═══
+    &Willow.CustomTimelineController|TaskSe
+    'GrabTransparentFeature|CustomRenderPass
+    +YgomGame.Menu|IDynamicHeaderCustomSupported
+    +YgomSystem.LocalFileSystem|CustomFileStream
+    1\Assets\Scripts\CrossDuel\CustomTimelineObject.cs
+    3AssetStudio|SerializedCustomEditorForRenderPipeline
+    3Willow.CustomTimelineController|DataReferenceTarget
+    5\Assets\Scripts\CrossDuel\CustomTimelineController.cs
+    7YgomGame.MDMarkup|MDMarkupContentCustomBoardPageHandler
+    >YgomGame.Colosseum.ColosseumViewController|ICustomButtonAction
+    CustomBase64Encode
+    CustomButtonEntityInnerTransition
+    CustomCollectSelectionItemsFunc
+    CustomFileStream
+    CustomMessage
+    CustomRenderPass
+    CustomRenderTexture
+    CustomTimelineController
+    CustomTimelineObject
+    Customize
+    DLL_DuelSysInitCustom
+    GameMessage_CustomMsg
+    GetCustomAttributes
+    ICustomButtonAction
+    IDynamicHeaderCustomSupported
+    I\Assets\Scripts\MasterDuel\YgomGame\Menu\IDynamicHeaderCustomSupported.cs
+    I\Assets\Scripts\MasterDuel\YgomSystem\LocalFileSystem\CustomFileStream.cs
+    ImperialCustom
+    MDMarkupContentCustomBoardPageHandler
+    OnCustomCollectionSelectionItems
+    OnCustomDirectionTransition
+    OnCustomEdgeTransition
+    OnCustomInnerTransition
+    OpenCustomSheet
+    OpenCustomToggleGroup
+    SendCustomChat
+    SerializedCustomEditorForRenderPipeline
+    SetCustomDictionary
+    SetupViewIndexCustom
+    Sound/CustomVoice/
+    U\Assets\Scripts\MasterDuel\YgomGame\MDMarkup\MDMarkupContentCustomBoardPageHandler.cs
+    Willow|CustomTimelineController
+    Willow|CustomTimelineObject
+    YgomGame_002EColosseum_002EColosseumViewController_002EICustomButtonAction_002EOnCustomClick
+    applyOnCustomSize
+
+═══ 含 'custom' 的字符串（21 条）═══
+    <!-- customslinkingLittle Book ofeveningmin.js?are thekontakttoday's.html" target=wearingAll Rig;
+    <custom>k__BackingField
+    customButtonMap
+    customDictionary
+    customEditorName
+    customInputDirectionFunc
+    customOnCreateButtonCallback
+    customOnCreateCallback
+    customOnUpdateButtonCallback
+    customRolloffCurve
+    customSelectorSelectedFunc
+    customType
+    customVoicePath
+    get_custom
+    m_customTarget
+    set_custom
+    set_customCollectSelectionItemsFunc
+    set_customEdgeTransitionFunc
+    set_customInnerTransitionFunc
+    set_customMoveContentToFitDataFunc
+    set_customOnFocusSelectFunc
+
+═══ 含 'UserData' 的字符串（2 条）═══
+    6YgomGame.Menu.GameEntrySequenceViewController|UserData
+    UserData
+
+═══ 含 'MyCard' 的字符串（79 条）═══
+     MDPro3.Net.MyCard+<GetNews>d__24
+     MDPro3.Net.MyCard+<TokenIn>d__22
+    $\Assets\Scripts\MDPro3\Net\MyCard.cs
+    %MDPro3.Net.MyCard+<GetMatchInfo>d__26
+    &MDPro3.Net.MyCard+<EncryptBuffer>d__43
+    'MDPro3.Net.MyCard+<GetAvatarAsync>d__23
+    ,MDPro3.Net.MyCard+<GetCreateRoomPasswd>d__42
+    ,MDPro3.Net.MyCard+<GetJoinRoomPassword>d__41
+    ,MDPro3.Servant.OcgCore+<SetMyCardFace>d__219
+    .MDPro3.Net.MyCard+<GetUserU16SecretAsync>d__48
+    1MDPro3.Net.OnlineService+<DownloadMyCardApps>d__9
+    2MDPro3.Servant.MainMenu+<LoadMyCardNewsAsync>d__15
+    4MDPro3.Servant.OnlineServant+<LoginMyCardAsync>d__24
+    8MDPro3.Net.OnlineService+<InitializeMyCardAppsAsync>d__8
+    <DownloadMyCardApps>d__9
+    <InitializeMyCardAppsAsync>d__8
+    <LoadMyCardNewsAsync>d__15
+    <LoginMyCardAsync>d__24
+    <MDPro3.Servant.OnlineServant+<RefreshMyCardAssetsAsync>d__29
+    <RefreshMyCardAssetsAsync>d__29
+    <SetMyCardFace>d__219
+    =\Assets\Scripts\MDPro3\UI\UIComponents\OnlineUI\PageMyCard.cs
+    DownloadMyCardApps
+    InitializeMyCardAppsAsync
+    LABEL_STG_MyCard
+    LoadMyCardNewsAsync
+    LoginMyCard
+    LoginMyCardAsync
+    MDPro3.Net.MyCard+<GetExp>d__25
+    MDPro3.Net.MyCard+<Login>d__21
+    MDPro3.Net.MyCard|AuthResponse
+    MDPro3.Net|MyCard
+    MDPro3.Net|MyCardAccount
+    MDPro3.Net|MyCardApp
+    MDPro3.Net|MyCardMatchInfo
+    MDPro3.Net|MyCardMessage
+    MDPro3.Net|MyCardNews
+    MDPro3.Net|MyCardRoom
+    MDPro3.Net|MyCardRoomOptions
+    MDPro3.Net|MyCardRoomUser
+    MDPro3.Net|MyCardRoomUserInfo
+    MDPro3.Net|MyCardServers
+    MDPro3.Net|MyCardUserExp
+    MDPro3.Net|MyCardUserInfo
+    MDPro3.Net|MyCardWatchInfo
+
+═══ 含 'cdb' 的字符串（7 条）═══
+    *.cdb
+    /cards.cdb
+    /rush_cards.cdb
+    Data/locales/zh-CN/cards.cdb
+    Please place cards.cdb next to WindBot.exe or Bot.exe .
+    cards.cdb
+    https://ygocdb-mirror.moecube.com/api/v0/idChangelog.jsonp
