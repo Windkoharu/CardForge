@@ -1,0 +1,28 @@
+== workspace/cards\圣痕\210000000\spec.json
+{
+ "id": 210000000,
+ "name": "圣痕的龙骑士 露米艾尔",
+ "frame": "fusion",
+ "attribute": "炎",
+ "race": "战士族",
+ "level": 8,
+ "atk": 3200,
+ "def": null,
+ "archetype": "圣痕",
+ "setcode": "0x1000",
+ "summon": null
+}
+== workspace/cards\星奏\210000011\spec.json
+{
+ "id": 210000011,
+ "name": "星奏的见习指挥",
+ "frame": "effect",
+ "attribute": "光",
+ "race": "魔法师族",
+ "level": 4,
+ "atk": 1600,
+ "def": null,
+ "archetype": "星奏",
+ "setcode": "0x1000",
+ "summon": null
+}

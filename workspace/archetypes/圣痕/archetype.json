@@ -1,0 +1,13 @@
+{
+  "name": "圣痕",
+  "setcode": "0x0",
+  "win_method": "BATTLE",
+  "trumps": [
+    "MAIN"
+  ],
+  "target_power": "competitive",
+  "created": "2026-10-26T16:14:40.803751",
+  "updated": "2026-10-26T16:14:40.803755",
+  "schema_version": 2,
+  "roster": []
+}

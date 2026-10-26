@@ -26,6 +26,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from ..core import constants as C
 from ..core.models import (
     EFFECT_LIMITS, TRIGGERS, EffectCost, EffectSpec, EffectTarget, Issue,
 )
@@ -100,6 +101,10 @@ COMMON_PARAMS: tuple[str, ...] = (
     "filter_value",    # 无 target 时的过滤取值
     "until_end_turn",    # 时限：直到回合结束/对方回合结束（脚本侧 → SetReset）
     "card_type",         # 卡类型限制：monster | spell | trap | spelltrap
+    "quick",             # 诱发即时效果的收尾句「这个效果在对方回合也能发动。」
+    "select",            # 不取对象、「处理时才选」句式（从自己墓地选…以外的…）
+    "destroyed_by",      # 破坏方式：battle | effect | battle_effect
+    "face_up",           # 只作用于表侧表示的卡（与 target.face_up 同义，供手写 IR 用）
 
     "count", "count_max", "n", "value",
 )
@@ -161,7 +166,8 @@ def _p(t: str, zh: str, *, required: bool = False,
 _ACT: tuple[str, ...] = tuple(
     k for k in TRIGGERS if k not in ("CONTINUOUS", "QUICK")) + ("QUICK",)
 #: 反击类（连锁时点）
-_NEG: tuple[str, ...] = ("OPPONENT_ACTIVATE", "ON_ACTIVATE", "QUICK")
+_NEG: tuple[str, ...] = ("OPPONENT_ACTIVATE", "OPPONENT_ACTIVATE_MONSTER",
+                         "ON_ACTIVATE", "QUICK")
 #: 永续/规则文本类（不入连锁，没有时点）
 _CONT: tuple[str, ...] = ("CONTINUOUS", "EQUIP_RELATED")
 #: 只有永续时点
@@ -223,6 +229,9 @@ _TABLE: dict[str, tuple] = {
     # ── 无效化 ──────────────────────────────────────────────────────
     "negate": (_NEG, _NO_PARAMS, False, False, "frag_negate", "CATEGORY_NEGATE+CATEGORY_DESTROY"),
     "negate_effect": (_NEG, _NO_PARAMS, False, False, "frag_negate", "CATEGORY_NEGATE"),
+    # 无效**场上某张卡**的效果（对象是卡，不是连锁上的那次发动）
+    "negate_card": (_ACT, {"until_end_turn": _p("bool", "仅到回合结束", default=True)},
+                    True, True, "frag_negate_card", "CATEGORY_NEGATE"),
     "cannot_activate": (_CONT_ONLY, _NO_PARAMS, False, False, "frag_static", 0),
     # ── 数值 / 表示形式 / 控制权 ────────────────────────────────────
     "gain_atk": (_ACT, _mk_int("攻击力上升数值", required=True), True, True,
@@ -555,6 +564,15 @@ _TRIGGER_PATTERNS: tuple[tuple[str, str], ...] = (
     ("召唤成功时", "NORMAL_SUMMON_SUCCESS"),
     ("这张卡被破坏时", "WHEN_DESTROYED"),
     ("这张卡被破坏的场合", "WHEN_DESTROYED"),
+    # 「被战斗·效果破坏」是官方最常见的破坏时点写法，必须排在泛化项前面
+    # （_TRIGGER_PATTERNS 会按长度倒序排，长句优先命中）
+    ("这张卡被战斗·效果破坏的场合", "WHEN_DESTROYED"),
+    ("这张卡被战斗·效果破坏时", "WHEN_DESTROYED"),
+    ("这张卡被战斗或者卡的效果破坏的场合", "WHEN_DESTROYED"),
+    ("这张卡被战斗破坏的场合", "WHEN_DESTROYED"),
+    ("对方把怪兽的效果发动时", "OPPONENT_ACTIVATE_MONSTER"),
+    ("相手がモンスターの効果を発動した時", "OPPONENT_ACTIVATE_MONSTER"),
+    ("When your opponent activates a monster effect", "OPPONENT_ACTIVATE_MONSTER"),
     ("这张卡被破坏送去墓地时", "WHEN_SENT_GRAVE"),
     ("这张卡被送去墓地时", "WHEN_SENT_GRAVE"),
     ("同调召唤成功时", "SPECIAL_SUMMON_SUCCESS"),
@@ -637,6 +655,10 @@ _ACTION_PATTERNS: tuple[tuple[str, str], ...] = (
     ("无效并破坏", "negate"),
     ("発動を無効にし破壊", "negate"),
     ("negate the activation", "negate"),
+    # 「那张卡的效果直到回合结束时无效」—— 对象是场上的卡，不是连锁上的发动
+    ("效果[^。；;]{0,10}?(?:为止|结束时)无效", "negate_card"),
+    ("効果はターン終了時まで無効", "negate_card"),
+    ("are negated until the end of the turn", "negate_card"),
     ("效果无效", "negate_effect"),
     ("効果を無効", "negate_effect"),
     ("negate its effects", "negate_effect"),
@@ -659,6 +681,10 @@ _ACTION_PATTERNS: tuple[tuple[str, str], ...] = (
     ("特殊召唤", "special_summon"),
     # ── 抗性 / 限制（先于泛化的「破坏」「攻击」）────────────────────
     ("不会被效果破坏", "cannot_be_destroyed"),
+    # 「这张卡不会被战斗破坏」以前会被下面的泛化「破坏」抢走，读成一条破坏效果
+    ("不会被战斗破坏", "cannot_be_destroyed"),
+    ("戦闘では破壊され", "cannot_be_destroyed"),
+    ("不会被破坏", "cannot_be_destroyed"),
     ("効果では破壊され", "cannot_be_destroyed"),
     ("cannot be destroyed by", "cannot_be_destroyed"),
     ("不受其他卡的效果影响", "unaffected"),
@@ -780,6 +806,7 @@ _ACTION_KIND: dict[str, str] = {
     "cannot_attack": "cannot_attack", "extra_normal_summon": "extra_normal_summon",
     "discard_opponent": "discard_opponent",
     "negate": "negate", "negate_effect": "negate_effect",
+    "negate_card": "negate_card",
     "cannot_normal_summon": "cannot_normal_summon",
     "cannot_special_summon": "cannot_special_summon",
     "must_first_ssummon": "must_first_ssummon",
@@ -815,6 +842,49 @@ _TARGETED_RE = re.compile(r"以[^。；;]{1,40}为对象|を対象として|targ
 #: 「那些」是复数，官方模板没有对应简中代词 → 记进 EffectSpec.note 提示人工复核。
 _REFERENCE_RE = re.compile(r"那个对象|その対象|that target|那些|それら|那个|那只|那张|それ")
 _SELF_EXCLUDE_RE = re.compile(r"（?这张卡除外）?|（このカードを除く）|except this card")
+def _same_card_name(a: str, b: str) -> bool:
+    """卡名等价判定：忽略空白与助词「的」（「圣痕龙骑士」＝「圣痕的龙骑士」）。
+
+    只用于「「卡名」以外的」→ ``exclude_self`` 这一处：卡名差一个「的」
+    就把排除条件整条丢掉，会让脚本能把自己从墓地捞回来（无限循环素材）。
+    这里**不做子串匹配**，避免把真的另一张卡误判成自己。
+    """
+    norm = lambda s: re.sub(r"[\s・·的]+", "", str(s or ""))
+    na, nb = norm(a), norm(b)
+    return bool(na) and na == nb
+
+
+#: 「「卡名」以外的」「「A」を除く」「other than "A"」—— 现代官方 PSCT 的排除写法
+_EXCLUDE_NAME_RE = re.compile(
+    r"「([^」]{1,30})」\s*(?:以外的|を除く)|other than\s+[\"“]([^\"”]{1,30})[\"”]")
+#: 诱发即时效果的收尾句（官方简中：「这个效果在对方回合也能发动。」）
+_QUICK_SENT_RE = re.compile(
+    r"这个效果在对方回合也能发动|相手ターンでも発動できる|This is a Quick Effect")
+#: **作用于自己**的效果：宾语就是本卡（「这张卡的攻击力上升300。」）。
+#: 官方简中实测「这张卡的攻击力上升…」568 张 / 「N张卡的攻击力上升…」0 张，
+#: 所以这个事实必须进 IR，否则投影会兜底成一句官方从不这么写的话。
+_SELF_OBJ_KINDS = frozenset({
+    "gain_atk", "lose_atk", "set_atk", "gain_def", "set_def",
+    "change_position", "cannot_attack", "cannot_be_destroyed", "direct_attack",
+    "continuous_gain_atk",
+})
+_SELF_OBJ_RE = re.compile(
+    r"这张卡的?(?:攻击力|守备力|攻守|位置|表示形式)|このカードの?(?:攻撃力|守備力|表示形式)"
+    r"|this card'?s (?:ATK|DEF|position)")
+#: 破坏方式措辞 → ``params['destroyed_by']``（与 psct.rules.DESTROYED_BY_PHRASES 同键）
+_DESTROYED_BY_WORDS: tuple[tuple[str, str], ...] = (
+    ("被战斗·效果破坏", "battle_effect"),
+    ("被战斗或者卡的效果破坏", "battle_effect"),
+    ("被战斗及效果破坏", "battle_effect"),
+    ("戦闘・効果で破壊", "battle_effect"),
+    ("destroyed by battle or card effect", "battle_effect"),
+    ("被战斗破坏", "battle"),
+    ("戦闘で破壊", "battle"),
+    ("destroyed by battle", "battle"),
+    ("被效果破坏", "effect"),
+    ("カードの効果で破壊", "effect"),
+    ("destroyed by card effect", "effect"),
+)
 #: 「不入连锁」的措辞（永续效果 / 装备效果 / 规则文本）——
 #: 官方卡文里这类句子**没有「才能发动」**，Lua 侧也不能登记成 IGNITION/TRIGGER。
 #: 「不入连锁」的措辞（永续效果 / 装备效果 / 规则文本）——
@@ -838,8 +908,19 @@ _ACTIVATE_ONCE_RE = re.compile(r"1回合只能发动1张|しか発動できな�
 _DUEL_ONCE_RE = re.compile(r"1场决斗中|デュエル中に|per Duel", re.I)
 _NUM_RE = re.compile(r"(?P<n>\d+)\s*(?P<u>[只张个体枚])")
 _VALUE_RE = re.compile(r"(?P<v>\d+)\s*(?:点|パ| damage| LP)", re.I)
-_RACE_RE = re.compile(r"(?P<race>[\u4e00-\u9fa5]{1,6}族)")
-_ATTR_RE = re.compile(r"(?P<attr>[地水炎风光暗神])属性")
+#: 种族词表直接取自 constants（25 个官方种族，长的排前面，
+#: 「兽战士族」不会被「战士族」抢走）。
+#: ⚠ 以前这里写的是 ``[\u4e00-\u9fa5]{1,6}族`` —— 那是"往前最多吞 6 个汉字"，
+#: 于是「包含「圣痕」**怪兽的战士族**怪兽×3」被读成种族「怪兽的战士族」、
+#: 「把1**只战士族**怪兽送去墓地」被读成「只战士族」、
+#: 「1只「卡名」**以外的战士族**怪兽」被读成「以外的战士族」，
+#: 再投影回去就是「把自己场上1只只战士族怪兽送去墓地」这种句子。
+_RACE_WORDS: tuple[str, ...] = tuple(
+    sorted({str(k) for k in C.RACE_MAP if str(k or "").strip()}, key=len, reverse=True))
+_RACE_RE = re.compile("(?P<race>" + "|".join(re.escape(w) for w in _RACE_WORDS) + ")")
+_ATTR_WORDS: tuple[str, ...] = tuple(
+    sorted({str(k) for k in C.ATTRIBUTE_MAP if str(k or "").strip()}, key=len, reverse=True))
+_ATTR_RE = re.compile("(?P<attr>" + "|".join(re.escape(w) for w in _ATTR_WORDS) + ")属性")
 _LEVEL_RE = re.compile(r"(?P<lv>\d+)\s*(?:星|等級|レベル)|Level (?P<lv2>\d+)", re.I)
 _NAME_RE = re.compile(r"「([^」]{1,24})」")
 _TYPE_WORD_RE = re.compile(r"(?P<t>通常召唤|效果怪兽|怪兽|魔法|陷阱|卡)")
@@ -933,7 +1014,7 @@ def _detect_zone(text: str) -> str:
     return ""
 
 
-def _detect_cost(head: str, spec: EffectSpec) -> tuple[Optional[EffectCost], str]:
+def _detect_cost(head: str, spec: EffectSpec, name: str = "") -> tuple[Optional[EffectCost], str]:
     """从发动段里剥出代价；返回 ``(cost 或 None, 剩下的条件文本)``。"""
     for pattern, key, _note in _COST_PATTERNS:
         m = re.search(pattern, head)
@@ -958,7 +1039,7 @@ def _detect_cost(head: str, spec: EffectSpec) -> tuple[Optional[EffectCost], str
             cost.lp = int(mv.group("v")) if mv else 0
         obj = str(gd.get("obj") or "")
         if obj:
-            tgt = _parse_object(m.group(0))
+            tgt = _parse_object(m.group(0), name)
             if tgt is not None:
                 cost.filter_kind = tgt.filter_kind
                 cost.filter_value = tgt.filter_value
@@ -968,17 +1049,40 @@ def _detect_cost(head: str, spec: EffectSpec) -> tuple[Optional[EffectCost], str
             cost.zone = "MZONE" if key in ("release", "banish", "send_grave") else ""
         elif key == "detach":
             cost.zone = "OVERLAY"
+        # 官方代价的区域写在动词前面：「从卡组把1只战士族怪兽送去墓地」。
+        # 代价正则本身从「把」开始匹配，所以要看匹配点前面那一小段
+        # （只取最后一个分句，避免把同一条效果里更前面的「以对方场上…」当成代价区域）。
+        if key not in ("detach", "pay_lp", "tribute_self", "discard_self"):
+            pre = head[:m.start()]
+            frag = re.split(r"[。，,；;]", pre)[-1] + m.group(0)
+            z = _detect_zone(frag)
+            if z:
+                cost.zone = z
         head = head[:m.start()] + head[m.end():]
         return cost, head
     return None, head
 
 
-def _parse_object(segment: str) -> Optional[EffectTarget]:
-    """把「1张「星奏」卡」「1只龙族怪兽」解析成 EffectTarget。"""
+def _parse_object(segment: str, name: str = "") -> Optional[EffectTarget]:
+    """把「1张「星奏」卡」「1只龙族怪兽」解析成 EffectTarget。
+
+    ``name`` 是本卡卡名：官方现代写法「1只「本卡卡名」以外的战士族怪兽」
+    排除的就是自己 → 归一成 ``exclude_self``，而不是把引号里的名字当过滤条件。
+    """
     if not segment:
         return None
     t = EffectTarget()
     body = segment
+    excl = _EXCLUDE_NAME_RE.search(body)
+    if excl:
+        quoted = str(excl.group(1) or excl.group(2) or "").strip()
+        if name and (quoted == name.strip() or quoted in name or name in quoted
+                     or _same_card_name(quoted, name)):
+            t.exclude_self = True
+        # 排除项不是筛选条件：从待解析文本里摘掉，免得被当成「卡名 = 那张卡」
+        body = body[:excl.start()] + body[excl.end():]
+    if re.search(r"表侧表示|表側表示|face-up", body, re.I):
+        t.face_up = True
     mn = _NUM_RE.search(body)
     if mn:
         try:
@@ -1052,19 +1156,28 @@ def _detect_action(body: str) -> tuple[str, Optional[re.Match]]:
     return "", None
 
 
-def infer_from_text(text: str) -> list[EffectSpec]:
+def infer_from_text(text: str, name: str = "") -> list[EffectSpec]:
     """卡文 → 效果 IR（**纯规则/关键词推断，不依赖 LLM**）。
 
+    ``name`` 是本卡卡名：官方现代写法「1只「本卡卡名」以外的战士族怪兽」
+    排除的是自己，只有知道卡名才能把它归一成 ``exclude_self``。
+
     能确定地还原：``kind``、``trigger``、``limit``、``cost``、``target``
-    （区域 / 数量 / 过滤条件 / 控制者）、是否取对象、是否**不入连锁**
+    （区域 / 数量 / 过滤条件 / 控制者 / 表侧表示）、是否取对象、是否**不入连锁**
     （``params['continuous']``，见本模块开头的 IR 契约补充说明）、
-    时限（``params['until_end_turn']``）与处理段的指代（``params['reference_key']``）。
+    时限（``params['until_end_turn']``）、诱发即时（``params['quick']``）、
+    破坏方式（``params['destroyed_by']``）与处理段的指代（``params['reference_key']``）。
 
-    识别顺序上有两条硬规则（都是真实卡文踩过的坑）：
+    识别顺序上有三条硬规则（都是真实卡文踩过的坑）：
 
-    1. **段落编号按 ``_split_paragraphs`` 给的 idx 走**，``_index = idx - 1``，
+    1. **卡文开头的召唤条件段不是一条效果** —— 素材行、
+       「这张卡用融合召唤以及以下方法才能特殊召唤。」、「●…」条目都是
+       :mod:`cardforge.content.summon` 的投影，真相源是 ``spec.summon``。
+       以前它们会被读成 ①（``must_first_ssummon``），于是官方卡文贴回来
+       再点生成，卡面就多出一条没人写的效果。
+    2. **段落编号按 ``_split_paragraphs`` 给的 idx 走**，``_index = idx - 1``，
        与 :func:`cardforge.content.psct.gen.compose` 的 ①②③ 完全一致；
-    2. **先在处理段（「才能发动。」之后）匹配 kind 关键词，处理段完全没命中
+    3. **先在处理段（「才能发动。」之后）匹配 kind 关键词，处理段完全没命中
        才退回发动段** —— 发动段带代价或卡名时会被误读，例如
        「从墓地把怪兽特殊召唤」做代价时，若先扫发动段就会把整条读成 ssummon_grave；
        代价文本在匹配前已经由 :func:`_detect_cost` 剥离，但卡名里的词
@@ -1073,6 +1186,8 @@ def infer_from_text(text: str) -> list[EffectSpec]:
     认不出来的段落保留 ``raw_text`` 并把 ``kind`` 留空，交给
     :func:`validate_effect` 精确报错、由人工补写 —— 不猜。
     """
+    from . import summon as _S          # 延迟导入：summon 依赖 psct，避免成环
+    text = _S.split_leading_block(text or "")[1]
     out: list[EffectSpec] = []
     for idx, para in _split_paragraphs(text):
         head, body = _split_head_body(para)
@@ -1084,7 +1199,7 @@ def infer_from_text(text: str) -> list[EffectSpec]:
         eff.limit = _detect_limit(head, para)
 
         # 2) 代价（先把代价从发动段剥掉，再做后续匹配）
-        cost, head2 = _detect_cost(head, eff)
+        cost, head2 = _detect_cost(head, eff, name)
         eff.cost = cost
 
         # 3) kind：处理段优先，发动段兜底
@@ -1094,6 +1209,22 @@ def infer_from_text(text: str) -> list[EffectSpec]:
 
         # 4) 时点（不入连锁的判断在第 6 步，这里先按时点词给候选）
         trigger, tword = _detect_trigger(head2 or para)
+
+        # 4b) 诱发即时收尾句「这个效果在对方回合也能发动。」
+        #     官方简中不写「对方主要阶段」，用这句收尾表达 2 速 ——
+        #     反解时既要记下这个事实（params['quick']），也要把时点定成 QUICK。
+        if _QUICK_SENT_RE.search(para):
+            eff.params["quick"] = True
+            if not trigger:
+                trigger, tword = "QUICK", "这个效果在对方回合也能发动"
+        # 4c) 破坏方式「被战斗·效果破坏」——只写「被破坏时」会把
+        #     「不会被战斗破坏」那类抗性读成可利用的漏洞，必须带进 IR。
+        if trigger == "WHEN_DESTROYED":
+            for word, key in _DESTROYED_BY_WORDS:
+                if word in para:
+                    eff.params["destroyed_by"] = key
+                    eff.params.setdefault("timing", "if" if "场合" in para else "when")
+                    break
 
         zone = _detect_zone(body) or _detect_zone(head2)
         kkey = ""
@@ -1120,12 +1251,22 @@ def infer_from_text(text: str) -> list[EffectSpec]:
             if mt:
                 obj_seg = mt.group("obj")
         cand_seg = obj_seg if obj_seg else body
-        tgt = _parse_object(cand_seg) if cand_seg else None
+        tgt = _parse_object(cand_seg, name) if cand_seg else None
         if tgt is not None:
-            tgt.from_zone = tgt.from_zone or zone
+            # 「以对方场上1张表侧表示的**卡**为对象」≠「自己场上1只**怪兽**」：
+            # 前者是任意卡（FIELD），后者才收在怪兽区域（MZONE）。
+            z = zone
+            if z == "MZONE" and not re.search(r"怪兽|モンスター|monster", cand_seg, re.I) \
+                    and re.search(r"场上|フィールド", cand_seg):
+                z = "FIELD"
+            tgt.from_zone = tgt.from_zone or z
             if not obj_seg and "对方" in cand_seg:
                 tgt.controller = "opponent"
         eff.target = tgt
+        # 「从自己墓地**选**1只…特殊召唤」= 不取对象、处理时才选（官方用「选」，
+        # 老式写法才用「（这张卡除外）」。识别不出来就会写回成「以…为对象」。
+        if not targeted and re.search(r"选\d*[只张体枚]|を選んで|Select \d", body):
+            eff.params["select"] = True
         # 「「星奏」魔法卡」= 字段 + 卡类型两条限制；filter_kind 只有一条槽位，
         # 类型限制另存进 params['card_type']（Lua 侧 → c:IsType(TYPE_SPELL+TYPE_TRAP)）
         if tgt is not None and tgt.filter_kind in ("archetype", "name"):
@@ -1133,6 +1274,13 @@ def infer_from_text(text: str) -> list[EffectSpec]:
                 eff.params["card_type"] = "spelltrap"
             elif re.search(r"怪兽|モンスター|monster", cand_seg, re.I):
                 eff.params["card_type"] = "monster"
+
+        # 「这张卡的攻击力上升300。」= 宾语是**本卡自己**。这个事实必须记进 IR：
+        # target 留空时投影会兜底成「1张卡的攻击力上升300。」，而官方简中实测
+        # 「这张卡的攻击力上升…」568 张、「N张卡的攻击力上升…」0 张 ——
+        # 兜底出来的是一句官方从不这么写的话，整理器因此永远不敢重写这类效果。
+        if tgt is None and kkey in _SELF_OBJ_KINDS and _SELF_OBJ_RE.search(body or para):
+            eff.params["self_obj"] = True
 
         # 6) 不入连锁（永续 / 装备 / 规则文本）—— IR 里用 params['continuous'] 表达
         k = kind(kkey)

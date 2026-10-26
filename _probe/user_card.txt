@@ -1,0 +1,2 @@
+id=210000000 name=圣痕的龙骑士 露米艾尔 frame=fusion arch=圣痕 setcode=0x1000 effects=2
+(无卡文)

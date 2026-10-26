@@ -16,6 +16,26 @@ import { initSettings } from './settings.js';
 
 const LS_KEY = 'cardforge.ui.v1';
 const ui = loadUi();
+// 深链（?card=&stage=&panel=）与"浏览器恢复上次滚动位置"是打架的：
+// 恢复发生在脚本之后，会把画面又滚回上一轮的面板。关掉自动恢复，
+// 由下面 start() 里的显式滚动决定画面停在哪。
+try { history.scrollRestoration = 'manual'; } catch { /* 老浏览器没有这个属性 */ }
+
+/** URL 深链：``?card=210000021&stage=text&panel=summon``。
+ *
+ *  存在的理由有两个：① 卡链接可以直接发给别人；② 录屏/自测能以无头浏览器
+ *  精确复现某个界面状态。**只本次导航生效**：card/stage 顺手记进会话偏好，
+ *  panel 不持久化 —— 否则一次 ``?panel=summon`` 会把之后每次打开都滚到那里。 */
+const deep = (() => {
+  let q;
+  try { q = new URLSearchParams(location.search); } catch { return { panel: '' }; }
+  const out = { panel: q.get('panel') || '' };
+  const card = parseInt(q.get('card') || '', 10);
+  if (card) ui.cardId = card;
+  const stage = q.get('stage') || '';
+  if (['spec', 'text', 'art', 'pack'].includes(stage)) ui.stage = stage;
+  return out;
+})();
 
 function loadUi() {
   try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
@@ -100,6 +120,19 @@ async function start() {
     : (list[0] && list[0].id);
   if (wanted) { showHero(false); await openCard(wanted); }
   else { newCardDraft(); showHero(true); }
+  if (deep.panel) {
+    // 深链指定的面板：滚过去，省得录屏/检查时画面停在最上面
+    const el = $(`#b-${deep.panel}`);
+    if (el && !el.hidden) el.scrollIntoView({ block: 'start' });
+  } else {
+    // 没指定面板就回到顶部（浏览器会按会话恢复上一次的滚动位置，
+    // 深链截图就会拍到意料之外的面板）。等一帧，让布局先落地。
+    requestAnimationFrame(() => {
+      for (const el of [document.scrollingElement, ...$$('.pane-body')]) {
+        if (el) el.scrollTop = 0;
+      }
+    });
+  }
   bootStep('就绪', 1);
   bootDone();
   clear($('main .booting'));
@@ -251,6 +284,9 @@ export async function openCard(id) {
     ui.cardId = id; saveUi();
     store.set('spec', r.spec);
     store.spec = r.spec;
+    // 后端在 spec 还没脚本时会**现场投影一份预览**（质量门就看这份）。
+    // 界面必须说清楚它是预览，否则就是「面板写着没有脚本，门却在报脚本的错」。
+    store.luaPreview = r.lua_preview ? (r.lua || '') : '';
     store.markSaved();
     if (r.gates) Object.entries(r.gates).forEach(([g, rep]) => setGate(g, rep));
     store.set('card', r.spec);
@@ -274,6 +310,8 @@ export function newCardDraft() {
     level: 4, atk: 1600, dfd: 1200, setcode: '0x0', archetype: '',
     name_i18n: {}, text_i18n: {}, pendulum_text_i18n: {}, flavor: '',
     effects: [], tags: [], link_markers: [], pendulum_effect_indices: [],
+    summon: { materials: [], methods: [], limit: '', cannot_be_material: [],
+      ritual_spell: '', ritual_spell_archetype: false },
     render: { rarity: 'common', lang_name: 'zh_cn', lang_text: 'zh_cn',
       lang_flavor: 'zh_cn', fullart: { mode: 'none' }, psct_bold: true,
       show_laser: true, show_password: true, show_copyright: true,

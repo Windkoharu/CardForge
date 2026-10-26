@@ -1,0 +1,160 @@
+{
+  "id": 210000000,
+  "name": "圣痕的龙骑士 露米艾尔",
+  "name_i18n": {
+    "ja": ""
+  },
+  "frame": "fusion",
+  "attribute": "炎",
+  "race": "战士族",
+  "level": 8,
+  "atk": 3200,
+  "dfd": 2400,
+  "archetype": "圣痕",
+  "setcode": "0x1000",
+  "text_i18n": {
+    "zh_cn": "包含「圣痕」怪兽的战士族怪兽×3\n这张卡不能作为融合素材。\n这张卡用融合召唤以及以下方法才能特殊召唤。\n●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。\n①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。\n②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。\n③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只「圣痕的龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。",
+    "ja": "「圣痕」モンスターを含む戦士族モンスター×３\nこのカードは融合素材にできない。\nこのカードは融合召喚、または以下の方法でのみ特殊召喚できる。\n●自分フィールドの上記のカードを除外した場合、エクストラデッキから特殊召喚できる。\n①：１ターンに１度、相手フィールドの表側表示のカード１枚を対象として発動できる。それの効果はターン終了時まで無効になる。この効果は相手ターンでも発動できる。\n②：１ターンに１度、相手がモンスターの効果を発動した時、自分のデッキの戦士族モンスター１体を墓地へ送って発動できる。その発動を無効にし破壊する。\n③：このカードが戦闘・効果で破壊された場合に発動できる。自分墓地から「圣痕的龙骑士 露米艾尔」を除く戦士族モンスター１体を選んで特殊召喚する。",
+    "en": "3 Warrior monsters including a \"圣痕\" monster\nCannot be used as Fusion Material.\nMust be Fusion Summoned or Special Summoned by the following method.\n● Special Summon this card from your Extra Deck by banishing the above cards from your field.\n① Once per turn: You can target 1 face-up card your opponent controls; negate the effects of it until the end of the turn. This is a Quick Effect.\n② Once per turn, when your opponent activates a monster effect: You can send 1 Warrior monster in your Deck to the GY; negate the activation, and if you do, destroy it.\n③ If this card is destroyed by battle or card effect: You can Special Summon 1 Warrior monster other than \"圣痕的龙骑士 露米艾尔\" from your GY."
+  },
+  "effects": [
+    {
+      "kind": "negate_card",
+      "trigger": "QUICK",
+      "target": {
+        "from_zone": "FIELD",
+        "filter_kind": "any",
+        "count": 1,
+        "count_max": 0,
+        "controller": "opponent",
+        "exclude_self": false,
+        "face_up": true
+      },
+      "limit": "once_per_turn",
+      "params": {
+        "_index": 0,
+        "quick": true,
+        "until_end_turn": true,
+        "reference": true,
+        "reference_key": "it",
+        "targeting": true
+      },
+      "raw_text": "①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。",
+      "note": "时限措辞「直到…为止」已记为 until_end_turn，具体截止时点请人工确认",
+      "source": "infer"
+    },
+    {
+      "kind": "negate",
+      "trigger": "OPPONENT_ACTIVATE_MONSTER",
+      "cost": {
+        "kind": "send_grave",
+        "zone": "DECK",
+        "count": 1,
+        "filter_kind": "race",
+        "filter_value": "战士族",
+        "lp": 0
+      },
+      "limit": "once_per_turn",
+      "params": {
+        "_index": 1,
+        "reference": true,
+        "reference_key": "it"
+      },
+      "raw_text": "②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。",
+      "source": "infer"
+    },
+    {
+      "kind": "ssummon_grave",
+      "trigger": "WHEN_DESTROYED",
+      "target": {
+        "from_zone": "GRAVE",
+        "filter_kind": "race",
+        "filter_value": "战士族",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": true,
+        "face_up": false
+      },
+      "limit": "none",
+      "params": {
+        "_index": 2,
+        "destroyed_by": "battle_effect",
+        "timing": "if",
+        "select": true
+      },
+      "raw_text": "③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只战士族怪兽特殊召唤。",
+      "source": "infer"
+    }
+  ],
+  "summon": {
+    "materials": [
+      {
+        "kind": "archetype",
+        "value": "圣痕",
+        "also": [
+          {
+            "kind": "race",
+            "value": "战士族"
+          }
+        ],
+        "count": 3
+      }
+    ],
+    "methods": [
+      {
+        "action": "banish",
+        "zone": "mz"
+      }
+    ],
+    "limit": "must_be",
+    "cannot_be_material": [
+      "fusion"
+    ]
+  },
+  "render": {
+    "rarity": "common",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0,
+      "bleed_bottom": 0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0,
+      "subject_scale": 0,
+      "subject_offset_y": 0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0,
+    "art_scale": 1,
+    "art_ring": 0,
+    "bezel": 1,
+    "font_scale_name": 1,
+    "font_scale_text": 1,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 圣痕的龙骑士 露米艾尔\n     CardForge 2.0 生成 · 卡种=融合（frame=fusion） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n     ⚑ negate_card 的作用区域按对象取 LOCATION_ONFIELD；若只想无效怪兽效果请改挂 EFFECT_DISABLE+MONSTER 限定\n     ⚑ negate 的条件函数只判断「发动的不是自己」（怪兽效果类时点会额外认 re:IsMonsterEffect()）；属性/字段/卡种那类限定请人工补写\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--融合素材条件\n\tFusion.AddProcMix(c,true,true,s.mat0_0,s.mat0_0,s.mat0_0)\n\tc:EnableReviveLimit()\n\t--额外召唤方法：把上记的卡除外的接触召唤（仍按融合召唤类型结算）\n\tFusion.AddContactProc(c,s.cgrp0_0,s.ctop0_0,nil,nil,SUMMON_TYPE_FUSION)\n\t--不能作为融合素材\n\tlocal e_lock_fusion=Effect.CreateEffect(c)\n\te_lock_fusion:SetType(EFFECT_TYPE_SINGLE)\n\te_lock_fusion:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)\n\te_lock_fusion:SetCode(EFFECT_CANNOT_BE_FUSION_MATERIAL)\n\te_lock_fusion:SetValue(1)\n\tc:RegisterEffect(e_lock_fusion)\n\t--召唤条件：只能用本卡种的召唤方式特殊召唤\n\tlocal e_sp=Effect.CreateEffect(c)\n\te_sp:SetType(EFFECT_TYPE_SINGLE)\n\te_sp:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)\n\te_sp:SetCode(EFFECT_SPSUMMON_CONDITION)\n\te_sp:SetValue(aux.fuslimit)\n\tc:RegisterEffect(e_sp)\n\t--2. ①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结\n\tlocal e2=Effect.CreateEffect(c)\n\te2:SetDescription(aux.Stringid(id,0))\n\te2:SetCategory(CATEGORY_NEGATE)\n\te2:SetType(EFFECT_TYPE_QUICK_O)\n\te2:SetProperty(EFFECT_FLAG_CARD_TARGET)\n\te2:SetRange(LOCATION_MZONE)\n\te2:SetCode(EVENT_FREE_CHAIN)\n\te2:SetCountLimit(1,id)\n\te2:SetTarget(s.tg2)\n\te2:SetOperation(s.op2)\n\tc:RegisterEffect(e2)\n\t--3. ②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。\n\tlocal e3=Effect.CreateEffect(c)\n\te3:SetDescription(aux.Stringid(id,1))\n\te3:SetCategory(CATEGORY_NEGATE+CATEGORY_DESTROY)\n\te3:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O)\n\te3:SetProperty(EFFECT_FLAG_DELAY)\n\te3:SetRange(LOCATION_MZONE)\n\te3:SetCode(EVENT_CHAINING)\n\te3:SetCountLimit(1,{id,1})\n\te3:SetCost(s.cost3)\n\te3:SetCondition(s.con3)\n\te3:SetOperation(s.op3)\n\tc:RegisterEffect(e3)\n\t--4. ③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只战士族怪兽特殊召唤。\n\tlocal e4=Effect.CreateEffect(c)\n\te4:SetDescription(aux.Stringid(id,2))\n\te4:SetCategory(CATEGORY_SPECIAL_SUMMON)\n\te4:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te4:SetProperty(EFFECT_FLAG_DELAY)\n\te4:SetRange(LOCATION_MZONE)\n\te4:SetCode(EVENT_DESTROYED)\n\te4:SetCondition(s.con4)\n\te4:SetTarget(s.tg4)\n\te4:SetOperation(s.op4)\n\tc:RegisterEffect(e4)\nend\ns.listed_series={0x1000}\n\nfunction s.mat0_0(c)\n\treturn c:IsSetCard(0x1000) and c:IsRace(RACE_WARRIOR)\nend\n\nfunction s.cfil0_0(c)\n\treturn (c:IsSetCard(0x1000) and c:IsRace(RACE_WARRIOR)) and c:IsAbleToRemoveAsCost()\nend\n\nfunction s.cgrp0_0(tp)\n\treturn Duel.GetMatchingGroup(s.cfil0_0,tp,LOCATION_MZONE,LOCATION_MZONE,nil)\nend\n\nfunction s.ctop0_0(g,tp,c)\n\tDuel.Remove(g,POS_FACEUP,REASON_COST|REASON_MATERIAL)\nend\n\nfunction s.fil2(c)\n\treturn c:IsFaceup()\nend\n\nfunction s.tg2(e,tp,eg,ep,ev,re,r,rp,chk,chkc)\n\tif chkc then return chkc:IsOnField() and chkc:IsFaceup() end\n\tif chk==0 then return Duel.IsExistingTarget(s.fil2,tp,0,LOCATION_ONFIELD,1,nil) end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)\n\tlocal g=Duel.SelectTarget(tp,s.fil2,tp,0,LOCATION_ONFIELD,1,1,nil)\n\tDuel.SetOperationInfo(0,CATEGORY_NEGATE,g,1,0,0)\nend\n\nfunction s.op2(e,tp,eg,ep,ev,re,r,rp)\n\tlocal tc=Duel.GetFirstTarget()\n\tif tc and tc:IsFaceup() and tc:IsRelateToEffect(e) then\n\t\tlocal e1=Effect.CreateEffect(e:GetHandler())\n\t\t\te1:SetType(EFFECT_TYPE_SINGLE)\n\t\t\te1:SetCode(EFFECT_DISABLE)\n\t\t\te1:SetReset(RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END)\n\t\t\ttc:RegisterEffect(e1)\n\t\tlocal e2=Effect.CreateEffect(e:GetHandler())\n\t\t\te2:SetType(EFFECT_TYPE_SINGLE)\n\t\t\te2:SetCode(EFFECT_DISABLE_EFFECT)\n\t\t\te2:SetReset(RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END)\n\t\t\ttc:RegisterEffect(e2)\n\tend\nend\n\nfunction s.con3(e,tp,eg,ep,ev,re,r,rp)\n\treturn ep~=tp and re:IsMonsterEffect()\nend\n\nfunction s.op3(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.NegateActivation(ev) and re:GetHandler():IsRelateToEffect(re) then\n\t\tDuel.Destroy(eg,REASON_EFFECT)\n\tend\nend\n\nfunction s.cfil3(c)\n\treturn c:IsRace(RACE_WARRIOR) and c:IsAbleToGraveAsCost()\nend\n\nfunction s.cost3(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(s.cfil3,tp,LOCATION_DECK,0,1,nil) end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)\n\tlocal g=Duel.SelectMatchingCard(tp,s.cfil3,tp,LOCATION_DECK,0,1,1,nil)\n\tDuel.SendtoGrave(g,REASON_COST)\nend\n\nfunction s.fil4(c,e,tp)\n\treturn c:IsRace(RACE_WARRIOR) and c:IsType(TYPE_MONSTER) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)\nend\n\nfunction s.tg4(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and Duel.IsExistingMatchingCard(s.fil4,tp,LOCATION_GRAVE,0,1,e:GetHandler(),e,tp) end\n\tDuel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_GRAVE)\nend\n\nfunction s.op4(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil4,tp,LOCATION_GRAVE,0,1,1,e:GetHandler(),e,tp)\n\tif #g>0 then\n\t\tDuel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)\n\tend\nend\n\nfunction s.con4(e,tp,eg,ep,ev,re,r,rp)\n\tlocal c=e:GetHandler()\n\treturn c:IsReason(REASON_DESTROY) and c:IsPreviousLocation(LOCATION_ONFIELD)\nend\n",
+  "strings": [
+    "1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。",
+    "1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。",
+    "这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只战士族怪兽特殊召唤。"
+  ],
+  "created": "2026-10-26T16:13:22",
+  "updated": "2026-10-26T21:24:57.028837",
+  "schema_version": 3,
+  "race_bits": 1,
+  "attr_bits": 4,
+  "type_bits": 97,
+  "link_bits": 0,
+  "def_value": 2400
+}

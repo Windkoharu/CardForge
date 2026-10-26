@@ -282,11 +282,18 @@ def lint_lua(lua: str, spec: Optional[CardSpec] = None) -> list[Issue]:
     # 函数形参（如 initial_effect(c) 的 c）不属于"Effect 变量"，要排除
     params = {p.strip() for grp in RE_PARAM.findall(body) for p in grp.split(",")}
     created = re.findall(r"local\s+(\w+)\s*=\s*Effect\.CreateEffect", body)
+    # 「给对象卡挂效果」是官方写法：tc 来自 Duel.GetFirstTarget()/GetTargetCard()，
+    # 不是本卡创建的 Effect 变量，不能当成笔误（stat_change / negate_card 都这样写）。
+    target_cards = re.findall(
+        r"local\s+(\w+)\s*=\s*Duel\.(?:GetFirstTarget|GetTargetCard|GetBattleTarget)\(\)",
+        body)
     # 注册目标有两种写法：``x:RegisterEffect(...)`` 与 ``c:RegisterEffect(x)``
     reg_targets = set(RE_REGISTER.findall(body))
     reg_args = set(RE_REGISTER_ARG.findall(body))
     for v in reg_targets - params:
         if v in created:
+            continue
+        if v in target_cards:
             continue
         if re.search(rf"local\s+{re.escape(v)}\s*=\s*Effect\.CreateEffect", body):
             continue

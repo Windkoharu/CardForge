@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CardForge 卡锻 2.0 · 游戏王 DIY 工坊</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23241f18'/><path d='M8 21 L16 7 L24 21 Z' fill='none' stroke='%23c9a227' stroke-width='2.2'/></svg>">
-<link rel="stylesheet" href="css/theme.css">
-<link rel="stylesheet" href="css/app.css">
-<link rel="stylesheet" href="css/aria.css">
+<link rel="stylesheet" href="css/theme.css?v={{ASSET_V}}">
+<link rel="stylesheet" href="css/app.css?v={{ASSET_V}}">
+<link rel="stylesheet" href="css/aria.css?v={{ASSET_V}}">
 </head>
 <body>
 
@@ -108,6 +108,10 @@
             <div class="form-grid" id="f-monster"></div>
             <div class="marker-grid" id="f-markers"></div>
           </fieldset>
+          <fieldset class="block block-wide" id="b-summon" hidden>
+            <legend>召唤条件 <span class="hint">素材行 + 召唤限制 · 额外卡组 / 仪式</span></legend>
+            <div id="f-summon" class="summon-form"></div>
+          </fieldset>
           <fieldset class="block" id="b-spell">
             <legend>魔法 / 陷阱</legend>
             <div class="form-grid" id="f-spell"></div>
@@ -152,6 +156,8 @@
               <button class="mini-btn" id="btn-ai-draft"
                 title="按概念描述让大模型起草卡文草稿；草稿只是提议，问题清单由内核校验器确定性给出">AI 起草</button>
               <button class="mini-btn" id="btn-compose">生成</button>
+              <button class="mini-btn" id="btn-tidy-text"
+                title="把这段手写文本整理成标准 PSCT 描述：逐段对照、认不出的原样保留，只改文本不动效果列表">整理为标准文本</button>
               <button class="mini-btn" id="btn-lint-text">校验</button>
               <button class="mini-btn alt" id="btn-write-text">写回规格</button>
             </div>
@@ -404,6 +410,6 @@
   </div>
 </div>
 
-<script type="module" src="js/app.js"></script>
+<script type="module" src="js/app.js?v={{ASSET_V}}"></script>
 </body>
 </html>

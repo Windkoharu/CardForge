@@ -39,6 +39,7 @@ from typing import Any, Iterable, Optional, Sequence
 
 from ...core.enums import DEFAULT_LANG, FRAMES, MONSTER_TAGS, SPELL_KINDS, TRAP_KINDS
 from ...core.models import CardSpec, EffectSpec, EffectTarget
+from .. import summon as S
 from . import lexicon as L
 from . import rules
 
@@ -159,9 +160,9 @@ def _arch_name(gen: _Gen, params: Optional[dict] = None) -> str:
     return arc
 
 
-def _filter_words(target: Optional[EffectTarget], gen: _Gen,
-                  params: Optional[dict] = None) -> tuple[str, str]:
-    """返回 ``(不带数量的宾语短语, 单位键)``。"""
+def _filter_words_bare(target: Optional[EffectTarget], gen: _Gen,
+                       params: Optional[dict] = None) -> tuple[str, str]:
+    """返回 ``(不带数量的宾语短语, 单位键)``（不含「表侧表示」限定）。"""
     p = dict(params or {})
     lang = gen.lang
     tgt = target or EffectTarget()
@@ -177,10 +178,37 @@ def _filter_words(target: Optional[EffectTarget], gen: _Gen,
             return ("カード" if lang == "ja" else "card" if lang == "en"
                     else "卡"), "card"
         q = gen.quote(str(arc))
+        # 字段引用后面跟的是「怪兽」还是「卡」，取决于这条效果限制的卡类型 ——
+        # 官方简中实测：「X」怪兽 3791 张 、「X」卡 1184 张，两者都合法但语义不同。
+        # 以前一律写「X」卡，于是「1只「圣痕」怪兽」被投影成「1张「圣痕」卡」，
+        # 量词与名词一起走样（整理器按「数值+卡名保真」守卫拦下，等于永远不敢重写）。
+        ct = str(p.get("card_type") or "").strip().lower()
         if lang == "ja":
+            if ct == "monster":
+                return f"{q}モンスター", "monster"
+            if ct in ("spell", "trap", "spelltrap"):
+                w = {"spell": "魔法カード", "trap": "罠カード",
+                     "spelltrap": "魔法・罠カード"}[ct]
+                return f"{q}{w}", "card"
             return f"{q}カード", "card"
         if lang != "en":
+            if ct == "monster":
+                return f"{q}怪兽", "monster"
+            if ct == "spell":
+                return f"{q}魔法卡", "card"
+            if ct == "trap":
+                return f"{q}陷阱卡", "card"
+            if ct == "spelltrap":
+                return f"{q}魔法·陷阱卡", "card"
             return f"{q}卡", "card"
+        if ct == "monster":
+            return f"{q} monster", "monster"
+        if ct == "spell":
+            return f"{q} Spell card", "card"
+        if ct == "trap":
+            return f"{q} Trap card", "card"
+        if ct == "spelltrap":
+            return f"{q} Spell/Trap card", "card"
         return f"{q} card", "card"
     if kind == "race" and value:
         race = L.race_term(str(value), lang)
@@ -217,6 +245,35 @@ def _filter_words(target: Optional[EffectTarget], gen: _Gen,
         return ("モンスター" if lang == "ja" else "monster" if lang == "en"
                 else "怪兽"), "monster"
     return ("カード" if lang == "ja" else "card" if lang == "en" else "卡"), "card"
+
+
+def _filter_words(target: Optional[EffectTarget], gen: _Gen,
+                  params: Optional[dict] = None) -> tuple[str, str]:
+    """宾语短语 + 单位；补上官方卡文里挂在宾语身上的两类限定。
+
+    * ``face_up`` → 「表侧表示的」前缀（「以对方场上1张表侧表示的卡为对象」）。
+    * ``select`` + ``exclude_self`` → 「「卡名」以外的」前缀：不取对象的"选"
+      句式里官方用卡名排除（旧式「（这张卡除外）」只出现在取对象的老卡上，
+      那边仍由 :func:`_target_phrase` 收尾，两种写法不叠加）。
+    """
+    core, unit = _filter_words_bare(target, gen, params)
+    tgt = target or EffectTarget()
+    p = dict(params or {})
+    lang = gen.lang
+    face_up = _bool(getattr(tgt, "face_up", False), False) or \
+        _bool(p.get("face_up"), False)
+    prefix = rules.FACEUP_WORDS.get(lang, "")
+    if face_up and prefix and core:
+        core = f"{prefix} {core}" if lang == "en" else f"{prefix}{core}"
+    if _bool(p.get("select"), False) and getattr(tgt, "exclude_self", False) and core:
+        nm = gen.quote(gen.name())
+        if lang == "en":
+            core = f"{core} other than {nm}"
+        elif lang == "ja":
+            core = f"{nm}を除く{core}"
+        else:
+            core = f"{nm}以外的{core}"
+    return core, unit
 
 
 def _count_of(target: Optional[EffectTarget], params: Optional[dict] = None) -> tuple[int, int]:
@@ -259,11 +316,16 @@ def _obj_phrase(eff: EffectSpec, gen: _Gen, *,
 
 
 def _target_phrase(eff: EffectSpec, gen: _Gen) -> str:
-    """**取对象**用的短语（含控制者与区域）。"""
+    """**取对象**用的短语（含控制者与区域）。
+
+    ``params`` 必须一起传进来：字段 + 卡类型（``card_type``）是分开存的，
+    漏传就会让「以…为对象」那半句写成「1张「X」卡」，
+    而处理段是「那只怪兽」—— 同一句话里量词和名词自相矛盾。
+    """
     tgt = eff.target
     lang = gen.lang
-    core, unit = _filter_words(tgt, gen)
-    count, cmax = _count_of(tgt)
+    core, unit = _filter_words(tgt, gen, eff.params)
+    count, cmax = _count_of(tgt, eff.params)
     objn = _obj_with_count(core, unit, count or 1, cmax, gen)
     if tgt is None:
         return objn
@@ -298,11 +360,13 @@ def _target_phrase(eff: EffectSpec, gen: _Gen) -> str:
             out += "（このカードを除く）"
         return out
     c = cw.get("zh_cn", "自己")
+    # 官方简中取对象段是「以自己场上1只…／以自己墓地1只…」，区域和数量之间
+    # **不加「的」**（实测：「以自己场上1只」761 例，「以自己场上的1只」0 例）。
     if zone in ("", "FIELD"):
-        out = f"{c}场上的{objn}"
+        out = f"{c}场上{objn}"
     else:
         zw = rules.ZONE_WORDS.get(zone, {}).get("zh_cn", zone)
-        out = f"{c}{zw}的{objn}"
+        out = f"{c}{zw}{objn}"
     if tgt.exclude_self:
         out += "（这张卡除外）"
     return out
@@ -369,11 +433,38 @@ def _cost_object(eff: EffectSpec, gen: _Gen) -> str:
         zw = rules.ZONE_WORDS.get(zone, {}).get("ja", zone) if zone else ""
         return f"自分の{zw}の{obj}" if zw else obj
     if zone == "HAND":
-        return f"自己手卡的{obj}"
+        return obj
     if on_field:
-        return f"自己场上的{obj}"
-    zw = rules.ZONE_WORDS.get(zone, {}).get("zh_cn", zone) if zone else ""
-    return f"自己{zw}的{obj}" if zw else obj
+        return f"自己场上{obj}"
+    return obj
+
+
+#: 中文代价的来源区域前缀（官方实测：「从卡组把1只…」1022 例、
+#: 「从手卡把1只」506 例、「从自己墓地把1只」208 例、「从额外卡组把」242 例；
+#: 而「把自己卡组的1只」0 例 —— 代价的区域用「从…」引导，不用「的」字定语）。
+_COST_FROM_ZH: dict[str, str] = {
+    "DECK": "从卡组", "DECKTOP": "从卡组顶", "HAND": "从手卡",
+    "GRAVE": "从自己墓地", "EXTRA": "从额外卡组", "REMOVED": "从除外区",
+    "FIELD": "", "MZONE": "", "SZONE": "", "PZONE": "", "FZONE": "", "": "",
+}
+
+
+def _cost_from(eff: EffectSpec, gen: _Gen) -> str:
+    """代价的「从…」来源前缀（只有中文有这个句式；日英靠宾语自带介词）。"""
+    if gen.lang != "zh_cn":
+        return ""
+    cost = eff.cost
+    if cost is None:
+        return ""
+    kind_cost = str(cost.kind or "").strip().lower()
+    if kind_cost in ("tribute_self", "discard_self", "pay_lp", "detach", "none", ""):
+        return ""
+    zone = str(cost.zone or "").upper()
+    if kind_cost == "discard" and not zone:
+        zone = "HAND"
+    if zone in ("", "FIELD", "MZONE", "SZONE", "PZONE", "FZONE", "MONSTER"):
+        return ""
+    return _COST_FROM_ZH.get(zone, "")
 
 
 def _cost_parts(eff: EffectSpec, gen: _Gen) -> dict:
@@ -396,7 +487,8 @@ def _cost_parts(eff: EffectSpec, gen: _Gen) -> dict:
         "n": _num(cost.count or 1, gen.lang),
     }
     return {
-        "plain": _fmt(spec.en if gen.lang == "en" else spec.zh_cn, ctx),
+        "plain": _cost_from(eff, gen)
+        + _fmt(spec.en if gen.lang == "en" else spec.zh_cn, ctx),
         "ja_stem": _fmt(spec.ja or spec.zh_cn, ctx),
         "ja_te": _fmt(spec.ja_te or spec.ja or spec.zh_cn, ctx),
     }
@@ -410,11 +502,15 @@ def _has_target(eff: EffectSpec) -> bool:
     * 检索/堆墓/从卡组特召这类效果按官方写法是"处理时才选"，不写「以…为对象」；
     * 永续效果不入连锁，根本没有"发动时取对象"这一步。
 
-    此时 ``target`` 只作为范围描述使用（``params['targeting']=True`` 可强制取对象）。
+    此时 ``target`` 只作为范围描述使用（``params['targeting']=True`` 可强制取对象，
+    ``params['select']=True`` 则强制走"处理时选"的「从自己墓地选…」句式）。
     """
     if eff.target is None:
         return False
-    if _bool((eff.params or {}).get("targeting"), False):
+    p = eff.params or {}
+    if _bool(p.get("select"), False):
+        return False
+    if _bool(p.get("targeting"), False):
         return True
     if _is_continuous(eff):
         return False
@@ -424,6 +520,18 @@ def _has_target(eff: EffectSpec) -> bool:
 # ══════════════════════════════════════════════════════════════════════
 #  发动条件
 # ══════════════════════════════════════════════════════════════════════
+def _quick(eff: EffectSpec, gen: _Gen) -> bool:
+    """是否诱发即时效果（官方收尾句「这个效果在对方回合也能发动。」）。
+
+    ``params['quick']`` 显式指定优先；时点填 ``QUICK`` 的怪兽效果默认就是它。
+    魔法/陷阱没有这个说法（靠卡种拿 2 速），所以只对怪兽成立。
+    """
+    p = dict(eff.params or {})
+    if "quick" in p:
+        return _bool(p.get("quick"), True) and gen.spec.is_monster
+    return str(eff.trigger or "").upper() == "QUICK" and gen.spec.is_monster
+
+
 def _conditions(eff: EffectSpec, gen: _Gen) -> list[str]:
     """发动条件段的成分（官方语序：次数限制 → 其它条件 → 时点）。"""
     out: list[str] = []
@@ -446,8 +554,23 @@ def _conditions(eff: EffectSpec, gen: _Gen) -> list[str]:
         out.append(str(extra))
 
     trigger = str(eff.trigger or "").upper()
+    destroyed_by = str(p.get("destroyed_by") or "").strip()
     item = rules.TRIGGER_PHRASES.get(trigger)
-    if item is None:
+    if trigger == "WHEN_DESTROYED" and destroyed_by \
+            and rules.DESTROYED_BY_PHRASES.get(destroyed_by):
+        # 「这张卡被战斗·效果破坏的场合」—— 破坏方式是官方卡文的一部分，
+        # 只写「被破坏时」会把「不会被战斗破坏」那类抗性读成可利用的漏洞。
+        timing = str(p.get("timing")
+                     or rules.TRIGGER_TIMING_DEFAULT.get(trigger, "when"))
+        pair = rules.DESTROYED_BY_PHRASES[destroyed_by]
+        phrase = pair.get(gen.lang) or pair.get("zh_cn")
+        if phrase:
+            out.append(phrase[1] if timing == "if" else phrase[0])
+            return [s for s in out if s]
+    if trigger == "QUICK" and _quick(eff, gen):
+        # 官方简中不写「对方主要阶段」，用收尾句「这个效果在对方回合也能发动。」
+        pass
+    elif item is None:
         if trigger and trigger not in ("CONTINUOUS",):
             gen.note(f"未注册的时点「{trigger}」，条件段留空（需人工补写时点）")
     elif trigger == "QUICK" and not gen.spec.is_monster:
@@ -472,6 +595,9 @@ def _one_resolution(kind: str, params: dict, eff: EffectSpec,
     kind = (kind or "").strip()
     tpl = rules.EFFECT_TEMPLATES.get(kind)
     lang = gen.lang
+    # 「处理时才选」句式（官方：「从自己的墓地选1只…特殊召唤」）
+    if _bool(dict(params or {}).get("select"), False) and kind in rules.SELECT_TEMPLATES:
+        tpl = rules.SELECT_TEMPLATES[kind]
     if tpl:
         raw = str(tpl.get(lang) or tpl.get("en") or "")
         if "|" in raw:
@@ -538,7 +664,12 @@ def _join_resolution(pieces: list[tuple[str, str]], conj_key: str,
 
 
 def _reference_obj(eff: EffectSpec, gen: _Gen, params: dict) -> str:
-    """取对象之后，处理段该怎么指代它：``那张卡`` / ``それ`` / ``it``。"""
+    """取对象之后，处理段该怎么指代它：``那只怪兽`` / ``那张卡`` / ``it``。
+
+    代词要跟**宾语的类别**一致 —— 官方简中实测「那只怪兽」2756 张、
+    「那张卡」1037 张、「那只卡」0 张：对象是怪兽就说「那只怪兽」，
+    说「那张卡」会串到陷阱/魔法上去。
+    """
     if eff.target is None or not _has_target(eff):
         return ""
     if not _bool(params.get("reference"), True):
@@ -546,8 +677,31 @@ def _reference_obj(eff: EffectSpec, gen: _Gen, params: dict) -> str:
     if str(eff.kind or "") not in rules.TARGET_REF_KINDS:
         return ""
     key = str(params.get("reference_key") or "it")
-    words = rules.REFERENCE_PHRASES.get(key, rules.REFERENCE_PHRASES["it"])
+    words = dict(rules.REFERENCE_PHRASES.get(key, rules.REFERENCE_PHRASES["it"]))
+    if key == "it":
+        _core, unit = _filter_words(eff.target, gen, params)
+        if unit == "monster":
+            words = {"zh_cn": "那只怪兽", "ja": "それ", "en": "it"}
+        elif unit == "token":
+            words = {"zh_cn": "那只衍生物", "ja": "それ", "en": "it"}
     return words.get(gen.lang) or words.get("en") or ""
+
+
+def _zone_word(eff: EffectSpec, gen: _Gen) -> str:
+    """「选」句式里的区域名（``{zone}`` 占位符）。
+
+    优先用 IR 里写的 ``target.from_zone``，缺省时退回效果种类模板自带的
+    ``zone`` 元数据（``ssummon_grave`` → GRAVE），避免「从墓地选」写成「从场上选」。
+    """
+    tgt = eff.target
+    zone = str(getattr(tgt, "from_zone", "") or "").upper()
+    if not zone:
+        meta = rules.EFFECT_TEMPLATES.get(str(eff.kind or "")) or {}
+        zone = str(meta.get("zone") or "").upper()
+    table = rules.SELECT_ZONE_WORDS.get(zone) or rules.ZONE_WORDS.get(zone)
+    if not table:
+        return {"zh_cn": "场上", "ja": "フィールド", "en": "field"}[gen.lang]
+    return table.get(gen.lang) or table.get("zh_cn") or ""
 
 
 def _template_ctx(eff: EffectSpec, gen: _Gen, params: dict, kind: str) -> dict:
@@ -570,6 +724,7 @@ def _template_ctx(eff: EffectSpec, gen: _Gen, params: dict, kind: str) -> dict:
         "arch": gen.quote(arch) if arch else gen.quote(gen.name()),
         "token": _safe(p.get("token") or "衍生物"),
         "ctr": _safe(p.get("counter") or "指示物"),
+        "zone": _zone_word(eff, gen),
     }
     # 历史缺陷（docs/03 §三-c）：特召的对象**永远是怪兽**，filter 缺省时
     # 量词不能沿用「张/枚」。从额外卡组特召会写成「把1张卡特殊召唤」→ 这里正名。
@@ -590,6 +745,11 @@ def _template_ctx(eff: EffectSpec, gen: _Gen, params: dict, kind: str) -> dict:
     ref = _reference_obj(eff, gen, p)
     if ref and kind == str(eff.kind or ""):
         ctx["obj"] = ref
+    # **作用于自己**的效果（「这张卡的攻击力上升300。」）：宾语就是本卡。
+    # 官方简中实测 568 张写「这张卡的攻击力上升…」，写「1张卡的攻击力上升…」的有 0 张 ——
+    # 而 target 缺省时兜底出来的恰恰是后者，等于凭空造一个不存在的官方句式。
+    if _bool(p.get("self_obj"), False) and getattr(eff, "target", None) is None:
+        ctx["obj"] = {"ja": "このカード", "en": "this card"}.get(lang, "这张卡")
     return ctx
 
 
@@ -653,6 +813,8 @@ def _paragraph(gen: _Gen, eff: EffectSpec, index: int) -> str:
         body = body.rstrip()
         if body and not body.endswith("."):
             body += "."
+        if _quick(eff, gen) and rules.QUICK_EFFECT_SENTENCE.get("en"):
+            body += " " + rules.QUICK_EFFECT_SENTENCE["en"] + "."
         return head + body
 
     verb = ("発動できる" if optional else "発動する") if lang == "ja" else \
@@ -693,6 +855,9 @@ def _paragraph(gen: _Gen, eff: EffectSpec, index: int) -> str:
         segs.append(lead)
     if res:
         segs.append(res)
+    if _quick(eff, gen) and rules.QUICK_EFFECT_SENTENCE.get(lang):
+        # 官方简中收尾句：「这个效果在对方回合也能发动。」
+        segs.append(rules.QUICK_EFFECT_SENTENCE[lang])
     prefix = num + "：" if rules.CJK_COLON_MODE == "after_number" else num
     return prefix + "。".join(s for s in segs if s) + "。"
 
@@ -816,6 +981,8 @@ def compose_with_meta(spec: CardSpec, lang: str = "zh_cn", *,
     """
     gen = _Gen(spec, lang)
     effects = _box_effects(spec, box)
+    # 召唤条件（素材行 + 召唤限制）只进「怪兽效果框」；灵摆效果框不重复。
+    summon_text = "" if box == BOX_PENDULUM else S.block(spec, lang, ctx=gen)
     if not effects:
         if box == BOX_PENDULUM:
             text = (spec.pendulum_text_in(gen.used_lang)
@@ -829,6 +996,8 @@ def compose_with_meta(spec: CardSpec, lang: str = "zh_cn", *,
             gen.note("通常怪兽的文本框内容是说明文（渲染器用 draw_flavor 绘制，"
                      "不会读 text_i18n）")
             return _pack(gen, text, box, "flavor")
+        if summon_text:
+            return _pack(gen, summon_text, box, "summon")
         existing = spec.text_in(gen.used_lang) or spec.text_in(DEFAULT_LANG)
         if existing:
             gen.note("没有效果 IR，回退到既有卡文")
@@ -837,7 +1006,9 @@ def compose_with_meta(spec: CardSpec, lang: str = "zh_cn", *,
 
     paras = [_paragraph(gen, eff, i) for i, eff in enumerate(effects, start=1)]
     paras += _declarations(gen, effects)
-    return _pack(gen, "\n".join(p for p in paras if p.strip()), box, "ir")
+    body = "\n".join(p for p in paras if p.strip())
+    text = (summon_text + "\n" + body) if summon_text else body
+    return _pack(gen, text, box, "summon+ir" if summon_text else "ir")
 
 
 def compose(spec: CardSpec, lang: str = "zh_cn") -> str:

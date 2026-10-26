@@ -19,7 +19,7 @@ from .enums import (
     DEFAULT_LANG, FRAMES, LANGS, MONSTER_TAGS, RARITIES, SPELL_KINDS, TRAP_KINDS,
 )
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -73,6 +73,8 @@ class EffectTarget:
     count_max: int = 0           # 0 = 与 count 相同
     controller: str = "self"     # self/opponent/both
     exclude_self: bool = False
+    #: 只作用于**表侧表示**的卡（官方写法：「以对方场上1张表侧表示的卡为对象」）
+    face_up: bool = False
 
     def to_dict(self) -> dict:
         return _clean(asdict(self))
@@ -177,10 +179,330 @@ TRIGGERS = {
     "BATTLE_DESTROYED_SELF": "被战斗破坏时",
     "ATTACK_DECLARE": "攻击宣言时",
     "OPPONENT_ACTIVATE": "对方发动效果时",
+    "OPPONENT_ACTIVATE_MONSTER": "对方把怪兽的效果发动时",
     "END_PHASE": "结束阶段",
     "STANDBY_PHASE": "准备阶段",
     "EQUIP_RELATED": "装备相关",
 }
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  召唤条件（额外卡组 / 仪式）
+# ══════════════════════════════════════════════════════════════════════
+#: 素材种类 —— 卡文与 Lua 共用同一套键（UI 下拉也直接读这里）
+MATERIAL_KINDS = {
+    "any": "任意怪兽",
+    "archetype": "字段",
+    "name": "卡名",
+    "race": "种族",
+    "attribute": "属性",
+    "type": "卡种",
+    "level": "等级",
+    "rank": "阶级",
+}
+#: 同调素材角色
+MATERIAL_ROLES = {
+    "": "普通素材",
+    "tuner": "协调",
+    "non_tuner": "协调以外",
+}
+#: 召唤限制（必须用某种召唤方式 / 完全不能特殊召唤）
+SUMMON_LIMITS = {
+    "": "按规则召唤",
+    "must_be": "只能用本卡种的召唤方式特殊召唤",
+    "must_be_with_materials": "用以上记的卡为素材的召唤才能特殊召唤",
+    "cannot_spsummon": "不能特殊召唤",
+}
+#: 不能作为哪种召唤的素材
+MATERIAL_LOCKS = {
+    "fusion": "融合素材",
+    "synchro": "同步素材",
+    "xyz": "超量召唤的素材",
+    "link": "连接素材",
+}
+#: 额外特殊召唤方法（接触融合那类「以下方法」）里，素材怎么处理
+SUMMON_METHOD_ACTIONS = {
+    "banish": "除外",
+    "send_gy": "送去墓地",
+    "release": "解放",
+    "return_deck": "回到卡组",
+    "return_hand": "回到手卡",
+}
+#: 额外特殊召唤方法从哪里取素材
+SUMMON_METHOD_ZONES = {
+    "mz": "自己场上（怪兽区域）",
+    "field": "自己场上",
+    "hand": "自己手卡",
+    "gy": "自己墓地",
+    "field_gy": "自己场上·墓地",
+    "hand_field": "自己手卡·场上",
+}
+
+
+@dataclass
+class MaterialPart:
+    """一种素材要求（融合/同调/超量/连接的素材行的一段）。
+
+    * ``kind`` 是 :data:`MATERIAL_KINDS` 的键；``value`` 随种类解释
+      （字段名 / 卡名 / 种族 / 属性 / 卡种键 / 等级数字）。
+    * ``also`` 是**同时成立**的附加筛选（官方写法：
+      「包含「六武众」怪兽的战士族怪兽2只」＝ 字段＋种族一段，
+      而不是两段各 2 只）。每项形如 ``{"kind": "race", "value": "战士族"}``。
+    * ``count_max > count`` 表示「以上」或区间；``99`` 在超量/连接里按
+      「无上限」处理（连接怪兽的上限仍是它的连接值）。
+    * ``tuner`` 只对同调有意义：``tuner`` / ``non_tuner``。
+    * ``include_link`` / ``exclude_link`` 只对连接怪兽的「包含连接怪兽的…」
+      「连接怪兽以外的…」有意义。
+    """
+    kind: str = "any"
+    value: Any = None
+    #: 与 kind/value **同时成立**的附加筛选：[{"kind":…, "value":…}]
+    also: list = field(default_factory=list)
+    count: int = 1
+    count_max: int = 0
+    code: int = 0                     # kind=name 时的卡号（Lua 必需）
+    setcode: str = ""                 # kind=archetype 时的字段码（自身字段可留空）
+    name_i18n: dict = field(default_factory=dict)   # 素材名多语言
+    tuner: str = ""                   # ""/tuner/non_tuner（同调）
+    exclude_token: bool = False       # 「衍生物以外的…」
+    include_link: bool = False        # 「包含连接怪兽的…」（连接）
+    exclude_link: bool = False        # 「连接怪兽以外的…」（连接）
+    text_i18n: dict = field(default_factory=dict)   # 该素材段的手写覆盖
+
+    @property
+    def count_lo(self) -> int:
+        try:
+            return max(1, int(self.count or 1))
+        except Exception:
+            return 1
+
+    @property
+    def count_hi(self) -> int:
+        """0 = 与 ``count_lo`` 相同；99 = 无上限（按卡种决定）。"""
+        try:
+            hi = int(self.count_max or 0)
+        except Exception:
+            hi = 0
+        return hi if hi > self.count_lo else 0
+
+    @property
+    def is_range(self) -> bool:
+        return self.count_hi > 0
+
+    def conditions(self) -> list["MaterialPart"]:
+        """本段的**全部**筛选条件（主条件在前，附加条件在后）。
+
+        每一项仍是一个 :class:`MaterialPart`（``count`` 恒为 1，数量信息只在
+        本段上），这样卡文与 Lua 都能用同一套「一个条件 → 一个短语/谓词」
+        的逻辑，再按官方语序合成一段。
+        """
+        out: list["MaterialPart"] = []
+        kind = str(self.kind or "any")
+        if kind != "any" or self.value not in (None, "", [], {}):
+            out.append(MaterialPart(kind=kind, value=self.value,
+                                    code=int(self.code or 0),
+                                    setcode=str(self.setcode or ""),
+                                    name_i18n=dict(self.name_i18n or {})))
+        for item in (self.also or []):
+            sub = MaterialPart.from_dict(item)
+            if str(sub.kind or "any") == "any" and sub.value in (None, "", [], {}):
+                continue
+            if any(q.kind == sub.kind for q in out):
+                continue        # 同一维度只取第一个，避免自相矛盾
+            out.append(sub)
+        return out
+
+    def to_dict(self) -> dict:
+        d: dict = {"kind": str(self.kind or "any")}
+        if self.value not in (None, "", [], {}):
+            d["value"] = self.value
+        also = [MaterialPart.from_dict(x).to_dict() for x in (self.also or [])]
+        also = [a for a in also if a]
+        if also:
+            d["also"] = also
+        if self.count_lo != 1:
+            d["count"] = self.count_lo
+        if self.count_hi:
+            d["count_max"] = self.count_hi
+        if self.code:
+            d["code"] = int(self.code)
+        if self.setcode:
+            d["setcode"] = str(self.setcode)
+        for k in ("name_i18n", "text_i18n"):
+            v = getattr(self, k) or {}
+            if v:
+                d[k] = dict(v)
+        if self.tuner:
+            d["tuner"] = str(self.tuner)
+        for k in ("exclude_token", "include_link", "exclude_link"):
+            if getattr(self, k):
+                d[k] = True
+        return d
+
+    @classmethod
+    def from_dict(cls, d) -> "MaterialPart":
+        if isinstance(d, cls):
+            return d
+        if isinstance(d, str):
+            return cls(kind="archetype", value=d)
+        if not isinstance(d, dict):
+            return cls()
+        allowed = set(cls.__dataclass_fields__)
+        obj = cls(**{k: v for k, v in d.items() if k in allowed})
+        obj.also = [MaterialPart.from_dict(x) for x in (d.get("also") or [])]
+        return obj
+
+
+@dataclass
+class SummonMethod:
+    """一条**额外特殊召唤方法**（官方「以下方法」的 ``●`` 那一条）。
+
+    典型：接触融合「●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。」
+    有了它，召唤限制行自动写成「这张卡用融合召唤**以及以下方法**才能特殊召唤」，
+    Lua 侧生成 ``Fusion.AddContactProc``（融合）或通用 ``EFFECT_SPSUMMON_PROC``。
+
+    * ``use_materials=True`` → 素材就是素材行里记的那些卡（卡文写「上记的卡」）；
+      置 False 时用 ``parts`` 自己描述。
+    * ``count`` 只在选择时限定张数（``0`` = 全部用上记的卡）。
+    * ``no_spelling`` → 卡文末尾补「（不需要「融合」）」（官方接触融合常见）。
+    * ``trigger`` 是方法前面的额外前提（如「雷族怪兽的效果在手卡发动的回合，」），
+      结构化表达不了的那部分留给人工，支持多语言 dict。
+    """
+    action: str = "banish"                  # SUMMON_METHOD_ACTIONS 的键
+    zone: str = "mz"                        # SUMMON_METHOD_ZONES 的键
+    use_materials: bool = True
+    parts: list = field(default_factory=list)   # list[MaterialPart]
+    count: int = 0
+    count_max: int = 0
+    no_spelling: bool = False
+    trigger: Any = ""
+    #: 整条 ``●`` 的手写覆盖（多语言）；有值时优先于自动生成
+    text_i18n: dict = field(default_factory=dict)
+
+    @property
+    def count_lo(self) -> int:
+        try:
+            return max(0, int(self.count or 0))
+        except Exception:
+            return 0
+
+    @property
+    def count_hi(self) -> int:
+        try:
+            hi = int(self.count_max or 0)
+        except Exception:
+            hi = 0
+        return hi if hi > self.count_lo else 0
+
+    def to_dict(self) -> dict:
+        d: dict = {}
+        if self.action:
+            d["action"] = str(self.action)
+        if self.zone:
+            d["zone"] = str(self.zone)
+        if not self.use_materials:
+            d["use_materials"] = False
+        parts = [p.to_dict() for p in self.item_parts()]
+        parts = [p for p in parts if p]
+        if parts:
+            d["parts"] = parts
+        if self.count_lo:
+            d["count"] = self.count_lo
+        if self.count_hi:
+            d["count_max"] = self.count_hi
+        if self.no_spelling:
+            d["no_spelling"] = True
+        if self.trigger not in (None, "", {}, []):
+            d["trigger"] = self.trigger
+        if self.text_i18n:
+            d["text_i18n"] = dict(self.text_i18n)
+        return d
+
+    def item_parts(self) -> list:
+        return [MaterialPart.from_dict(x) for x in (self.parts or [])]
+
+    @classmethod
+    def from_dict(cls, d) -> "SummonMethod":
+        if isinstance(d, cls):
+            return d
+        if isinstance(d, str):
+            return cls(action=d or "banish")
+        if not isinstance(d, dict):
+            return cls()
+        allowed = set(cls.__dataclass_fields__)
+        obj = cls(**{k: v for k, v in d.items() if k in allowed and k != "parts"})
+        obj.parts = [MaterialPart.from_dict(x) for x in (d.get("parts") or [])]
+        return obj
+
+
+@dataclass
+class SummonSpec:
+    """额外卡组 / 仪式的召唤条件（卡文第一段 + Lua 召唤流程的唯一真相源）。
+
+    ``materials`` 的顺序就是卡文素材行的顺序；同调固定为
+    「协调段 + 协调以外段」，超量/连接只取第一段作为素材组。
+    ``methods`` 是「以下方法」的 ``●`` 条目（接触融合等额外特殊召唤方式）。
+    """
+    materials: list = field(default_factory=list)       # list[MaterialPart]
+    methods: list = field(default_factory=list)         # list[SummonMethod]
+    limit: str = ""                                     # SUMMON_LIMITS 的键
+    cannot_normal_summon: bool = False
+    cannot_be_material: list = field(default_factory=list)  # MATERIAL_LOCKS 的键
+    ritual_spell: str = ""
+    ritual_spell_code: int = 0
+    ritual_spell_archetype: bool = False
+    #: 整段召唤条件的手写覆盖（多语言）；有值时优先于自动生成
+    text_i18n: dict = field(default_factory=dict)
+
+    def parts(self) -> list:
+        out = []
+        for item in (self.materials or []):
+            p = MaterialPart.from_dict(item)
+            out.append(p)
+        return out
+
+    def item_methods(self) -> list:
+        return [SummonMethod.from_dict(x) for x in (self.methods or [])]
+
+    def to_dict(self) -> dict:
+        d: dict = {}
+        mats = [p.to_dict() for p in self.parts()]
+        mats = [m for m in mats if m]
+        if mats:
+            d["materials"] = mats
+        methods = [m.to_dict() for m in self.item_methods()]
+        methods = [m for m in methods if m]
+        if methods:
+            d["methods"] = methods
+        if self.limit:
+            d["limit"] = str(self.limit)
+        if self.cannot_normal_summon:
+            d["cannot_normal_summon"] = True
+        locks = [str(x) for x in (self.cannot_be_material or []) if x]
+        if locks:
+            d["cannot_be_material"] = locks
+        if self.ritual_spell:
+            d["ritual_spell"] = str(self.ritual_spell)
+        if self.ritual_spell_code:
+            d["ritual_spell_code"] = int(self.ritual_spell_code)
+        if self.ritual_spell_archetype:
+            d["ritual_spell_archetype"] = True
+        if self.text_i18n:
+            d["text_i18n"] = dict(self.text_i18n)
+        return d
+
+    @classmethod
+    def from_dict(cls, d) -> "SummonSpec":
+        if isinstance(d, cls):
+            return d
+        if not isinstance(d, dict):
+            return cls()
+        allowed = set(cls.__dataclass_fields__)
+        obj = cls(**{k: v for k, v in d.items() if k in allowed
+                     and k not in ("materials", "methods")})
+        obj.materials = [MaterialPart.from_dict(x) for x in (d.get("materials") or [])]
+        obj.methods = [SummonMethod.from_dict(x) for x in (d.get("methods") or [])]
+        return obj
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -311,6 +633,8 @@ class CardSpec(_Base):
     effects: list = field(default_factory=list)        # list[EffectSpec]
     #: 归属灵摆效果框的效果（索引），其余进怪兽效果框
     pendulum_effect_indices: list = field(default_factory=list)
+    #: 额外卡组 / 仪式的召唤条件（素材行、召唤限制、素材锁定）
+    summon: SummonSpec = field(default_factory=SummonSpec)
     # 渲染与产物
     render: RenderOptions = field(default_factory=RenderOptions)
     lua: str = ""
@@ -444,6 +768,18 @@ class CardSpec(_Base):
         return out
 
     # ── 序列化 ────────────────────────────────────────────────────
+    def to_json_dict(self) -> dict:
+        """落盘用：召唤条件只写非空字段（空 SummonSpec 不落盘）。"""
+        d = super().to_json_dict()
+        raw = self.summon
+        summon = raw.to_dict() if isinstance(raw, SummonSpec) else \
+            SummonSpec.from_dict(raw).to_dict()
+        if summon:
+            d["summon"] = summon
+        else:
+            d.pop("summon", None)
+        return d
+
     def to_dict(self) -> dict:
         d = self.to_json_dict()
         d["effects"] = [e.to_dict() if isinstance(e, EffectSpec) else dict(e)
@@ -459,6 +795,7 @@ class CardSpec(_Base):
         d.pop("schema_version", None)
         render = d.pop("render", None)
         effects = d.pop("effects", None)
+        summon = d.pop("summon", None)
         # 兼容旧版（v0.x）字段名
         if "def" in d and "dfd" not in d:
             d["dfd"] = d.pop("def")
@@ -478,6 +815,7 @@ class CardSpec(_Base):
         obj = cls(**{k: v for k, v in d.items() if k in allowed})
         if render:
             obj.render = RenderOptions.from_dict(render)
+        obj.summon = SummonSpec.from_dict(summon) if summon else SummonSpec()
         obj.effects = [EffectSpec.from_dict(e) if isinstance(e, dict) else e
                        for e in (effects or [])]
         return obj
@@ -630,6 +968,12 @@ class DeckSpec(_Base):
 # ══════════════════════════════════════════════════════════════════════
 #  审计与出图
 # ══════════════════════════════════════════════════════════════════════
+def _strip_md(text: Any) -> str:
+    """去掉 Markdown 的 ``**bold**`` / ``__bold__`` 星号（界面是纯文本）。"""
+    s = str(text or "")
+    return s.replace("**", "").replace("__", "") if ("**" in s or "__" in s) else s
+
+
 @dataclass
 class Issue:
     """质量门产出的一条问题。"""
@@ -641,6 +985,12 @@ class Issue:
     field: str = ""                  # 相关字段路径，如 "atk"
     waived: bool = False             # 是否被强制放行
     waiver_reason: str = ""
+
+    def __post_init__(self) -> None:
+        # 源码里写 ``**取对象**`` 只是给读代码的人看的强调；界面按纯文本渲染，
+        # 星号会原样出现在质量门列表里。在这里统一收掉，五道门都不必各自处理。
+        self.message = _strip_md(self.message)
+        self.hint = _strip_md(self.hint)
 
     def to_dict(self) -> dict:
         return _clean(asdict(self))
@@ -734,4 +1084,8 @@ __all__ = [
     "RenderOptions", "FullArtOptions", "Archetype", "RosterSlot", "DeckSpec",
     "DeckEntry", "Issue", "GateReport", "ArtRequest", "ArtResult",
     "TRIGGERS", "EFFECT_LIMITS", "ROLES",
+    "SummonSpec", "MaterialPart", "SummonMethod",
+    "MATERIAL_KINDS", "MATERIAL_ROLES",
+    "SUMMON_LIMITS", "MATERIAL_LOCKS",
+    "SUMMON_METHOD_ACTIONS", "SUMMON_METHOD_ZONES",
 ]

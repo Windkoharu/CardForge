@@ -265,6 +265,17 @@ label.lbl > span { letter-spacing: .03em; }
   font-family: var(--font-zh); font-size: 15px;
 }
 .footnote { font-size: 11px; color: var(--ink-faint); margin: var(--sp-2) 0 0; }
+/* 出图「预览工作流」的输入→提示词对账表：逐字段判定用户的话有没有原样进去 */
+.ok-text { color: var(--pass); }
+.warn-text { color: var(--fail); }
+/* 卡文「整理为标准文本」的逐段对照：左原文右整理后，重写过的段落才高亮 */
+.tidy-diff td { vertical-align: top; }
+.tidy-diff .tidy-src { color: var(--ink-dim); white-space: pre-wrap; }
+.tidy-diff .tidy-new { color: var(--paper); white-space: pre-wrap; }
+.tidy-diff .chip { margin-bottom: 4px; }
+ul.prompt-notes { margin: var(--sp-1) 0 0; padding-left: 18px; font-size: 12px;
+  color: var(--ink-dim); line-height: 1.55; }
+ul.prompt-notes li { margin-bottom: 3px; }
 .code-view {
   margin: 0; padding: var(--sp-3); background: #0d0b09; border: 1px solid var(--line);
   border-radius: var(--r-sm); font-family: var(--font-code); font-size: 12px;
@@ -564,3 +575,26 @@ ul.arch-cards li span { color: var(--ink-faint); font-size: 11px; }
   text-underline-offset: 2px;
 }
 .link-btn:hover { color: var(--paper); }
+
+/* ══════════════ 召唤条件（额外卡组 / 仪式）══════════════ */
+.summon-tools { display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-3) 0 var(--sp-2); flex-wrap: wrap; }
+.summon-form .effect-sub { margin-top: var(--sp-2); }
+.summon-extra { margin-top: var(--sp-3); }
+.summon-preview {
+  margin: 6px 0 0; padding: 10px 12px; min-height: 44px; white-space: pre-wrap;
+  border: 1px solid var(--line); border-left: 3px solid var(--brass-soft);
+  border-radius: var(--r-sm); background: #00000022;
+  font: 12px/1.65 var(--font-code); color: var(--ink);
+}
+.summon-form .inline-tools { display: flex; align-items: center; gap: 8px; }
+/* 脚本面板显示的是「后端现场投影的预览」（还没落盘）时，标成虚线 + 提示色 */
+#lua-view.is-preview { border-left: 3px dashed var(--brass-soft); opacity: .92; }
+/* 附加条件（一段素材里叠多个筛选）与 ● 召唤方法条目 */
+.also-box { margin-top: var(--sp-2); padding: 8px 10px;
+  border: 1px dashed var(--line); border-radius: var(--r-sm);
+  background: #ffffff08; }
+.also-rows { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 8px; }
+.also-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.also-row select, .also-row input { min-width: 0; }
+.also-row .inline-tools { margin-left: 0; }

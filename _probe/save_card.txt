@@ -1,0 +1,2 @@
+ok: True id: 210000021 path: workspace\cards\圣痕\210000021\spec.json
+keys: ['files', 'id', 'labels', 'lua', 'ok', 'path', 'spec', 'summary', 'texts', 'type_bits_hex']

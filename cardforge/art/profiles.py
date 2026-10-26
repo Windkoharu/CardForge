@@ -9,6 +9,10 @@
    ``detect(available_models)`` 收到的 ``available_models`` 来自
    :meth:`cardforge.art.client.ComfyClient.models`。
 3. 每个档案都带 ``notes``，写明**授权要点**（能否商用 / 能否在变现平台推理）。
+4. **提示词语言由编码器决定，不由偏好决定**（见 ``bilingual_text_encoder``）：
+   Krea 2 / Qwen-Image 的文本编码器就是 Qwen 系多语言 LLM —— 用户在界面写的中文
+   **原话直送**，一个字都不丢；SDXL / SD1.5 系的 CLIP 只有英文词表，中文必须过
+   词典翻译，翻不出来的词**列清单告诉用户**（绝不静默丢弃）。
 
 授权速查（详细条文见各档案 ``notes``）
 --------------------------------------
@@ -66,6 +70,12 @@ class ModelProfile:
     notes: str = ""
     #: 该档案要不要把主体写成自然语言长句（krea2 / qwen / flux 为 True）
     natural_language: bool = False
+    #: **文本编码器认不认识中文**。True = 编码器是 Qwen-VL 这类多语言 LLM
+    #: （krea2 用 qwen3vl、qwen_image 用 Qwen 系），**用户写的中文原话可以直接送**，
+    #: 不需要也不应该再过一遍中英词典（过词典一定会丢词）；
+    #: False = CLIP ViT-L/BigG 这类英文词表编码器（SDXL / SD1.5 系），
+    #: 中文进不去，只能走词典翻译，且**没翻译出来的词必须如实上报**。
+    bilingual_text_encoder: bool = False
     #: 是否为蒸馏少步模型（决定「负向是否有效」的判断）
     distilled: bool = False
     #: 该档案的默认 LoRA 挂载建议（文件名关键词 → 强度），仅用于推荐
@@ -84,6 +94,13 @@ class ModelProfile:
     def is_sdxl_family(self) -> bool:
         return self.chain in ("sdxl", "sd15") or self.key in (
             "illustrious", "noobai", "pony", "animagine", "sdxl", "sd15")
+
+    @property
+    def language_line(self) -> str:
+        """提示词语言口径的一句话说明（给 UI 与台账看）。"""
+        if self.bilingual_text_encoder:
+            return "中文原话直送（文本编码器 = Qwen 系多语言 LLM，不翻译、不丢词）"
+        return "必须先翻成英文标签（文本编码器 = 英文词表 CLIP，中文进不去）"
 
     @property
     def license_line(self) -> str:
@@ -162,6 +179,7 @@ PROFILES: list[ModelProfile] = [
         prompt_style="natural",
         chain="krea2",
         natural_language=True,
+        bilingual_text_encoder=True,      # qwen3vl_4b → 中文原话可直接送
         distilled=True,
         #: cfg=1.0 → 那一遍负向前向根本不跑
         negative_effective=False,
@@ -209,6 +227,7 @@ PROFILES: list[ModelProfile] = [
         prompt_style="natural",
         chain="qwen",
         natural_language=True,
+        bilingual_text_encoder=True,      # Qwen 系文本编码器，中文原话可直接送
         distilled=True,
         negative_effective=False,
         extras={"weight_dtype": "default", "clip_type": "qwen_image",
@@ -580,6 +599,7 @@ def describe_all() -> list[dict]:
         "steps": p.steps, "cfg": p.cfg, "sampler": p.sampler,
         "scheduler": p.scheduler, "size": list(p.size), "clip_skip": p.clip_skip,
         "prompt_style": p.prompt_style, "natural_language": p.natural_language,
+        "bilingual_text_encoder": p.bilingual_text_encoder,
         "negative_effective": p.negative_effective,
         "license": p.license_line, "notes": p.notes,
     } for p in PROFILES]

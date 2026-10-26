@@ -1,0 +1,77 @@
+======================================================================
+210000000 圣痕的龙骑士 露米艾尔 fusion effects: 4
+summon: {"materials": [{"kind": "archetype", "value": "圣痕", "count": 3, "count_max": 99, "exclude_token": true}], "limit": "must_be_with_materials", "cannot_be_material": ["fusion", "link"]}
+  [0] kind=must_first_ssummon trigger=CONTINUOUS limit=none
+      target={"from_zone": "EXTRA", "filter_kind": "race", "filter_value": "怪兽的战士族", "count": 1, "count_max": 0, "controller": "self", "exclude_self": false, "face_up": false}
+      cost=null
+      params={"_index": 0, "continuous": true}
+      raw='包含「圣痕」怪兽的战士族怪兽×3\n这张卡不能作为融合素材。\n这张卡用融合召唤以及以下方法才能特殊召唤。\n●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。'
+  [1] kind=negate_card trigger=IGNITION limit=once_per_turn
+      target={"from_zone": "MZONE", "filter_kind": "any", "count": 1, "count_max": 0, "controller": "opponent", "exclude_self": false, "face_up": false}
+      cost=null
+      params={"_index": 1, "until_end_turn": true, "reference": true, "reference_key": "it", "targeting": true}
+      raw='①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。'
+  [2] kind=negate trigger=ON_ACTIVATE limit=once_per_turn
+      target=null
+      cost={"kind": "send_grave", "zone": "MZONE", "count": 1, "filter_kind": "race", "filter_value": "只战士族", "lp": 0}
+      params={"_index": 2, "reference": true, "reference_key": "it"}
+      raw='②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。'
+  [3] kind=ssummon_grave trigger=IGNITION limit=none
+      target={"from_zone": "GRAVE", "filter_kind": "race", "filter_value": "以外的战士族", "count": 1, "count_max": 0, "controller": "self", "exclude_self": false, "face_up": false}
+      cost=null
+      params={"_index": 3}
+      raw='③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。'
+--- text[zh_cn] ---
+包含「圣痕」怪兽的战士族怪兽×3
+这张卡不能作为融合素材。
+这张卡用融合召唤以及以下方法才能特殊召唤。
+●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。
+①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。
+②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。
+③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。
+strings: null
+lua len: 0
+======================================================================
+210000021 圣痕龙骑士 露米艾尔 fusion effects: 3
+summon: {"materials": [{"kind": "archetype", "value": "圣痕", "also": [{"kind": "race", "value": "战士族"}], "count": 3}], "methods": [{"action": "banish", "zone": "mz"}], "limit": "must_be", "cannot_be_material": ["fusion"]}
+  [0] kind=negate_card trigger=QUICK limit=once_per_turn
+      target={"from_zone": "FIELD", "filter_kind": "any", "count": 1, "count_max": 0, "controller": "opponent", "exclude_self": false, "face_up": true}
+      cost=null
+      params={"until_end_turn": true, "_index": 0}
+      raw='None'
+  [1] kind=negate trigger=OPPONENT_ACTIVATE_MONSTER limit=once_per_turn
+      target=null
+      cost={"kind": "send_grave", "zone": "DECK", "count": 1, "filter_kind": "race", "filter_value": "战士族", "lp": 0}
+      params={"_index": 1}
+      raw='None'
+  [2] kind=ssummon_grave trigger=WHEN_DESTROYED limit=no_limit
+      target={"from_zone": "GRAVE", "filter_kind": "race", "filter_value": "战士族", "count": 1, "count_max": 0, "controller": "self", "exclude_self": true, "face_up": false}
+      cost=null
+      params={"destroyed_by": "battle_effect", "timing": "if", "select": true, "_index": 2}
+      raw='None'
+--- text[zh_cn] ---
+包含「圣痕」怪兽的战士族怪兽×3
+这张卡不能作为融合素材。
+这张卡用融合召唤以及以下方法才能特殊召唤。
+●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。
+①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。
+②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。
+③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。
+--- text[ja] ---
+「圣痕」モンスターを含む戦士族モンスター×３
+このカードは融合素材にできない。
+このカードは融合召喚、または以下の方法でのみ特殊召喚できる。
+●自分フィールドの上記のカードを除外した場合、エクストラデッキから特殊召喚できる。
+①：１ターンに１度、相手フィールドの表側表示のカード１枚を対象として発動できる。それの効果はターン終了時まで無効になる。この効果は相手ターンでも発動できる。
+②：１ターンに１度、相手がモンスターの効果を発動した時、自分のデッキの戦士族モンスター１体を墓地へ送って発動できる。その発動を無効にし破壊する。
+③：このカードが戦闘・効果で破壊された場合に発動できる。自分墓地から「圣痕龙骑士 露米艾尔」を除く戦士族モンスター１体を選んで特殊召喚する。
+--- text[en] ---
+3 Warrior monsters including a "圣痕" monster
+Cannot be used as Fusion Material.
+Must be Fusion Summoned or Special Summoned by the following method.
+● Special Summon this card from your Extra Deck by banishing the above cards from your field.
+① Once per turn: You can target 1 face-up card your opponent controls; negate the effects of it until the end of the turn. This is a Quick Effect.
+② Once per turn, when your opponent activates a monster effect: You can send 1 Warrior monster in your Deck to the GY; negate the activation, and if you do, destroy it.
+③ If this card is destroyed by battle or card effect: You can Special Summon 1 Warrior monster other than "圣痕龙骑士 露米艾尔" from your GY.
+strings: null
+lua len: 0

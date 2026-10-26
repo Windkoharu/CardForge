@@ -1,0 +1,23 @@
+keys: ['generated', 'source_dir', 'source_files', 'sampled_card_scripts', 'counts', 'functions', 'aux_functions', 'constants', 'card_methods', 'groups', 'per_file']
+generated = "2026-10-13 06:13:27"
+source_dir = "D:\\游戏王DIY设计\\vendor\\scripts"
+source_files = ["constant.lua", "utility.lua", "chain.lua", "cards_specific_functions.lua", "archetype_setcode_constants.lua", "card_counter_constants.lua", "deprecated_functions.lua", "debug_utility.lua"]
+sampled_card_scripts = 408
+counts = {"functions": 844, "aux_functions": 65, "constants": 1782, "card_methods": 324}
+functions type=list len=844
+Fusion.* = []
+Xyz.* = []
+Fusion.AddContactProc        in-functions=False
+Card.IsAbleToRemoveAsCost    in-functions=False
+Card.IsAbleToGraveAsCost     in-functions=False
+Duel.Remove                  in-functions=True
+Duel.SendtoGrave             in-functions=True
+Duel.GetMatchingGroup        in-functions=True
+aux.Stringid                 in-functions=True
+const REASON_MATERIAL      present=True
+const LOCATION_MZONE       present=True
+const SUMMON_TYPE_FUSION   present=True
+const EFFECT_SPSUMMON_PROC present=True
+const RACE_WARRIOR         present=True
+const ATTRIBUTE_LIGHT      present=True
+const SETNAME_             present=False

@@ -460,8 +460,24 @@ def cmd_card(args) -> int:
                     break
         except Exception:
             pool = None
-        cid = int(args.id) if args.id else (
-            pool.next_free_id(210000000) if pool is not None else 210000000)
+        # 分配新卡号时必须同时避开官方池与工作区 —— 只问官方池会把
+        # 210000000 这类已存在的 DIY 号再发一次，保存时直接覆盖旧卡。
+        used_ids = {int(c["id"]) for c in repo.list_cards()
+                    if isinstance(c, dict) and c.get("id") is not None}
+        cid = int(args.id) if args.id else 210000000
+        if not args.id:
+            if pool is not None:
+                try:
+                    cid = int(pool.next_free_id(cid))
+                except Exception:
+                    cid = 210000000
+            while cid in used_ids:
+                cid += 1
+                if pool is not None:
+                    try:
+                        cid = int(pool.next_free_id(cid))
+                    except Exception:
+                        pass
         spec = CardSpec(id=cid, name=args.name or "未命名卡", frame=args.frame or "effect")
         spec.render = RenderOptions(set_number=args.set_number or "")
         try:

@@ -1,0 +1,4 @@
+  File "D:\��Ϸ��DIY���\_probe\build_lumiel.py", line 40
+    attribute="��", race="սʿ��", level=8, atk=3000, def=2500,
+                                                  ^^^
+SyntaxError: invalid syntax

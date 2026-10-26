@@ -58,6 +58,131 @@
 [PASS] ritual 含 Ritual.AddProc
 [PASS] ritual 含 EnableReviveLimit
 [PASS] 仪式 AddProcGreater 的 desc 不写成 0
+[PASS] 旧版素材迁移 syntax_ok
+[PASS] 旧版素材迁移 0 ERROR
+[PASS] 旧版素材迁移 stringid_sync 空
+[PASS] 旧版素材迁移 unknown 三桶全空
+[PASS] 旧版 params materials 仍能生成 Fusion.AddProcMix
+[PASS] 空连接素材 syntax_ok
+[PASS] 空连接素材 0 ERROR
+[PASS] 空连接素材 stringid_sync 空
+[PASS] 空连接素材 unknown 三桶全空
+[PASS] 空连接素材不生成 Link.AddProcedure
+[PASS] 空连接素材写了需人工补写
+[PASS] 融合卡文第一行是素材行
+[PASS] 融合卡文含素材锁与召唤限制
+[PASS] 融合日文限制
+[PASS] 融合英文限制
+[PASS] 融合限制 syntax_ok
+[PASS] 融合限制 0 ERROR
+[PASS] 融合限制 stringid_sync 空
+[PASS] 融合限制 unknown 三桶全空
+[PASS] 融合范围素材用 MixRep
+[PASS] 融合召唤限制用 aux.fuslimit
+[PASS] 融合素材锁写入
+[PASS] PSCT 素材行缺失被拦
+[PASS] 同步卡文素材行
+[PASS] 同步素材 syntax_ok
+[PASS] 同步素材 0 ERROR
+[PASS] 同步素材 stringid_sync 空
+[PASS] 同步素材 unknown 三桶全空
+[PASS] 同步素材过滤 + NonTuner
+[PASS] 超量卡文含阶级
+[PASS] 超量素材 syntax_ok
+[PASS] 超量素材 0 ERROR
+[PASS] 超量素材 stringid_sync 空
+[PASS] 超量素材 unknown 三桶全空
+[PASS] 超量范围素材用 InfiniteMats
+[PASS] 连接卡文素材行
+[PASS] 连接素材 syntax_ok
+[PASS] 连接素材 0 ERROR
+[PASS] 连接素材 stringid_sync 空
+[PASS] 连接素材 unknown 三桶全空
+[PASS] 连接素材上限跟连接值
+[PASS] 连接包含连接怪兽的 specialchk 有定义
+[PASS] 仪式卡文第一行是降临行
+[PASS] 仪式限制 syntax_ok
+[PASS] 仪式限制 0 ERROR
+[PASS] 仪式限制 stringid_sync 空
+[PASS] 仪式限制 unknown 三桶全空
+[PASS] 仪式召唤限制用 aux.ritlimit
+[PASS] 四素材锁 syntax_ok
+[PASS] 四素材锁 0 ERROR
+[PASS] 四素材锁 stringid_sync 空
+[PASS] 四素材锁 unknown 三桶全空
+[PASS] 素材锁 EFFECT_CANNOT_BE_FUSION_MATERIAL
+[PASS] 素材锁 EFFECT_CANNOT_BE_SYNCHRO_MATERIAL
+[PASS] 素材锁 EFFECT_CANNOT_BE_XYZ_MATERIAL
+[PASS] 素材锁 EFFECT_CANNOT_BE_LINK_MATERIAL
+[PASS] 素材卡号缺失 syntax_ok
+[PASS] 素材卡号缺失 0 ERROR
+[PASS] 素材卡号缺失 stringid_sync 空
+[PASS] 素材卡号缺失 unknown 三桶全空
+[PASS] 卡号缺失不生成假融合流程
+[PASS] 卡号缺失留下人工补写提示
+[PASS] 多条件素材行写成「包含…的…怪兽」
+[PASS] 多条件日文素材行
+[PASS] 多条件英文素材行
+[PASS] 多条件融合 syntax_ok
+[PASS] 多条件融合 0 ERROR
+[PASS] 多条件融合 stringid_sync 空
+[PASS] 多条件融合 unknown 三桶全空
+[PASS] 多条件合成一个 AND 谓词
+[PASS] 多条件数量不翻倍（3 段而不是 6 段）
+[PASS] 多条件不生成第二个过滤函数
+[PASS] 接触召唤限制行含「以及以下方法」
+[PASS] 接触召唤 ● 条目按官方写法
+[PASS] 接触融合 syntax_ok
+[PASS] 接触融合 0 ERROR
+[PASS] 接触融合 stringid_sync 空
+[PASS] 接触融合 unknown 三桶全空
+[PASS] 接触融合注册 AddContactProc
+[PASS] 接触融合候选组同时校验字段与种族
+[PASS] 接触融合从自己场上取候选
+[PASS] 接触融合处理是除外
+[PASS] 接触融合仍受 aux.fuslimit 约束
+[PASS] 「不需要「融合」」补注写进卡文
+[PASS] 不需要融合的接触召唤 syntax_ok
+[PASS] 不需要融合的接触召唤 0 ERROR
+[PASS] 不需要融合的接触召唤 stringid_sync 空
+[PASS] 不需要融合的接触召唤 unknown 三桶全空
+[PASS] 不需要「融合」不影响脚本流程
+[PASS] 表侧表示限定写进对象段
+[PASS] 对象段区域与数量之间不加「的」
+[PASS] 无效化写出时限
+[PASS] 诱发即时效果有官方收尾句
+[PASS] 无效卡的效果 syntax_ok
+[PASS] 无效卡的效果 0 ERROR
+[PASS] 无效卡的效果 stringid_sync 空
+[PASS] 无效卡的效果 unknown 三桶全空
+[PASS] negate_card 挂 EFFECT_DISABLE + EFFECT_DISABLE_EFFECT
+[PASS] negate_card 时限复位到回合结束
+[PASS] negate_card 只选表侧表示
+[PASS] 诱发即时用 EFFECT_TYPE_QUICK_O
+[PASS] 「对方把怪兽的效果发动时」时点
+[PASS] 代价用官方的「从卡组把…」
+[PASS] 怪兽效果发动时代价堆墓无效 syntax_ok
+[PASS] 怪兽效果发动时代价堆墓无效 0 ERROR
+[PASS] 怪兽效果发动时代价堆墓无效 stringid_sync 空
+[PASS] 怪兽效果发动时代价堆墓无效 unknown 三桶全空
+[PASS] 「才能发动」的反击类不是必须发动（非 QUICK_F）
+[PASS] 条件只认怪兽效果
+[PASS] 代价过滤带种族
+[PASS] 破坏方式写进时点
+[PASS] 不取对象用「从自己墓地选…以外的」
+[PASS] 「选」句式不写「以…为对象」
+[PASS] 墓地不取对象特召 syntax_ok
+[PASS] 墓地不取对象特召 0 ERROR
+[PASS] 墓地不取对象特召 stringid_sync 空
+[PASS] 墓地不取对象特召 unknown 三桶全空
+[PASS] SelectMatchingCard 排除本卡
+[PASS] IsExistingMatchingCard 也排除本卡
+[PASS] 填了召唤方法但没选限制 → G1 提醒
+[PASS] 非融合卡的召唤方法 → G1 说明脚本待人工
+[PASS] 附加条件的种族无效也被 G1 拦
+[PASS] 附加条件缺卡号也被 G1 拦
+[PASS] 合法的多条件卡 G1 无 ERROR
+[PASS] 接触召唤卡 G1 无 ERROR
 [PASS] 灵摆 syntax_ok
 [PASS] 灵摆 0 ERROR
 [PASS] 灵摆 stringid_sync 空
@@ -113,7 +238,8 @@
 [PASS] 降级 unknown 三桶全空
 [PASS] 未知 kind 降级成注释
 [PASS] 降级效果没有注册 Effect
-入口清单（8）：Fusion.AddProcMix、Link.AddProcedure、Pendulum.AddProcedure、Ritual.AddProcGreater、Synchro.AddProcedure、Synchro.NonTuner、Xyz.AddProcedure、aux.AddEquipProcedure
+入口清单（15）：Fusion.AddContactProc、Fusion.AddProcMix、Link.AddProcedure、Pendulum.AddProcedure、Ritual.AddProcGreater、Synchro.AddProcedure、Synchro.NonTuner、Xyz.AddProcedure、Xyz.InfiniteMats、aux.AddEquipProcedure、aux.fuslimit、aux.lnklimit、aux.ritlimit、aux.synlimit、aux.xyzlimit
+[PASS] 入口 Fusion.AddContactProc 在 vendor 里有定义
 [PASS] 入口 Fusion.AddProcMix 在 vendor 里有定义
 [PASS] 入口 Link.AddProcedure 在 vendor 里有定义
 [PASS] 入口 Pendulum.AddProcedure 在 vendor 里有定义
@@ -121,7 +247,13 @@
 [PASS] 入口 Synchro.AddProcedure 在 vendor 里有定义
 [PASS] 入口 Synchro.NonTuner 在 vendor 里有定义
 [PASS] 入口 Xyz.AddProcedure 在 vendor 里有定义
+[PASS] 入口 Xyz.InfiniteMats 在 vendor 里有定义
 [PASS] 入口 aux.AddEquipProcedure 在 vendor 里有定义
+[PASS] 入口 aux.fuslimit 在 vendor 里有定义
+[PASS] 入口 aux.lnklimit 在 vendor 里有定义
+[PASS] 入口 aux.ritlimit 在 vendor 里有定义
+[PASS] 入口 aux.synlimit 在 vendor 里有定义
+[PASS] 入口 aux.xyzlimit 在 vendor 里有定义
 [PASS] 合法 IR：search 返回空
 [PASS] 合法 IR：gain_atk 带 value 返回空
 [PASS] 非法 IR（未知 kind）命中
@@ -144,6 +276,34 @@
 [PASS] 真实卡 unknown 三桶全空
 [PASS] 真实卡 2 个 Stringid
 [PASS] 真实卡描述里没有 {占位符}
+[PASS] 往返：3 条效果（不掺幽灵效果）
+[PASS] 往返：①表侧表示 → face_up
+[PASS] 往返：①诱发即时 → QUICK + params.quick
+[PASS] 往返：①无效场上卡的效果 = negate_card
+[PASS] 往返：②对方把怪兽的效果发动时
+[PASS] 往返：②代价区域是卡组不是怪兽区域
+[PASS] 往返：②代价种族不吞量词
+[PASS] 往返：③破坏方式 battle_effect
+[PASS] 往返：③「「卡名」以外的」→ exclude_self
+[PASS] 往返：③不取对象的「选」句式 → params.select
+[PASS] 往返：再投影与原文逐行相同
+[PASS] 往返卡脚本 syntax_ok
+[PASS] 往返卡脚本 0 ERROR
+[PASS] 往返卡脚本 stringid_sync 空
+[PASS] 往返卡脚本 unknown 三桶全空
+[PASS] 召唤手续不变成编号效果
+[PASS] split_leading_block 切出素材行与限制行
+[PASS] HOPT 声明不会被当成召唤手续
+[PASS] 种族词表不吞量词
+[PASS] 卡名差一个「的」仍认得出是自己（排除条件不能丢）
+[PASS] 反解：助词差异不影响 exclude_self
+[PASS] 兽战士族不被战士族抢走
+[PASS] 质量门提示不带 Markdown 星号
+[PASS] 官方代价句不被判成处理前置
+[PASS] ● 召唤手续条目不要求冒号
+[PASS] 被动触发句（被战斗·效果破坏）不被判成处理前置
+[PASS] 真把处理写进条件段仍然报 ERROR
+[PASS] 英文代价（send … to the GY;）不被判成处理前置
 [PASS] gates.g2_script 无 ERROR
 [PASS] cli card script 不崩
      cli script: exit=0 out=2203B err=0B
@@ -180,17 +340,16 @@
 [PASS] 脚本进 expansions/script
      build: n_cards=6 n_scripts=6
 [PASS] expansions.verify(G5) 0 ERROR
-[PASS] effects 需要的 23 个具名片段全实现
+[PASS] effects 需要的 24 个具名片段全实现
 [PASS] FRAGMENTS 无孤儿
 走卡种骨架（无片段）的 kind 7：extra_normal_summon、fusion_summon、link_summon、pendulum_summon、ritual_summon、synchro_summon、xyz_summon
 
 ==== FAIL ====
 
 
-==== WARN(11) ====
-灵摆 G2_REGISTER_UNDEFINED :: `tc:RegisterEffect(...)` 的 `tc` 未用 `Effect.CreateEffect` 创建
+==== WARN(10) ====
+怪兽效果发动时代价堆墓无效 G2_OPERATION_NO_TARGET :: 设置了 SetOperation 但没有 SetTarget
 永续魔法 G2_TARGET_NO_OPERATION :: 设置了 SetTarget 但没有 SetOperation
-装备魔法 G2_REGISTER_UNDEFINED :: `tc:RegisterEffect(...)` 的 `tc` 未用 `Effect.CreateEffect` 创建
 反击陷阱 G2_OPERATION_NO_TARGET :: 设置了 SetOperation 但没有 SetTarget
 G5 G5_PIC_MISSING :: 卡 210000605 没有卡图，也没标记 pending
 G5 G5_PIC_MISSING :: 卡 210000608 没有卡图，也没标记 pending

@@ -27,6 +27,12 @@ _probe/**/*.pdf
 _probe/**/*.dll
 _probe/**/*.so
 
+# 浏览器自动化临时 profile（tools/teach_video.py 跑无头 Edge 时生成，含缓存与登录态）
+_probe/edgeprofile/
+
 # 内部调研草稿与会话工作台
 _research/
 .workbuddy/
+
+# 酒馆：另一个独立项目，只是放在本目录里，不属于 CardForge
+酒馆/

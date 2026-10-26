@@ -7,7 +7,9 @@ from .errors import (  # noqa: F401
 from .models import (  # noqa: F401
     SCHEMA_VERSION, Archetype, ArtRequest, ArtResult, CardSpec, DeckEntry,
     DeckSpec, EffectCost, EffectSpec, EffectTarget, FullArtOptions, GateReport,
-    Issue, RenderOptions, RosterSlot,
+    Issue, MaterialPart, RenderOptions, RosterSlot, SummonMethod, SummonSpec,
+    MATERIAL_KINDS, MATERIAL_LOCKS, MATERIAL_ROLES, SUMMON_LIMITS,
+    SUMMON_METHOD_ACTIONS, SUMMON_METHOD_ZONES,
 )
 
 __all__ = [
@@ -15,6 +17,9 @@ __all__ = [
     "CardSpec", "EffectSpec", "EffectTarget", "EffectCost", "RenderOptions",
     "FullArtOptions", "Archetype", "RosterSlot", "DeckSpec", "DeckEntry",
     "Issue", "GateReport", "ArtRequest", "ArtResult", "SCHEMA_VERSION",
+    "SummonSpec", "SummonMethod", "MaterialPart",
+    "MATERIAL_KINDS", "MATERIAL_ROLES", "MATERIAL_LOCKS", "SUMMON_LIMITS",
+    "SUMMON_METHOD_ACTIONS", "SUMMON_METHOD_ZONES",
     "CardForgeError", "SpecError", "ValidationError", "LintError", "EnvError",
     "AssetMissing", "ComfyError", "EngineUnavailable", "LLMUnavailable",
 ]

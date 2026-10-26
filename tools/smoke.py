@@ -291,6 +291,122 @@ def _design_audit():
 
 check("G1 平衡审计", _design_audit)
 
+
+def _summon_conditions():
+    from cardforge.core import CardSpec, MaterialPart, SummonSpec
+    from cardforge.content.psct import gen
+    from cardforge.content.lua import emit, lint
+    from cardforge.content.design import audit_card
+    s = CardSpec(id=210000050, name="召唤条件测试", frame="fusion",
+                 attribute="光", race="龙族", level=8, atk=3000, dfd=2500,
+                 archetype="星奏", setcode="0x1001")
+    s.summon = SummonSpec(
+        materials=[MaterialPart(kind="name", value="青眼白龙", code=89631139),
+                   MaterialPart(kind="race", value="龙族", count=1, count_max=99)],
+        limit="must_be_with_materials", cannot_be_material=["fusion"])
+    zh = gen.compose(s, "zh_cn")
+    assert zh.splitlines()[0] == "「青眼白龙」＋龙族怪兽1只以上", zh
+    assert "不能作为融合素材" in zh and "以上记的卡为融合素材" in zh, zh
+    lua = emit.emit_script(s)
+    assert "Fusion.AddProcMixRep(c,true,true,s.mat0_1,1,99,s.mat0_0)" in lua, lua
+    assert "aux.fuslimit" in lua and "EFFECT_CANNOT_BE_FUSION_MATERIAL" in lua, lua
+    ok, msg = lint.syntax_ok(lua)
+    assert ok, msg
+    # 序列化往返（空 SummonSpec 不落盘）
+    d = s.to_dict()
+    assert d["summon"]["materials"][0]["code"] == 89631139, d.get("summon")
+    s2 = CardSpec.from_dict(d)
+    assert s2.summon.limit == "must_be_with_materials", s2.summon
+    assert "summon" not in CardSpec(id=1, name="x").to_dict()
+    # 缺失素材必须被 G1 拦住
+    bad = CardSpec(id=210000051, name="坏融合", frame="fusion", attribute="光",
+                   race="龙族", level=8, atk=3000, dfd=2500, archetype="星奏",
+                   setcode="0x1001")
+    codes = {i.code for i in audit_card(bad, check_pool=False)}
+    assert "G1_SUMMON_MATERIAL_MISSING" in codes, codes
+    return "素材行/Lua 流程/限制/序列化/G1 缺失拦截 全部正确"
+
+check("召唤条件同源", _summon_conditions)
+
+
+def _contact_fusion_duel():
+    """真 ocgcore 里跑一遍接触召唤：引擎是否提供、是否真执行。
+
+    官方卡池没有字段码 0x1001 的战士族怪兽，素材也用 DIY 卡，
+    否则「包含「星奏」怪兽的战士族怪兽×3」永远凑不齐，测不到 AddContactProc。
+    """
+    from cardforge.duel import bot, engine, ocgcore as oc
+    from cardforge.content import summon as CS
+    from cardforge.content.lua import emit
+    from cardforge.core.models import (CardSpec, MaterialPart, SummonMethod,
+                                       SummonSpec)
+    try:
+        st = engine.detect()
+    except Exception as e:
+        return f"SKIP: 引擎探测失败（{e}）"
+    if getattr(st, "level", "") != "ocgcore":
+        return f"SKIP: 未检测到 ocgcore（{getattr(st, 'reason', '') or '引擎不可用'}）"
+
+    mat_id = 210000041
+    mat = CardSpec(id=mat_id, name="圣痕的战士", frame="effect", attribute="光",
+                   race="战士族", level=4, atk=1600, dfd=1200,
+                   archetype="星奏", setcode="0x1001", effects=[],
+                   lua="local s,id=GetID()\nfunction s.initial_effect(c)\nend\n")
+    lum = CardSpec(id=210000042, name="星痕龙骑士", frame="fusion", attribute="光",
+                   race="战士族", level=8, atk=3000, dfd=2500,
+                   archetype="星奏", setcode="0x1001")
+    lum.summon = SummonSpec(
+        materials=[MaterialPart(kind="archetype", value="星奏",
+                                also=[MaterialPart(kind="race", value="战士族")],
+                                count=3)],
+        methods=[SummonMethod(action="banish", zone="mz")],
+        limit="must_be", cannot_be_material=["fusion"])
+    lum.lua = emit.emit_script(lum, tier=1)
+    assert CS.material_line(lum, "zh_cn") == "包含「星奏」怪兽的战士族怪兽×3", \
+        CS.material_line(lum, "zh_cn")
+    assert "Fusion.AddContactProc" in lum.lua, lum.lua[:400]
+
+    offered = {"n": 0}
+    orig = bot.SimpleBot._idlecmd
+
+    def spy(self, msg, state):
+        res = orig(self, msg, state)
+        if lum.id in [int(x.get("code") or 0) for x in (msg.get("spsummon") or [])]:
+            offered["n"] += 1
+        return res
+
+    bot.SimpleBot._idlecmd = spy
+    try:
+        fillers = [89631139, 45467446, 73176492, 77098843, 85861495, 385172]
+        info = {"field": [{"code": mat_id, "team": 0, "seq": i, "pos": 1}
+                          for i in range(3)],
+                "action": {"summon_code": lum.id}}
+        res = bot.run_duel([lum.id] * 3 + [mat_id] * 3 + fillers,
+                           fillers[:4] * 6, seed=7, max_steps=2500,
+                           cards={lum.id: lum, mat_id: mat}, scenario=info)
+    finally:
+        bot.SimpleBot._idlecmd = orig
+    errs = [str(e) for e in (res.get("errors") or [])]
+    moves = [e for e in (res.get("log") or []) if int(e.get("id") or 0) == 50]
+    up = {int(e.get("turn") or 0) for e in moves
+          if int(e.get("code") or 0) == lum.id
+          and int(e.get("to_location") or 0) & oc.LOCATION_MZONE}
+    ban = {int(e.get("turn") or 0) for e in moves
+           if int(e.get("code") or 0) == mat_id
+           and int(e.get("to_location") or 0) & oc.LOCATION_REMOVED}
+    n_ban = len([e for e in moves if int(e.get("code") or 0) == mat_id
+                 and int(e.get("to_location") or 0) & oc.LOCATION_REMOVED])
+    assert not errs, f"引擎报错：{errs[:2]}"
+    assert offered["n"] > 0, "引擎没把接触召唤列为合法动作（AddContactProc 未生效）"
+    assert up & ban and n_ban >= 3, (
+        f"接触召唤未实际执行：上场回合={sorted(up)} 除外素材回合={sorted(ban)} "
+        f"除外次数={n_ban}")
+    return (f"引擎提供接触召唤 {offered['n']} 次，第 {sorted(up & ban)[:2]} 回合"
+            f"除外 {n_ban} 只素材后额外卡组上场")
+
+check("接触召唤上桌（真 ocgcore）", _contact_fusion_duel)
+
+
 # ── 4. 质量门 ────────────────────────────────────────────────────────
 print("\n[4] 质量门")
 
@@ -399,6 +515,17 @@ def _css_hidden_guard():
 
 
 check("CSS hidden 守卫", _css_hidden_guard)
+
+
+def _next_id_unique():
+    from cardforge.server import api_card as A, kernel as K
+    used = {int(c["id"]) for c in K.cards_index() if c.get("id") is not None}
+    n = A._next_id()
+    assert n >= 210000000, n
+    assert n not in used, f"新卡号 {n} 已被工作区占用：{sorted(used)}"
+    return f"下一个空号 {n}，避开了工作区 {len(used)} 张卡"
+
+check("新卡号不覆盖工作区", _next_id_unique)
 
 # ── 汇总 ─────────────────────────────────────────────────────────────
 print("\n" + "=" * 72)

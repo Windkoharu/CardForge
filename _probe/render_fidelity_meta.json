@@ -1,0 +1,24 @@
+{
+  "positive": "A highly atmospheric anime illustration in a cinematic key-visual style, rendered with clean lineart and soft cel shading, painted for a trading card artwork. 赛璐璐上色，画面干净. The subject of the artwork is: 一位少女骑士，银白色长直发，深红色眼睛，身穿白银铠甲，右手持骑枪，背后展开一对发光的白色羽翼，半身特写，柔和的晨光. It is depicted as warrior, armored, weapon, solo, 1monster, warm red and orange palette, embers, heat haze. The framing follows the description above, cropped for a square trading-card artwork window (aspect ratio 1.0004). The lighting is exactly as described above, with no additional default dramatic or rim lighting. The frame contains absolutely no text, no lettering, no numbers, no signature, no watermark and no logo; there is no card border, no frame and no UI overlay.",
+  "negative": "text, watermark, signature, username, logo, artist name, border, frame, letterboxed, multiple views, character sheet, lowres, worst quality, low quality, blurry, jpeg artifacts, copyright name, web address, url, speech bubble, caption, card, card (medium), trading card, reference sheet, collage, split screen, 2girls, 2boys, multiple characters, cropped, out of frame",
+  "seed": 20261026,
+  "model": "krea2_turbo_bf16.safetensors",
+  "clip": "qwen3vl_4b_fp8_scaled.safetensors",
+  "width": 832,
+  "height": 832,
+  "steps": 8,
+  "cfg": 1.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "prompt_mode": "原文直送",
+  "untranslated": [],
+  "user_input": {
+    "subject": "一位少女骑士，银白色长直发，深红色眼睛，身穿白银铠甲，右手持骑枪，背后展开一对发光的白色羽翼，半身特写，柔和的晨光",
+    "style": "赛璐璐上色，画面干净",
+    "background": "",
+    "extra_positive": "",
+    "extra_negative": ""
+  },
+  "prompt_id": "08f348d7-4ee8-4df6-9bda-f9acfe23b226",
+  "workflow_fingerprint": "08a9607c6b817805"
+}

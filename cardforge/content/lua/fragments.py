@@ -36,7 +36,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 from ...core import constants as C
-from ...core.models import CardSpec, EffectSpec, EffectTarget
+from ...core.models import CardSpec, EffectSpec, EffectTarget, MaterialPart, SummonSpec
+from .. import summon as S
 from ..effects import EFFECT_KINDS, kind as effect_kind
 from . import apicatalog as API
 
@@ -66,6 +67,9 @@ ZONE_LOCATION: dict[str, str] = {
 TRIGGER_LUA: dict[str, tuple[str, str, str]] = {
     "IGNITION": ("EFFECT_TYPE_IGNITION", "", ""),
     "QUICK": ("EFFECT_TYPE_QUICK_O", "EVENT_FREE_CHAIN", ""),
+    # 「对方把怪兽的效果发动时…才能发动」= 可选诱发（不是必须发动的反击类）
+    "OPPONENT_ACTIVATE_MONSTER": ("EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O",
+                                  "EVENT_CHAINING", "EFFECT_FLAG_DELAY"),
     "NORMAL_SUMMON_SUCCESS": ("EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O",
                               "EVENT_SUMMON_SUCCESS", "EFFECT_FLAG_DELAY"),
     "SPECIAL_SUMMON_SUCCESS": ("EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O",
@@ -119,6 +123,11 @@ _ATTR_BIT_NAME: dict[int, str] = {
     8: "ATTRIBUTE_WIND", 16: "ATTRIBUTE_LIGHT", 32: "ATTRIBUTE_DARK",
     64: "ATTRIBUTE_DIVINE",
 }
+#: 位值 → ``RACE_*`` 常量名（直接从 constants 反查，避免把中文种族名当常量）
+_RACE_BIT_NAME: dict[int, str] = {
+    int(v): k for k, v in vars(C).items()
+    if k.startswith("RACE_") and isinstance(v, int)
+}
 #: 位值 → ``LINK_MARKER_*`` 名（值与 ``vendor/scripts/constant.lua`` 一致）
 BIT_MARKER: dict[int, str] = {
     1: "LINK_MARKER_BOTTOM_LEFT", 2: "LINK_MARKER_BOTTOM",
@@ -128,13 +137,17 @@ BIT_MARKER: dict[int, str] = {
 }
 #: ``proc_*.lua`` / ``utility.lua`` 里真实定义的召唤流程与规则文本入口
 PROVIDED_PROCEDURES: tuple[str, ...] = (
-    "Fusion.AddProcMix", "Xyz.AddProcedure", "Link.AddProcedure",
-    "Synchro.AddProcedure", "Ritual.AddProcGreater", "Pendulum.AddProcedure",
-    "aux.AddEquipProcedure", "Card.AddCannotBeSpecialSummoned",
-    "Card.AddCannotBeNormalSummoned", "Card.AddMustFirstBeFusionSummoned",
-    "Card.AddMustFirstBeSynchroSummoned", "Card.AddMustFirstBeXyzSummoned",
-    "Card.AddMustFirstBeLinkSummoned", "Card.AddMustFirstBeRitualSummoned",
-    "Card.AddSetcodesRule",
+    "Fusion.AddProcMix", "Fusion.AddProcMixRep", "Fusion.AddProcMixRepUnfix",
+    "Fusion.AddContactProc",
+    "Xyz.AddProcedure", "Xyz.InfiniteMats", "Link.AddProcedure",
+    "Synchro.AddProcedure", "Synchro.NonTuner", "Ritual.AddProcGreater",
+    "Pendulum.AddProcedure", "aux.AddEquipProcedure",
+    "Card.AddCannotBeSpecialSummoned", "Card.AddCannotBeNormalSummoned",
+    "Card.AddMustFirstBeFusionSummoned", "Card.AddMustFirstBeSynchroSummoned",
+    "Card.AddMustFirstBeXyzSummoned", "Card.AddMustFirstBeLinkSummoned",
+    "Card.AddMustFirstBeRitualSummoned", "Card.AddSetcodesRule",
+    "aux.fuslimit", "aux.synlimit", "aux.xyzlimit", "aux.lnklimit",
+    "aux.ritlimit",
 )
 _used_procedures: set = set()
 
@@ -243,7 +256,7 @@ def _race_lua(race: Any) -> str:
     bit = C.RACE_MAP.get(str(race or ""))
     if not bit:
         return ""
-    name = {v: k for k, v in C.RACE_MAP.items()}.get(int(bit), "")
+    name = _RACE_BIT_NAME.get(int(bit), "")
     return name if name and API.is_known(name) else hex(int(bit))
 
 
@@ -391,7 +404,10 @@ def _filter_expr(ctx: LuaCtx, tgt: Optional[EffectTarget], *,
             parts.append("c:IsMonster()")
     if monster_only and not parts:
         parts.append("c:IsMonster()")
-    if faceup:
+    if tgt is not None and getattr(tgt, "face_up", False) and "c:IsFaceup()" not in parts:
+        # 卡文写「以…1张表侧表示的卡为对象」→ 脚本必须过滤里侧（历史缺口）
+        parts.append("c:IsFaceup()")
+    if faceup and "c:IsFaceup()" not in parts:
         parts.append("c:IsFaceup()")
     if able:
         parts.append(able)
@@ -692,6 +708,8 @@ def _condition_lines(eff: EffectSpec) -> list:
         return ["return true"]
     if trig in ("OPPONENT_ACTIVATE", "ON_ACTIVATE"):
         return ["return ep~=tp"]
+    if trig == "OPPONENT_ACTIVATE_MONSTER":
+        return ["return ep~=tp and re:IsMonsterEffect()"]
     if trig == "ATTACK_DECLARE":
         return ["return Duel.GetCurrentChain()==0"]
     if trig in ("END_PHASE", "STANDBY_PHASE"):
@@ -801,6 +819,7 @@ def frag_special_summon(eff: EffectSpec, spec: CardSpec, ctx: LuaCtx) -> str:
     mn, mx = _count(eff)
     loc = _location(zone)
     card_type = str(_param(eff, "card_type", ""))
+    ex = _ex_arg(eff)
     fil, ftail = _make_filter(ctx, eff,
                               able="c:IsCanBeSpecialSummoned(e,0,tp,false,false)",
                               card_type=card_type or "monster", needs_ep=True)
@@ -809,12 +828,12 @@ def frag_special_summon(eff: EffectSpec, spec: CardSpec, ctx: LuaCtx) -> str:
     tg, op = ctx.name("tg"), ctx.name("op")
     ctx.add_fn(tg, "e,tp,eg,ep,ev,re,r,rp,chk",
                f"if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 "
-               f"and Duel.IsExistingMatchingCard({fil},tp,{loc},0,{mn},nil{ftail}) end",
+               f"and Duel.IsExistingMatchingCard({fil},tp,{loc},0,{mn},{ex}{ftail}) end",
                f"Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,{mn},tp,{loc})")
     ctx.add_fn(op, "e,tp,eg,ep,ev,re,r,rp",
                "if Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end",
                "Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)",
-               f"local g=Duel.SelectMatchingCard(tp,{fil},tp,{loc},0,{mn},{mx},nil{ftail})",
+               f"local g=Duel.SelectMatchingCard(tp,{fil},tp,{loc},0,{mn},{mx},{ex}{ftail})",
                "if #g>0 then",
                f"{TAB}Duel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)",
                "end")
@@ -1029,6 +1048,18 @@ def _target_zones(eff: EffectSpec) -> tuple:
     return loc, loc, "0"
 
 
+def _ex_arg(eff: EffectSpec) -> str:
+    """``IsExistingMatchingCard`` / ``SelectMatchingCard`` 的排除对象参数。
+
+    卡文写「「卡名」以外的…」（IR 里是 ``target.exclude_self``）时将排除对象
+    作为 ``ex`` 传入，脚本层就不会把这张卡自己选进去。
+    """
+    tgt = eff.target
+    if tgt is not None and getattr(tgt, "exclude_self", False):
+        return "e:GetHandler()"
+    return "nil"
+
+
 def _targeted(eff: EffectSpec, spec: CardSpec, ctx: LuaCtx, *, action: str,
               category: str = "", extra_target: str = "",
               operation_extra: tuple = (), faceup: bool = False,
@@ -1097,32 +1128,96 @@ def frag_return_deck(eff: EffectSpec, spec: CardSpec, ctx: LuaCtx) -> str:
 #  片段：无效化
 # ══════════════════════════════════════════════════════════════════════
 def frag_negate(eff: EffectSpec, spec: CardSpec, ctx: LuaCtx) -> str:
-    """「那个发动无效并破坏」／「那个效果无效化」（连锁时点）。"""
+    """「那个发动无效并破坏」／「那个效果无效化」（连锁时点）。
+
+    官方分两族，卡文差别在「才能发动」四个字：
+
+    * **反击陷阱** / 「…时，那个发动无效并破坏」（没有「才能发动」）
+      → ``EFFECT_TYPE_QUICK_F``（必须发动）；
+    * 「…时，…才能发动。那个发动无效并破坏」→ 带代价的**可选诱发**
+      ``EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O`` + ``EFFECT_FLAG_DELAY``。
+
+    一律写成 QUICK_F 会让「才能发动」的效果变成强制发动（历史缺陷）。
+    """
     full = str(eff.kind) == "negate"
     cat = "CATEGORY_NEGATE+CATEGORY_DESTROY" if full else "CATEGORY_NEGATE"
-    v, lines = _begin(ctx, eff, category=cat, targeting=True)
-    # 反击类必须是 EFFECT_TYPE_QUICK_F + EVENT_CHAINING
-    lines = [ln for ln in lines if not ln.endswith(":SetRange(" + _range_loc(ctx, eff) + ")")]
-    for i, ln in enumerate(lines):
-        if ln.startswith(f"{v}:SetType("):
-            lines[i] = f"{v}:SetType(EFFECT_TYPE_QUICK_F)"
-        if ln.startswith(f"{v}:SetProperty("):
-            lines[i] = f"{v}:SetProperty(EFFECT_FLAG_DAMAGE_STEP+EFFECT_FLAG_DAMAGE_CAL)"
-    if not any(ln.startswith(f"{v}:SetProperty(") for ln in lines):
-        lines.append(f"{v}:SetProperty(EFFECT_FLAG_DAMAGE_STEP+EFFECT_FLAG_DAMAGE_CAL)")
+    v, lines = _begin(ctx, eff, category=cat, targeting=False)
+    forced = _truthy(_param(eff, "quick_f", False), default=False)
+    counter_trap = (str(spec.frame) == "trap"
+                    and str(spec.trap_kind) == "counter")
+    if forced or counter_trap:
+        lines = [ln for ln in lines
+                 if not ln.endswith(":SetRange(" + _range_loc(ctx, eff) + ")")]
+        for i, ln in enumerate(lines):
+            if ln.startswith(f"{v}:SetType("):
+                lines[i] = f"{v}:SetType(EFFECT_TYPE_QUICK_F)"
+        if not any(ln.startswith(f"{v}:SetProperty(") for ln in lines):
+            lines.append(f"{v}:SetProperty(EFFECT_FLAG_DAMAGE_STEP"
+                         f"+EFFECT_FLAG_DAMAGE_CAL)")
+        else:
+            for i, ln in enumerate(lines):
+                if ln.startswith(f"{v}:SetProperty(") \
+                        and "EFFECT_FLAG_DAMAGE_STEP" not in ln:
+                    lines[i] = ln[:-1] + "+EFFECT_FLAG_DAMAGE_STEP" \
+                        + "+EFFECT_FLAG_DAMAGE_CAL)"
     if not any(ln.startswith(f"{v}:SetCode(") for ln in lines):
         lines.append(f"{v}:SetCode(EVENT_CHAINING)")
     con, op = ctx.name("con"), ctx.name("op")
-    ctx.add_fn(con, "e,tp,eg,ep,ev,re,r,rp",
-               "return ep~=tp",
-               )
+    body = _condition_lines(eff) or ["return ep~=tp"]
+    ctx.add_fn(con, "e,tp,eg,ep,ev,re,r,rp", *body)
     ctx.add_fn(op, "e,tp,eg,ep,ev,re,r,rp",
                *(["if Duel.NegateActivation(ev) and re:GetHandler():IsRelateToEffect(re) then",
                   f"{TAB}Duel.Destroy(eg,REASON_EFFECT)",
                   "end"] if full else ["Duel.NegateEffect(ev)"]))
     lines += _finish(ctx, v, cost=_cost_fn(ctx, eff), con=con, operation=op)
-    ctx.note("negate 的条件函数只做了「不是自己发动的」这一条最小判断，"
-             "是否限定卡种/属性/字段请人工补写")
+    ctx.note("negate 的条件函数只判断「发动的不是自己」（怪兽效果类时点会额外认 "
+             "re:IsMonsterEffect()）；属性/字段/卡种那类限定请人工补写")
+    return _block(ctx, lines, eff)
+
+
+def frag_negate_card(eff: EffectSpec, spec: CardSpec, ctx: LuaCtx) -> str:
+    """「那张卡的效果直到回合结束时无效」—— 给场上的对象挂无效化效果。
+
+    官方写法是给对象注册 ``EFFECT_DISABLE`` + ``EFFECT_DISABLE_EFFECT``
+    （前者管它自己激活的效果，后者管它在场上已生效的效果），并按卡文时限
+    ``SetReset``；与 :func:`frag_negate`（无效连锁上的一次发动）是两回事。
+    """
+    v, lines = _begin(ctx, eff, category="CATEGORY_NEGATE", targeting=True)
+    _loc, loc_self, loc_opp = _target_zones(eff)
+    mask = _zone_mask(loc_self, loc_opp)
+    fil, _tail = _make_filter(ctx, eff, card_type="", faceup=True)
+    lo, hi = _count(eff, 1)
+    tg, op = ctx.name("tg"), ctx.name("op")
+    ctx.add_fn(tg, "e,tp,eg,ep,ev,re,r,rp,chk,chkc",
+               f"if chkc then return chkc:IsOnField() and chkc:IsFaceup() end",
+               f"if chk==0 then return Duel.IsExistingTarget({fil},tp,"
+               f"{loc_self},{loc_opp},1,nil) end",
+               "Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)",
+               f"local g=Duel.SelectTarget(tp,{fil},tp,{loc_self},{loc_opp},"
+               f"{lo},{hi},nil)",
+               "Duel.SetOperationInfo(0,CATEGORY_NEGATE,g,1,0,0)")
+    until = _truthy(_param(eff, "until_end_turn", True), default=True)
+    reset = ("RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END" if until
+             else "RESET_EVENT+RESETS_STANDARD")
+    body = ["local tc=Duel.GetFirstTarget()",
+            "if tc and tc:IsFaceup() and tc:IsRelateToEffect(e) then"]
+    for name, code in (("e1", "EFFECT_DISABLE"), ("e2", "EFFECT_DISABLE_EFFECT")):
+        body += [
+            f"{TAB}local {name}=Effect.CreateEffect(e:GetHandler())",
+            f"{TAB}{TAB}{name}:SetType(EFFECT_TYPE_SINGLE)",
+            f"{TAB}{TAB}{name}:SetCode({code})",
+            f"{TAB}{TAB}{name}:SetReset({reset})",
+            f"{TAB}{TAB}tc:RegisterEffect({name})",
+        ]
+    body.append("end")
+    ctx.add_fn(op, "e,tp,eg,ep,ev,re,r,rp", *body)
+    lines += _finish(ctx, v, cost=_cost_fn(ctx, eff), con=_add_condition(ctx, eff),
+                     target=tg, operation=op)
+    if not until:
+        ctx.note("negate_card 未声明时限，已按「离场即失效」生成"
+                 "（卡文写「直到回合结束时无效」请设 params['until_end_turn']=True）")
+    ctx.note(f"negate_card 的作用区域按对象取 {mask}；"
+             f"若只想无效怪兽效果请改挂 EFFECT_DISABLE+MONSTER 限定")
     return _block(ctx, lines, eff)
 
 
@@ -1437,6 +1532,7 @@ FRAGMENTS: dict[str, Callable] = {
     "frag_excavate": frag_excavate,
     "frag_discard_opponent": frag_discard_opponent,
     "frag_negate": frag_negate,
+    "frag_negate_card": frag_negate_card,
     "frag_stat_change": frag_stat_change,
     "frag_change_position": frag_change_position,
     "frag_take_control": frag_take_control,
@@ -1468,89 +1564,496 @@ NO_DESCRIPTION_FRAGMENTS: frozenset = frozenset({
 # ══════════════════════════════════════════════════════════════════════
 #  召唤流程 / 卡种骨架（由 emit 调用，不属于单条效果）
 # ══════════════════════════════════════════════════════════════════════
-def _material_filter_names(ctx: LuaCtx, eff: Optional[EffectSpec],
-                           limit: int = 2) -> list:
-    """``params['materials']`` → 素材过滤函数名列表（缺失时返回空表）。"""
-    mats = list((eff.params or {}).get("materials") or []) if eff else []
+#: 「卡种」素材的旧写法 → ``_type_lua`` 的键
+_TYPE_PART_ALIASES = {
+    "效果": "effect", "效果怪兽": "effect",
+    "通常": "normal", "通常怪兽": "normal",
+    "仪式": "ritual", "仪式怪兽": "ritual",
+    "融合": "fusion", "融合怪兽": "fusion",
+    "同步": "synchro", "同步怪兽": "synchro", "同调怪兽": "synchro",
+    "超量": "xyz", "超量怪兽": "xyz",
+    "连接": "link", "连接怪兽": "link",
+    "衍生物": "token", "灵魂": "spirit", "联合": "union",
+    "二重": "gemini", "反转": "flip", "卡通": "toon",
+}
+
+
+def _cond_predicate(spec: CardSpec, part: MaterialPart) -> tuple[str, str]:
+    """**单个**筛选条件 → Lua 谓词；解析不了返回 ``("", 原因)``。"""
+    kind = str(part.kind or "any")
+    value = part.value
+    if kind == "any":
+        return "", ""
+    if kind == "name":
+        try:
+            code = int(part.code or 0)
+        except Exception:
+            code = 0
+        if not code:
+            return "", "缺少卡号（kind=name 需填 code）"
+        return f"c:IsCode({code})", ""
+    if kind == "archetype":
+        code = S.resolve_setcode(spec, part)
+        if not code:
+            return "", "缺少字段码（可填本卡 setcode，或为素材字段指定 setcode）"
+        return f"c:IsSetCard({code})", ""
+    if kind == "race":
+        vals = value if isinstance(value, (list, tuple)) else [value]
+        exprs = [f"c:IsRace({_race_lua(v)})" for v in vals if _race_lua(v)]
+        if not exprs:
+            return "", "种族无效"
+        return ("(" + " or ".join(exprs) + ")") if len(exprs) > 1 else exprs[0], ""
+    if kind == "attribute":
+        vals = value if isinstance(value, (list, tuple)) else [value]
+        exprs = [f"c:IsAttribute({_attr_lua(v)})" for v in vals if _attr_lua(v)]
+        if not exprs:
+            return "", "属性无效"
+        return ("(" + " or ".join(exprs) + ")") if len(exprs) > 1 else exprs[0], ""
+    if kind == "type":
+        key = str(value or "").strip().lower()
+        key = _TYPE_PART_ALIASES.get(key, key)
+        t = _type_lua(key)
+        if not t:
+            return "", "卡种无效"
+        return f"c:IsType({t})", ""
+    if kind == "level":
+        try:
+            return f"c:IsLevel({int(value)})", ""
+        except Exception:
+            return "", "等级无效"
+    if kind == "rank":
+        try:
+            return f"c:IsRank({int(value)})", ""
+        except Exception:
+            return "", "阶级无效"
+    return "", f"未知素材种类「{kind}」"
+
+
+def _material_predicates(spec: CardSpec, part: MaterialPart) -> tuple[list, str]:
+    """素材段 → Lua 谓词列表；解析不了时返回 ``([], 原因)``。
+
+    一段里的多个筛选（字段＋种族那类）在**同一个谓词**里 ``and`` 起来 ——
+    官方语义是「同时满足的 1 只怪兽」，拆成两个过滤函数会让素材数量翻倍。
+    """
+    preds: list[str] = []
+    for c in part.conditions():
+        expr, err = _cond_predicate(spec, c)
+        if err:
+            return [], f"「{c.value or c.kind}」{err}"
+        if expr:
+            preds.append(expr)
+    if str(part.tuner or "") == "tuner":
+        preds.append("c:IsType(TYPE_TUNER)")
+    elif str(part.tuner or "") == "non_tuner":
+        preds.append("not c:IsType(TYPE_TUNER)")
+    if part.exclude_token:
+        preds.append("not c:IsType(TYPE_TOKEN)")
+    if part.exclude_link:
+        preds.append("not c:IsType(TYPE_LINK)")
+    if part.include_link:
+        # 「包含连接怪兽的…」是**整组素材**的要求，交给 specialchk（见
+        # _link_procedure），单个素材谓词里不加，否则每张都必须是连接怪兽。
+        pass
+    return preds, ""
+
+
+
+def _material_filter(ctx: LuaCtx, spec: CardSpec, part: MaterialPart,
+                     idx: int) -> tuple[Optional[str], str]:
+    """返回 ``(过滤函数名, 错误原因)``。
+
+    过滤函数名 ``None`` 表示「无附加条件」（任意怪兽）；错误原因非空表示
+    该素材无法确定性映射，调用方必须降级成注释而不是放行任意素材。
+    """
+    preds, err = _material_predicates(spec, part)
+    if err:
+        return None, err
+    if not preds:
+        return None, ""
+    fname = f"s.mat{ctx.slot}_{idx}"
+    ctx.add_fn(fname, "c", "return " + " and ".join(preds))
+    return fname, ""
+
+
+def _part_counts(part: MaterialPart) -> tuple[int, int]:
+    """``(最小, 最大)``；最大 0 = 恰好等于最小。"""
+    lo = part.count_lo
+    hi = part.count_hi
+    return lo, hi
+
+
+def _fusion_procedure(ctx: LuaCtx, spec: CardSpec, s: SummonSpec) -> list:
     out: list[str] = []
-    for i, item in enumerate(mats[:limit]):
-        if isinstance(item, str):
-            tgt = EffectTarget(filter_kind="archetype", filter_value=item)
-        elif isinstance(item, dict):
-            tgt = EffectTarget(filter_kind=str(item.get("filter_kind") or "archetype"),
-                               filter_value=item.get("filter_value"))
-        else:
-            continue
-        fname = f"s.mat{ctx.slot}_{i}"
-        parts = _filter_expr(ctx, tgt)
-        ctx.add_fn(fname, "c", "return " + (" and ".join(parts) if parts else "true"))
-        out.append(fname)
+    parts = s.parts()
+    out.append(f"{TAB}--融合素材条件")
+    if not parts:
+        out.append(f"{TAB}-- [CardForge] 融合素材条件为空：请在「召唤条件」里填写素材，"
+                   f"未生成 Fusion.AddProcMix")
+        ctx.note("融合素材为空，未生成 Fusion.AddProcMix")
+        return out
+    exprs: list[tuple[MaterialPart, str]] = []
+    for i, p in enumerate(parts):
+        name, err = _material_filter(ctx, spec, p, i)
+        if err:
+            out.append(f"{TAB}-- [CardForge] 素材「{p.value or p.kind}」{err}，"
+                       f"未生成 Fusion.AddProcMix；需人工补写")
+            ctx.note(f"融合素材「{p.value or p.kind}」{err}，脚本未生成素材过滤")
+            return out
+        exprs.append((p, name or "aux.TRUE"))
+    ranged = [(p, e) for p, e in exprs if p.count_hi]
+    _use("Fusion.AddProcMix")
+    if len(ranged) == 1:
+        p, expr = ranged[0]
+        lo, hi = _part_counts(p)
+        others = [e for q, e in exprs if q is not p]
+        tail = ("," + ",".join(others)) if others else ""
+        out.append(f"{TAB}Fusion.AddProcMixRep(c,true,true,{expr},{lo},{hi}{tail})")
+    elif len(ranged) > 1:
+        _use("Fusion.AddProcMixRepUnfix")
+        entries = []
+        for p, e in exprs:
+            lo, hi = _part_counts(p)
+            # Unfix 的每个参数都必须是 {filter/code, min, max} 表；
+            # 固定数量也写成 min=max，不能混入裸函数（f[1] 会报 index 错误）。
+            entries.append("{" + f"{e},{lo},{hi or lo}" + "}")
+        out.append(f"{TAB}Fusion.AddProcMixRepUnfix(c,true,true,{','.join(entries)})")
+    else:
+        flat: list[str] = []
+        for p, e in exprs:
+            lo, _hi = _part_counts(p)
+            flat.extend([e] * max(1, lo))
+        out.append(f"{TAB}Fusion.AddProcMix(c,true,true,{','.join(flat)})")
+    out.append(f"{TAB}c:EnableReviveLimit()")
     return out
 
 
-def summon_procedure_lines(ctx: LuaCtx, spec: CardSpec,
-                           eff: Optional[EffectSpec]) -> list:
-    """灵摆 / 额外卡组卡种的召唤流程注册行（含素材条件）。
+def _synchro_procedure(ctx: LuaCtx, spec: CardSpec, s: SummonSpec) -> list:
+    out: list[str] = []
+    parts = s.parts()
+    out.append(f"{TAB}--同步素材条件：协调段 + 协调以外段")
+    if not parts:
+        out.append(f"{TAB}-- [CardForge] 同步素材条件为空：请在「召唤条件」里填写素材，"
+                   f"未生成 Synchro.AddProcedure")
+        ctx.note("同步素材为空，未生成 Synchro.AddProcedure")
+        return out
+    tuner, non = S.synchro_roles(parts)
+    if tuner is None or non is None:
+        out.append(f"{TAB}-- [CardForge] 同步素材需要「协调」与「协调以外」两段，"
+                   f"当前不足，未生成 Synchro.AddProcedure")
+        ctx.note("同步素材角色不完整，脚本未生成召唤流程")
+        return out
+    f1, err1 = _material_filter(ctx, spec, tuner, 0)
+    f2, err2 = _material_filter(ctx, spec, non, 1)
+    if err1 or err2:
+        why = err1 or err2
+        out.append(f"{TAB}-- [CardForge] 同步素材{why}，未生成 Synchro.AddProcedure；"
+                   f"需人工补写")
+        ctx.note(f"同步素材{why}，脚本未生成召唤流程")
+        return out
+    lo1, hi1 = _part_counts(tuner)
+    lo2, hi2 = _part_counts(non)
+    max1 = hi1 or lo1
+    max2 = hi2 or lo2
+    f2expr = f"Synchro.NonTuner({f2})" if f2 else "Synchro.NonTuner(nil)"
+    _use("Synchro.AddProcedure")
+    _use("Synchro.NonTuner")
+    out.append(f"{TAB}Synchro.AddProcedure(c,{f1 or 'nil'},{lo1},{max1},"
+               f"{f2expr},{lo2},{max2})")
+    out.append(f"{TAB}c:EnableReviveLimit()")
+    return out
 
-    返回空列表 = 该卡种没有召唤流程；素材信息不足时返回**注释行**而不是假代码。
+
+def _xyz_procedure(ctx: LuaCtx, spec: CardSpec, s: SummonSpec) -> list:
+    out: list[str] = []
+    parts = s.parts()
+    out.append(f"{TAB}--超量素材条件")
+    if not parts:
+        out.append(f"{TAB}-- [CardForge] 超量素材条件为空：请在「召唤条件」里填写素材，"
+                   f"未生成 Xyz.AddProcedure")
+        ctx.note("超量素材为空，未生成 Xyz.AddProcedure")
+        return out
+    if len(parts) > 1:
+        out.append(f"{TAB}-- [CardForge] 超量素材只支持一组筛选条件；当前有 "
+                   f"{len(parts)} 段，未生成 Xyz.AddProcedure")
+        ctx.note("超量素材有多段，脚本未生成召唤流程（请合并筛选条件）")
+        return out
+    p = parts[0]
+    f, err = _material_filter(ctx, spec, p, 0)
+    if err:
+        out.append(f"{TAB}-- [CardForge] 超量素材{err}，未生成 Xyz.AddProcedure；"
+                   f"需人工补写")
+        ctx.note(f"超量素材{err}，脚本未生成召唤流程")
+        return out
+    lo, hi = _part_counts(p)
+    lv = spec.effective_level
+    if str(p.kind or "") == "level":
+        lv = int(p.value or lv)
+    elif str(p.kind or "") in ("rank", "name"):
+        lv = None
+    maxct = "Xyz.InfiniteMats" if hi >= 99 else (hi or None)
+    _use("Xyz.AddProcedure")
+    if lv is None:
+        lv_expr = "nil"
+    else:
+        lv_expr = str(int(lv or 0)) if lv else "nil"
+    if maxct:
+        if maxct == "Xyz.InfiniteMats":
+            _use("Xyz.InfiniteMats")
+        call = f"Xyz.AddProcedure(c,{f or 'nil'},{lv_expr},{lo},nil,nil,{maxct})"
+    else:
+        call = f"Xyz.AddProcedure(c,{f or 'nil'},{lv_expr},{lo})"
+    out.append(f"{TAB}{call}")
+    out.append(f"{TAB}c:EnableReviveLimit()")
+    return out
+
+
+def _link_procedure(ctx: LuaCtx, spec: CardSpec, s: SummonSpec) -> list:
+    out: list[str] = []
+    parts = s.parts()
+    out.append(f"{TAB}--连接素材条件")
+    if not parts:
+        out.append(f"{TAB}-- [CardForge] 连接素材条件为空：请在「召唤条件」里填写素材，"
+                   f"未生成 Link.AddProcedure")
+        ctx.note("连接素材为空，未生成 Link.AddProcedure")
+        return out
+    if len(parts) > 1:
+        out.append(f"{TAB}-- [CardForge] 连接素材只支持一组筛选条件；当前有 "
+                   f"{len(parts)} 段，未生成 Link.AddProcedure")
+        ctx.note("连接素材有多段，脚本未生成召唤流程（请合并筛选条件）")
+        return out
+    p = parts[0]
+    f, err = _material_filter(ctx, spec, p, 0)
+    if err:
+        out.append(f"{TAB}-- [CardForge] 连接素材{err}，未生成 Link.AddProcedure；"
+                   f"需人工补写")
+        ctx.note(f"连接素材{err}，脚本未生成召唤流程")
+        return out
+    lo, hi = _part_counts(p)
+    rating = int(spec.effective_level or 0)
+    maxc = hi or lo
+    if hi >= 99:
+        maxc = rating or lo
+    if maxc < lo:
+        maxc = lo
+    special = ""
+    if p.include_link:
+        special = f"s.lchk{ctx.slot}"
+        ctx.add_fn(special, "sg,lc",
+                   "return sg:IsExists(Card.IsType,1,nil,TYPE_LINK)")
+    _use("Link.AddProcedure")
+    extra = f",{special}" if special else ""
+    out.append(f"{TAB}Link.AddProcedure(c,{f or 'nil'},{lo},{maxc}{extra})")
+    out.append(f"{TAB}c:EnableReviveLimit()")
+    return out
+
+
+#: 额外召唤方法：区域 → ``Duel.GetMatchingGroup`` 的两个区域参数
+_METHOD_ZONE_LOC = {
+    "mz": ("LOCATION_MZONE", "LOCATION_MZONE"),
+    "field": ("LOCATION_ONFIELD", "LOCATION_ONFIELD"),
+    "hand": ("LOCATION_HAND", "0"),
+    "gy": ("LOCATION_GRAVE", "0"),
+    "field_gy": ("LOCATION_ONFIELD|LOCATION_GRAVE", "0"),
+    "hand_field": ("LOCATION_HAND|LOCATION_ONFIELD", "0"),
+}
+#: 额外召唤方法：处理动作 → ``(素材可用性谓词, 执行语句)``
+_METHOD_ACTION_LUA = {
+    "banish": ("c:IsAbleToRemoveAsCost()",
+               "Duel.Remove(g,POS_FACEUP,REASON_COST|REASON_MATERIAL)"),
+    "send_gy": ("c:IsAbleToGraveAsCost()",
+                "Duel.SendtoGrave(g,REASON_COST|REASON_MATERIAL)"),
+    "release": ("c:IsFaceup() and c:IsReleasable()",
+                "Duel.Release(g,REASON_COST|REASON_MATERIAL)"),
+    "return_deck": ("c:IsAbleToDeckOrExtraAsCost()",
+                    "Duel.SendtoDeck(g,nil,SEQ_DECKSHUFFLE,"
+                    "REASON_COST|REASON_MATERIAL)"),
+    "return_hand": ("c:IsAbleToHand()",
+                    "Duel.SendtoHand(g,nil,REASON_COST|REASON_MATERIAL)"),
+}
+
+
+def _contact_group_filter(ctx: LuaCtx, spec: CardSpec, s: SummonSpec,
+                          m, idx: int) -> tuple[Optional[str], str]:
+    """``Fusion.AddContactProc`` 的候选素材组过滤函数。
+
+    条件 = 素材行里各段谓词的**或**（组只是候选集，最终由
+    ``CheckFusionMaterial`` 校验所选子集确实满足召唤流程）＋ 能否作为代价处理。
+    """
+    parts = m.item_parts() if not m.use_materials else s.parts()
+    if not parts:
+        return None, "没有可用于接触召唤的素材条件（素材行为空）"
+    exprs: list[str] = []
+    for p in parts:
+        preds, err = _material_predicates(spec, p)
+        if err:
+            return None, f"素材「{p.value or p.kind}」{err}"
+        exprs.append("(" + " and ".join(preds) + ")" if preds else "true")
+    act = _METHOD_ACTION_LUA.get(str(m.action or "banish"))
+    if not act:
+        return None, f"未登记的召唤方法处理动作「{m.action}」"
+    group = "(" + " or ".join(exprs) + ")" if len(exprs) > 1 else exprs[0]
+    body = group + " and " + act[0]
+    if int(m.count_lo or 0) > 0:
+        body += "   -- 数量要求（" + str(m.count_lo) + "只以上）在选择时限定"
+    fname = f"s.cfil{ctx.slot}_{idx}"
+    ctx.add_fn(fname, "c", "return " + body)
+    return fname, ""
+
+
+def _contact_lines(ctx: LuaCtx, spec: CardSpec, s: SummonSpec) -> list:
+    """「以下方法」的脚本：融合卡走 ``Fusion.AddContactProc``。
+
+    官方写法（例：青眼双爆裂龙、冰狱龙 三叉龙、E·HERO 新宇侠·接触融合）：
+    ``Fusion.AddContactProc(c,组过滤,处理,sumcon,condition,SUMMON_TYPE_FUSION)``
+    —— 第 6 个参数把召唤类型标成融合，这样卡文里的「用融合召唤以及以下方法」
+    才能同时通过 ``aux.fuslimit`` 的检查。
+    """
+    out: list[str] = []
+    methods = s.item_methods()
+    if not methods:
+        return out
+    base = spec.frame_def.base
+    zh = {"banish": "除外", "send_gy": "送去墓地", "release": "解放",
+          "return_deck": "回到卡组", "return_hand": "回到手卡"}
+    for i, m in enumerate(methods):
+        label = f"{zh.get(str(m.action or 'banish'), m.action)}"
+        if base != "fusion":
+            out.append(f"{TAB}-- [CardForge] 额外召唤方法（{label}）"
+                       f"目前只有融合卡能自动生成脚本；"
+                       f"{'本卡种' if i == 0 else '第 ' + str(i + 1) + ' 条'}"
+                       f"需人工补写 EFFECT_SPSUMMON_PROC")
+            ctx.note(f"额外召唤方法（{label}）在 {base} 卡种上未生成脚本，"
+                     f"卡文与脚本暂不一致，需人工补写")
+            continue
+        if (m.text_i18n or {}).get("zh_cn") and not m.use_materials \
+                and not m.item_parts():
+            out.append(f"{TAB}-- [CardForge] 额外召唤方法「{label}」只写了文本、"
+                       f"没有结构化素材条件，未生成脚本")
+            ctx.note("额外召唤方法只有文本，脚本未生成")
+            continue
+        fname, err = _contact_group_filter(ctx, spec, s, m, i)
+        if err:
+            out.append(f"{TAB}-- [CardForge] 额外召唤方法（{label}）{err}，"
+                       f"未生成 Fusion.AddContactProc；需人工补写")
+            ctx.note(f"额外召唤方法（{label}）{err}，脚本未生成")
+            continue
+        loc = _METHOD_ZONE_LOC.get(str(m.zone or "mz"), _METHOD_ZONE_LOC["mz"])
+        gname = f"s.cgrp{ctx.slot}_{i}"
+        opname = f"s.ctop{ctx.slot}_{i}"
+        ctx.add_fn(gname, "tp",
+                   f"return Duel.GetMatchingGroup({fname},tp,{loc[0]},{loc[1]},nil)")
+        act = _METHOD_ACTION_LUA[str(m.action or "banish")][1]
+        ctx.add_fn(opname, "g,tp,c", act)
+        _use("Fusion.AddContactProc")
+        out.append(f"{TAB}--额外召唤方法：把上记的卡{label}的接触召唤"
+                   f"（{'不需要「融合」' if m.no_spelling else '仍按融合召唤类型结算'}）")
+        out.append(f"{TAB}Fusion.AddContactProc(c,{gname},{opname},"
+                   f"nil,nil,SUMMON_TYPE_FUSION)")
+    return out
+
+
+_LIMIT_FN = {
+    "fusion": "aux.fuslimit", "synchro": "aux.synlimit", "xyz": "aux.xyzlimit",
+    "link": "aux.lnklimit", "ritual": "aux.ritlimit",
+}
+_LOCK_CODE = {
+    "fusion": "EFFECT_CANNOT_BE_FUSION_MATERIAL",
+    "synchro": "EFFECT_CANNOT_BE_SYNCHRO_MATERIAL",
+    "xyz": "EFFECT_CANNOT_BE_XYZ_MATERIAL",
+    "link": "EFFECT_CANNOT_BE_LINK_MATERIAL",
+}
+
+
+def _restriction_lines(ctx: LuaCtx, spec: CardSpec, s: SummonSpec) -> list:
+    """召唤限制 / 素材锁定的 Lua 注册块（与卡文一一对应）。"""
+    out: list[str] = []
+    if s.cannot_normal_summon:
+        _use("Card.AddCannotBeNormalSummoned")
+        out.append(f"{TAB}--不能通常召唤")
+        out.append(f"{TAB}Card.AddCannotBeNormalSummoned(c)")
+    lock_zh = {"fusion": "融合", "synchro": "同步", "xyz": "超量", "link": "连接"}
+    for lock in s.cannot_be_material or []:
+        code = _LOCK_CODE.get(str(lock))
+        if not code:
+            continue
+        v = f"e_lock_{lock}"
+        out += [
+            f"{TAB}--不能作为{lock_zh.get(str(lock), str(lock))}素材",
+            f"{TAB}local {v}=Effect.CreateEffect(c)",
+            f"{TAB}{v}:SetType(EFFECT_TYPE_SINGLE)",
+            f"{TAB}{v}:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)",
+            f"{TAB}{v}:SetCode({code})",
+            f"{TAB}{v}:SetValue(1)",
+            f"{TAB}c:RegisterEffect({v})",
+        ]
+    if s.limit == "cannot_spsummon":
+        _use("Card.AddCannotBeSpecialSummoned")
+        out.append(f"{TAB}--不能特殊召唤")
+        out.append(f"{TAB}Card.AddCannotBeSpecialSummoned(c)")
+    elif s.limit in ("must_be", "must_be_with_materials"):
+        fn = _LIMIT_FN.get(spec.frame_def.base)
+        if fn:
+            out += [
+                f"{TAB}--召唤条件：只能用本卡种的召唤方式特殊召唤",
+                f"{TAB}local e_sp=Effect.CreateEffect(c)",
+                f"{TAB}e_sp:SetType(EFFECT_TYPE_SINGLE)",
+                f"{TAB}e_sp:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)",
+                f"{TAB}e_sp:SetCode(EFFECT_SPSUMMON_CONDITION)",
+                f"{TAB}e_sp:SetValue({fn})",
+                f"{TAB}c:RegisterEffect(e_sp)",
+            ]
+            if fn.startswith("aux.") and API.is_known(fn):
+                _use(fn)
+    return out
+
+
+def summon_procedure_lines(ctx: LuaCtx, spec: CardSpec) -> list:
+    """灵摆 / 额外卡组 / 仪式的召唤流程（**含素材条件与召唤限制**）。
+
+    数据源是 ``spec.summon``（旧版 ``params['materials']`` 会被
+    :func:`cardforge.content.summon.normalize` 迁移）。信息不足时返回
+    **注释行**而不是「任意怪兽」的假流程。
     """
     out: list[str] = []
     base = spec.frame_def.base
     frame = spec.frame
+    s = S.normalize(spec)
     if spec.is_pendulum:
         _use("Pendulum.AddProcedure")
         out.append(f"{TAB}--灵摆召唤流程（左右刻度编码在 cdb 的 level 字段里，脚本不用写）")
         out.append(f"{TAB}Pendulum.AddProcedure(c)")
     if frame in ("token", "skill"):
         return out
-    if base == "fusion":
-        _use("Fusion.AddProcMix")
-        mats = _material_filter_names(ctx, eff, 2)
-        out.append(f"{TAB}--融合素材条件")
-        if mats:
-            out.append(f"{TAB}Fusion.AddProcMix(c,true,true,{','.join(mats)})")
-        else:
-            out.append(f"{TAB}-- [CardForge] 融合素材条件未写进 IR"
-                       f"（effects[].params['materials']），需人工补写 Fusion.AddProcMix")
-        out.append(f"{TAB}c:EnableReviveLimit()")
-    elif base == "synchro":
-        _use("Synchro.AddProcedure")
-        _use("Synchro.NonTuner")
-        out.append(f"{TAB}--同步素材条件：恰好 1 只协调 + 1 只以上非协调"
-                   f"（新签名 f1,min1,max1,f2,min2,max2；f2 用 NonTuner 保证非协调"
-                   f"不会被协调顶替）")
-        tuner = _material_filter_names(ctx, eff, 1)
-        texpr = tuner[0] if tuner else "nil"
-        out.append(f"{TAB}Synchro.AddProcedure(c,{texpr},1,1,"
-                   f"Synchro.NonTuner(nil),1,99)")
-        out.append(f"{TAB}c:EnableReviveLimit()")
-    elif base == "xyz":
-        _use("Xyz.AddProcedure")
-        ct = int(_param(eff, "count", 2) or 2) if eff else 2
-        out.append(f"{TAB}--超量素材条件：{spec.effective_level} 阶 ×{ct}")
-        out.append(f"{TAB}Xyz.AddProcedure(c,nil,{spec.effective_level},{ct})")
-        out.append(f"{TAB}c:EnableReviveLimit()")
-    elif base == "link":
-        _use("Link.AddProcedure")
-        rating = spec.effective_level or 1
-        out.append(f"{TAB}--连接素材条件：1 只以上、合计等于连接值 {rating}")
-        out.append(f"{TAB}Link.AddProcedure(c,nil,1,{rating})")
-        out.append(f"{TAB}c:EnableReviveLimit()")
-    elif base == "ritual":
-        _use("Ritual.AddProcGreater")
-        mats = _material_filter_names(ctx, eff, 1)
-        out.append(f"{TAB}--仪式召唤流程：祭品等级合计不小于 {spec.effective_level}"
-                   f"（签名 c,filter,lv,desc —— desc 不传，传 0 会让 Lua 当成真值"
-                   f"去 SetDescription(0)）")
-        if mats:
-            out.append(f"{TAB}Ritual.AddProcGreater(c,{mats[0]},{spec.effective_level})")
-        else:
-            out.append(f"{TAB}Ritual.AddProcGreater(c,aux.TRUE,{spec.effective_level})")
-        out.append(f"{TAB}c:EnableReviveLimit()")
     if frame == "spell" and spec.spell_kind == "equip":
         _use("aux.AddEquipProcedure")
         out.append(f"{TAB}--装备魔法：按规则装备（装备目标条件见下面的过滤函数）")
         out.append(f"{TAB}aux.AddEquipProcedure(c,0,s.eqfil{ctx.slot})")
+        return out
+    if base not in ("fusion", "synchro", "xyz", "link", "ritual"):
+        return out
+    if s.limit == "cannot_spsummon":
+        out.append(f"{TAB}-- [CardForge] 这张卡声明「不能特殊召唤」，"
+                   f"本卡种的召唤流程不会生成")
+        ctx.note("召唤条件声明「不能特殊召唤」，未生成召唤流程")
+        out.extend(_restriction_lines(ctx, spec, s))
+        return out
+    if base == "fusion":
+        out.extend(_fusion_procedure(ctx, spec, s))
+    elif base == "synchro":
+        out.extend(_synchro_procedure(ctx, spec, s))
+    elif base == "xyz":
+        out.extend(_xyz_procedure(ctx, spec, s))
+    elif base == "link":
+        out.extend(_link_procedure(ctx, spec, s))
+    elif base == "ritual":
+        _use("Ritual.AddProcGreater")
+        out.append(f"{TAB}--仪式召唤流程：祭品等级合计不小于 {spec.effective_level}"
+                   f"（签名 c,filter,lv,desc —— desc 不传，传 0 会让 Lua 当成真值"
+                   f"去 SetDescription(0)）")
+        out.append(f"{TAB}Ritual.AddProcGreater(c,aux.TRUE,{spec.effective_level})")
+        out.append(f"{TAB}c:EnableReviveLimit()")
+    out.extend(_contact_lines(ctx, spec, s))
+    out.extend(_restriction_lines(ctx, spec, s))
     return out
 
 

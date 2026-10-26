@@ -1,0 +1,5 @@
+问题数: 3
+[WARN] PSCT_EFFECT_COUNT: 单卡效果条数偏多 —— 共 3 条编号效果
+[INFO] PSCT_HOPT_NAME_HINT: 多效果卡只用了「1回合1次」（可被离场重置） —— 检测到「1回合1次」但没有卡名级限制
+[WARN] PSCT_TEXT_TOO_LONG: 卡文长度超过文本框容量估算 —— 估算 10 行，文本框约 8 行（每行约 30 全角字当量）
+真误用例仍拦得住: ['PSCT_RESOLUTION_BEFORE_SEMI']

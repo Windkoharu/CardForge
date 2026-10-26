@@ -208,10 +208,15 @@ class App:
         except OSError as e:
             return error_response(e)
         html = p.suffix.lower() in (".html", ".htm")
-        headers = {"Cache-Control": "no-store" if (html or self.cfg.get("debug"))
+        # 前端代码一律不缓存：实测浏览器对 ``no-cache`` 的 ES 模块经常不回源校验，
+        # 升级后界面还是老样子（召唤条件面板就是被这个坑过一次）。
+        # 本机静态文件总共两百来 KB，不缓存比"用户看到旧界面"便宜得多。
+        fresh = html or p.suffix.lower() in (".js", ".mjs", ".css")
+        headers = {"Cache-Control": "no-store" if (fresh or self.cfg.get("debug"))
                    else "no-cache", "X-Content-Type-Options": "nosniff",
                    "X-Frame-Options": "DENY"}
         if html:
+            data = _stamp_assets(data, self.web_dir)
             # 无框架、无 CDN、无内联脚本；图片要允许本机 ComfyUI 的 /view 端口
             headers["Content-Security-Policy"] = (
                 "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
@@ -383,6 +388,37 @@ def _inside(p: Path, root: Path) -> bool:
         return True
     except Exception:
         return False
+
+
+def _asset_stamp(web_dir: Path) -> str:
+    """web/ 下最新前端文件的指纹（mtime+大小）。
+
+    浏览器对 ``Cache-Control: no-cache`` 的 ES 模块**未必**回源校验（实测会拿
+    旧副本），升级后就会出现「界面还是老样子」。所以 index.html 里的 css/js
+    都带 ``?v=``，前端一改版本号就变，用户刷新即拿到新代码。
+    """
+    best = 0
+    size = 0
+    try:
+        for f in web_dir.rglob("*"):
+            if f.suffix.lower() not in (".js", ".css", ".html") or not f.is_file():
+                continue
+            st = f.stat()
+            if st.st_mtime_ns > best:
+                best, size = st.st_mtime_ns, st.st_size
+    except OSError:
+        return "0"
+    return format(best, "x")[-8:] + format(size, "x")[-5:]
+
+
+def _stamp_assets(data: bytes, web_dir: Path) -> bytes:
+    """把 index.html 里的 ``{{ASSET_V}}`` 换成实时版本号。"""
+    if b"{{ASSET_V}}" not in data:
+        return data
+    try:
+        return data.replace(b"{{ASSET_V}}", _asset_stamp(web_dir).encode("ascii"))
+    except Exception:
+        return data
 
 
 def _static_lookup(root: Path, rel: str) -> Optional[Path]:

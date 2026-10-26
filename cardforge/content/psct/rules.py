@@ -447,6 +447,44 @@ TRIGGER_PHRASES: dict[str, dict[str, str]] = {
                       "en": "During the Standby Phase"},
     "EQUIP_RELATED": {"zh_cn": "这张卡被装备时", "ja": "このカードが装備された時",
                       "en": "When this card is equipped"},
+    "OPPONENT_ACTIVATE_MONSTER": {"zh_cn": "对方把怪兽的效果发动时",
+                                  "ja": "相手がモンスターの効果を発動した時",
+                                  "en": "When your opponent activates a monster effect"},
+}
+#: 「表侧表示」限定（官方：「以对方场上1张表侧表示的卡为对象」）——
+#: 作为**前缀**接在宾语短语前面（种族/属性等条件保留）。
+FACEUP_WORDS: dict[str, str] = {
+    "zh_cn": "表侧表示的", "ja": "表側表示の", "en": "face-up",
+}
+#: 诱发即时效果的收尾句（官方简中：「这个效果在对方回合也能发动。」）
+QUICK_EFFECT_SENTENCE: dict[str, str] = {
+    "zh_cn": "这个效果在对方回合也能发动",
+    "ja": "この効果は相手ターンでも発動できる",
+    "en": "This is a Quick Effect",
+}
+#: 「战斗·效果破坏」那类破坏方式限定（配合 ``params['destroyed_by']``）。
+#: 每项 = ``(when 档, if 档)``；官方简中区分「…时」与「…的场合」。
+DESTROYED_BY_PHRASES: dict[str, dict[str, tuple[str, str]]] = {
+    "battle_effect": {
+        "zh_cn": ("这张卡被战斗·效果破坏时", "这张卡被战斗·效果破坏的场合"),
+        "ja": ("このカードが戦闘・効果で破壊された時",
+               "このカードが戦闘・効果で破壊された場合"),
+        "en": ("When this card is destroyed by battle or card effect",
+               "If this card is destroyed by battle or card effect"),
+    },
+    "battle": {
+        "zh_cn": ("这张卡被战斗破坏时", "这张卡被战斗破坏的场合"),
+        "ja": ("このカードが戦闘で破壊された時", "このカードが戦闘で破壊された場合"),
+        "en": ("When this card is destroyed by battle",
+               "If this card is destroyed by battle"),
+    },
+    "effect": {
+        "zh_cn": ("这张卡被效果破坏时", "这张卡被效果破坏的场合"),
+        "ja": ("このカードがカードの効果で破壊された時",
+               "このカードがカードの効果で破壊された場合"),
+        "en": ("When this card is destroyed by card effect",
+               "If this card is destroyed by card effect"),
+    },
 }
 #: 触发时点缺失时（E04）用于判断"该写时点却没写"
 TRIGGER_MARKERS: dict[str, tuple[str, ...]] = {
@@ -673,6 +711,10 @@ EFFECT_TEMPLATES: dict[str, dict[str, Any]] = {
                  "negate the activation, and if you do, destroy it"),
     "negate_effect": _t("那个效果无效化", "その効果を無効にする|無効にし",
                         "negate its effects"),
+    # 无效**场上某张卡**的效果（对象是卡本身，不是连锁上的发动）
+    "negate_card": _t("{obj}的效果直到回合结束时无效",
+                      "{obj}の効果はターン終了時まで無効になる|効果はターン終了時まで無効になり",
+                      "negate the effects of {obj} until the end of the turn"),
     "cannot_activate": _t("不能发动", "発動できない", "cannot be activated"),
     # ── 数值 / 表示形式 / 控制权 ────────────────────────────────
     "gain_atk": _t("{obj}的攻击力上升{n}", "{obj}の攻撃力を{n}アップする|アップし",
@@ -786,9 +828,56 @@ TARGET_REF_KINDS: tuple[str, ...] = (
     "destroy", "banish", "banish_face_down", "send_grave", "return_hand",
     "return_deck", "gain_atk", "lose_atk", "set_atk", "gain_def", "set_def",
     "change_position", "take_control", "place_counter", "negate_effect",
+    "negate_card",
     "shuffle_deck", "cannot_attack", "cannot_be_destroyed", "unaffected",
     "cannot_be_targeted", "direct_attack",
+    # 检索/回收/特召这类「先取对象、处理段用代词」的句式：官方写
+    # 「…为对象才能发动。**那只怪兽**加入手卡。」而不是把宾语短语重抄一遍
+    # （简中库「那只怪兽」2756 张）。以前漏了这几个种类，处理段会重述宾语，
+    # 于是「1只「X」怪兽」在整句里出现两次，读起来就不是官方味道。
+    "search", "search_grave", "search_banished", "recover",
+    "ssummon_grave", "ssummon_hand", "to_hand", "special_summon",
 )
+
+#: **不取对象**、在处理时才「选」卡的效果句式（官方简中用「选」而不是「把」）。
+#: 配合 ``params['select']=True`` 使用（此时 ``target`` 只描述范围）。
+SELECT_TEMPLATES: dict[str, dict[str, Any]] = {
+    "ssummon_grave": _t("从自己{zone}选{obj}特殊召唤",
+                        "自分{zone}から{obj}を選んで特殊召喚する",
+                        "Special Summon {obj} from your {zone}"),
+    "ssummon_deck": _t("从自己{zone}选{obj}特殊召唤",
+                       "自分{zone}から{obj}を選んで特殊召喚する",
+                       "Special Summon {obj} from your {zone}"),
+    "ssummon_hand": _t("从自己{zone}选{obj}特殊召唤",
+                       "自分{zone}から{obj}を選んで特殊召喚する",
+                       "Special Summon {obj} from your {zone}"),
+    "ssummon_banished": _t("从自己{zone}选{obj}特殊召唤",
+                           "自分{zone}から{obj}を選んで特殊召喚する",
+                           "Special Summon {obj} from your {zone}"),
+    "search": _t("从自己{zone}选{obj}加入手卡",
+                 "自分{zone}から{obj}を選んで手札に加える",
+                 "Add {obj} from your {zone} to your hand"),
+    "search_grave": _t("从自己{zone}选{obj}加入手卡",
+                       "自分{zone}から{obj}を選んで手札に加える",
+                       "Add {obj} from your {zone} to your hand"),
+    "recover": _t("从自己{zone}选{obj}加入手卡",
+                  "自分{zone}から{obj}を選んで手札に加える",
+                  "Add {obj} from your {zone} to your hand"),
+    "destroy": _t("把{obj}破坏", "{obj}を破壊する", "destroy {obj}"),
+    "banish": _t("把{obj}除外", "{obj}を除外する", "banish {obj}"),
+}
+#: 各种族/区域名（「选」句式里区域词的多语言）
+SELECT_ZONE_WORDS: dict[str, dict[str, str]] = {
+    "GRAVE": {"zh_cn": "墓地", "ja": "墓地", "en": "GY"},
+    "DECK": {"zh_cn": "卡组", "ja": "デッキ", "en": "Deck"},
+    "HAND": {"zh_cn": "手卡", "ja": "手札", "en": "hand"},
+    "REMOVED": {"zh_cn": "除外区", "ja": "除外ゾーン", "en": "banishment"},
+    "EXTRA": {"zh_cn": "额外卡组", "ja": "ＥＸデッキ", "en": "Extra Deck"},
+    "FIELD": {"zh_cn": "场上", "ja": "フィールド", "en": "field"},
+    "MZONE": {"zh_cn": "怪兽区域", "ja": "モンスターゾーン", "en": "monster zone"},
+    "SZONE": {"zh_cn": "魔法与陷阱区域", "ja": "魔法・罠ゾーン",
+              "en": "Spell & Trap Zone"},
+}
 
 #: 目标从句的收尾（英文 ``target`` 之后不加东西）
 TARGET_TAIL: dict[str, str] = {"zh_cn": "", "ja": "", "en": ""}
@@ -797,20 +886,72 @@ TARGET_TAIL: dict[str, str] = {"zh_cn": "", "ja": "", "en": ""}
 # ══════════════════════════════════════════════════════════════════════
 #  10. 词表（linter 用）
 # ══════════════════════════════════════════════════════════════════════
-#: 民间误译 → 官方简中（A7.1 / B3.2 / B3.3）
-FOLK_TERMS: tuple[tuple[str, str, str], ...] = (
-    ("同调", "同步", "「同调」是民间译名，官方简中为「同步」（Synchron→同步召唤）。"),
-    ("XYZ", "超量", "「XYZ」是民间写法，官方简中为「超量」（Xyz→超量召唤/阶级）。"),
-    ("xyz", "超量", "「xyz」是民间写法，官方简中为「超量」。"),
-    ("链接", "连接", "「链接」是民间译名，官方简中为「连接」（Link→连接召唤）。"),
-    ("调整", "协调", "「调整」是民间译名，官方简中为「协调」（Tuner→协调）。"),
-    ("同盟", "联合", "「同盟」是民间译名，官方简中为「联合」（Union→联合）。"),
-    ("祭品", "解放", "「祭品」是旧译/繁中用法，官方简中为「解放」（Tribute/Release→解放）。"),
-    ("翻转", "反转", "「翻转」是民间译名，官方简中为「反转」（Flip→反转）。"),
-    ("双面", "二重", "「双面」是民间译名，官方简中为「二重」（Gemini→二重）。"),
-    ("多维", "超量", "「多维」是民间译名，官方简中为「超量」。"),
-    ("牌组", "卡组", "官方界面用「牌组」、规则书与卡文用「卡组」；卡文里统一写「卡组」。"),
-    ("祭品召唤", "上级召唤", "官方简中为「上级召唤」（Tribute Summon）。"),
+@dataclass(frozen=True)
+class FolkTerm:
+    """一条「民间/繁中写法 → 官方简中写法」的裁决。
+
+    :param langs: **这条裁决只对哪些语言成立**。术语方向是跟着代理版本走的：
+        简中官方写「同调／调整」，繁中官方写「同步／协调」，
+        同一对词在两种语言里方向正好相反 —— 所以不能像以前那样
+        把 zh_cn 与 zh_tw 混在一行里判。
+    :param level: ``WARN`` 是现行官方不这么写；``INFO`` 是
+        **旧卡原文里合法**（官方库里就有），只是新卡建议按现行写法。
+    """
+
+    bad: str
+    good: str
+    why: str
+    langs: tuple[str, ...] = ("zh_cn",)
+    level: str = "WARN"
+
+
+#: 民间/繁中误译 → 官方简中。**方向以 ``vendor/data/cards_zh.cdb``
+#: （15019 张官方简中卡文）实测为准**，不是以民间习惯或繁中为准：
+#:
+#: ==========================  ======  ======  =====================================
+#: 词                          简中库   繁中库   结论
+#: ==========================  ======  ======  =====================================
+#: 同调 / 同步                  991 / 0   —      简中官方是**同调**
+#: 调整 / 协调                  807 / 0   —      简中官方是**调整**
+#: 连接 / 链接                  819 / 0   —      简中官方是连接
+#: 超量 / XYZ                1256 / 4(卡名)  —   XYZ 只出现在卡名里
+#: 反转 / 翻转                592 / 1     —      「翻转」那 1 张是普通用语（见下）
+#: 卡组 / 牌组               5895 / 0     —      卡文统一写卡组
+#: ==========================  ======  ======  =====================================
+#:
+#: 历史缺陷：本表原先把「同调→同步」「调整→协调」两条**方向写反**，
+#: 于是把用户写对的简中卡文报成"民间误译"，还会在整理时把「同调」改成「同步」。
+FOLK_TERMS: tuple[FolkTerm, ...] = (
+    FolkTerm("同步", "同调",
+             "「同步」是繁中/民间译名，**官方简中为「同调」**"
+             "（简中卡文库 991 张用「同调」、「同步」0 张）。"),
+    FolkTerm("协调", "调整",
+             "「协调」是繁中/民间译名，**官方简中为「调整」**"
+             "（简中卡文库 807 张用「调整」、「协调」0 张）。"),
+    FolkTerm("XYZ", "超量",
+             "「XYZ」是民间写法，官方简中为「超量」（Xyz→超量召唤/阶级）。"
+             "注意卡名里的 XYZ 是名字的一部分，校验器已先剥掉引号内容再判。"),
+    FolkTerm("xyz", "超量", "「xyz」是民间写法，官方简中为「超量」。"),
+    FolkTerm("链接", "连接", "「链接」是民间译名，官方简中为「连接」（Link→连接召唤）。"),
+    FolkTerm("同盟", "联合", "「同盟」是民间译名，官方简中为「联合」（Union→联合）。"),
+    FolkTerm("双面", "二重", "「双面」是民间译名，官方简中为「二重」（Gemini→二重）。"),
+    FolkTerm("多维", "超量", "「多维」是民间译名，官方简中为「超量」。"),
+    FolkTerm("牌组", "卡组",
+             "官方界面叫「牌组」，但规则书与卡文统一写「卡组」——"
+             "卡文里出现「牌组」应归一为「卡组」（简中库 5895 / 0）。"),
+    FolkTerm("祭品召唤", "上级召唤", "官方简中为「上级召唤」（Tribute Summon）。"),
+    FolkTerm("祭品", "解放",
+             "现行官方简中写「解放」；但**旧卡原文确实写「作为祭品」**"
+             "（简中库 114 张），所以这条只是建议，不算错。",
+             level="INFO"),
+    # 「翻转」不能整词判：官方库里那 1 张是「把卡组上下翻转过来」——普通用语，
+    # 不是 Flip 效果。所以只在**反转效果的上下文**里提示。
+    FolkTerm("这张卡翻转", "这张卡反转",
+             "Flip 效果的官方简中是「反转」；「这张卡翻转的场合」是旧译写法。"),
+    FolkTerm("翻转的场合", "反转的场合",
+             "Flip 效果的官方简中是「反转」。"),
+    FolkTerm("翻转效果", "反转效果",
+             "Flip 效果的官方简中是「反转」。"),
 )
 
 #: 旧术语残留（PSCT 变更史，A7.1）：出现即提示归一化
@@ -885,6 +1026,24 @@ QUICK_EFFECT_MARKERS: dict[str, tuple[str, ...]] = {
     "en": ("(Quick Effect)", "during either player's turn"),
 }
 
+#: 代价句式（用于「处理动词位置」检查前先把代价摘掉）。
+#: 中日文没有分号，代价与处理动词共用同一批词（送去墓地／除外／解放…），
+#: 只有「它出现在『才能发动』之前并且构成把…送去墓地这类代价」才能区分。
+COST_SHAPE_RE: dict[str, str] = {
+    "zh_cn": r"(?:从|把)[^。；;]{0,28}?(?:送去墓地|除外|解放|丢弃|舍弃|回到卡组|"
+             r"回到手卡|回到额外卡组)|支付\s*[０-９\d]+\s*点[^。；;]{0,6}",
+    "ja": r"(?:自分|相手)?[^。；;]{0,28}?(?:墓地へ送り|墓地へ送って|除外し|除外して|"
+          r"リリースし|リリースして|捨て|捨てて|デッキに戻し|手札に戻し)|"
+          r"[０-９\d]+\s*[ＬP]*P?を払い",
+}
+#: 被动触发条件（「这张卡被战斗·效果破坏的场合」）—— 处理动词出现在这里
+#: 是**时点**，不是把结果写进了发动条件；中日文靠「被／で破壊され」分辨。
+CONDITION_SHAPE_RE: dict[str, str] = {
+    "zh_cn": r"被[^。；;]{0,16}?(?:破坏|除外|送去墓地|回到卡组|回到手卡)",
+    "ja": r"[^。；;]{0,16}?(?:で破壊され|で除去され|で除外され|墓地へ送られ"
+          r"|手札に戻され|デッキに戻られ)",
+}
+
 #: 效果**处理**动词（报告 A8.1 E03）—— 这些是「结果」，只能出现在分号之后
 #: （英文）/ 发动之后（中日文，靠语序）。写在分号之前 = 把处理塞进了发动条件。
 RESOLUTION_VERBS: dict[str, tuple[str, ...]] = {
@@ -898,7 +1057,9 @@ RESOLUTION_VERBS: dict[str, tuple[str, ...]] = {
 #: 内置特殊召唤（召唤手续）的标记（报告 A8.1 E28）——
 #: 必须带「（从〜）」来源括号，否则无法判断能否被「无效召唤」类卡片无效。
 BUILTIN_SS_MARKERS: dict[str, tuple[str, ...]] = {
-    "zh_cn": ("可以把自己", "可以把自己场上", "特殊召唤。"),
+    # 「特殊召唤。」单独作为标记会把「不能特殊召唤。」「才能特殊召唤。」
+    # 这类召唤限制/条件也当成内置特召（历史误报）。只保留明确的主动写法。
+    "zh_cn": ("可以把自己", "可以把自己场上", "可以特殊召唤。"),
     "ja": ("自分フィールド", "特殊召喚する。"),
     "en": ("You can Special Summon this card", "Special Summon this card"),
 }
@@ -957,8 +1118,20 @@ EFFECT_COUNT_ERROR = 4
 # ══════════════════════════════════════════════════════════════════════
 #  11. 校验规则清单（lint.py 的 RULES 就取这里）
 # ══════════════════════════════════════════════════════════════════════
+def _plain(text: Any) -> str:
+    """去掉 Markdown 强调星号。
+
+    规则表里的 ``**取对象**`` 是给**读源码的人**看的；界面把 hint/message 当纯文本
+    渲染，星号就原样漏到屏幕上（实测：「这类**结果**一律写分号右侧」）。
+    反引号保留 —— 它在纯文本里正好当代码引号用。
+    """
+    s = str(text or "")
+    return s.replace("**", "").replace("__", "")
+
+
 def _rule(code: str, level: str, message: str, hint: str, **extra: Any) -> dict:
-    d = {"code": code, "level": level, "message": message, "hint": hint}
+    d = {"code": code, "level": level,
+         "message": _plain(message), "hint": _plain(hint)}
     d.update(extra)
     return d
 
@@ -1154,6 +1327,11 @@ LINT_RULES: list[dict] = [
           "该语言的卡文为空",
           "调用 psct.compose() 生成，或手工补写。",
           source="接口契约 §3.2"),
+    _rule("PSCT_SUMMON_LINE_MISSING", "WARN",
+          "额外卡组/仪式卡文的第一行不是素材行或降临行",
+          "官方版式要求素材行（「A」＋「B」/「X」怪兽×N）或仪式降临行写在"
+          "编号效果之前。点「生成」重新投影，或手工补在第一行。",
+          source="官方卡文版式：素材行先于 ①② 效果"),
     _rule("PSCT_PENDULUM_NO_EFFECT", "INFO",
           "灵摆卡的灵摆效果框为空",
           "灵摆卡通常有独立的灵摆效果文本；灵摆效果与怪兽效果的编号各自另起。",
@@ -1226,10 +1404,12 @@ __all__ = [
     "EFFECT_TEMPLATES", "RISKY_KINDS", "CONTINUOUS_KINDS", "RULE_TEXT_KINDS",
     "SUMMON_KINDS",
     "NON_TARGETING_KINDS", "BULLET_QUALIFIERS", "TARGET_REF_KINDS", "TARGET_TAIL",
-    "FOLK_TERMS", "OLD_TERMS_EN", "RISKY_TEXT_PATTERNS", "LIMIT_MARKERS",
+    "SELECT_TEMPLATES", "SELECT_ZONE_WORDS", "FACEUP_WORDS",
+    "QUICK_EFFECT_SENTENCE", "DESTROYED_BY_PHRASES",
+    "FOLK_TERMS", "FolkTerm", "OLD_TERMS_EN", "RISKY_TEXT_PATTERNS", "LIMIT_MARKERS",
     "TIMING_RE", "QUOTE_PAIRS", "STAT_WORDS", "TEXT_BOX",
     "RULE_TEXT_MARKERS", "QUICK_EFFECT_MARKERS",
-    "RESOLUTION_VERBS", "BUILTIN_SS_MARKERS", "SS_ORIGIN_PARENS",
+    "RESOLUTION_VERBS", "COST_SHAPE_RE", "CONDITION_SHAPE_RE", "BUILTIN_SS_MARKERS", "SS_ORIGIN_PARENS",
     "HERO_CASE", "HERO_CASE_EXCEPTIONS",
     "EFFECT_COUNT_WARN", "EFFECT_COUNT_ERROR",
     "LINT_RULES", "rule_codes", "rule",

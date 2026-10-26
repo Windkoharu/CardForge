@@ -1,0 +1,30 @@
+cardforge/content/psct/rules.py:1: """PSCT 规则表 —— **生成器与校验器共用的唯一规则来源**。
+cardforge/content/psct/rules.py:6: 规则，否则"生成器写出来的东西被自己的校验器判错"是必然的。本模块只放**数据与
+cardforge/content/psct/rules.py:28: 与调研报告 B1.2 支持；但"日文是否绝对不用分号"调研报告标注为**未找到明文规定**
+cardforge/content/psct/rules.py:89: """1 → ``①``。21–35 用扩展编号；越界时返回 ``(n)`` 形式，**不抛异常**。"""
+cardforge/content/psct/rules.py:153: """取语言风格；未知语言按英文处理（**不抛异常**）。"""
+cardforge/content/psct/rules.py:637: return {"zh_cn": zh_cn, "ja": ja, "en": en, **meta}
+cardforge/content/psct/rules.py:1045: def _rule(code: str, level: str, message: str, hint: str, **extra: Any) -> dict:
+cardforge/content/psct/rules.py:1075: "①②③ 是**段落起始标记**：每条效果独占一段，编号写在段首。"
+cardforge/content/psct/rules.py:1129: "「加入手卡／特殊召唤／破坏／抽卡」这类**结果**一律写分号右侧（英文），"
+cardforge/content/psct/rules.py:1185: "then 表示「A 是 B 的前提」且**会挡住 WHEN 触发**；"
+cardforge/content/psct/rules.py:1225: "`●A ●B` 两者都未写时会被解析为**各自另开连锁**；"
+cardforge/content/psct/rules.py:1235: "「不能通常召唤」「不能特殊召唤」这类属**效果外文本**，"
+cardforge/content/design.py:1: """设计辅助与平衡审计 —— G1 / G4 的**确定性**判定核心。
+cardforge/content/design.py:24: * **字段名查重**：Cipher Soldier（2004）因名字含 "Cipher" 被 16 年后的
+cardforge/content/design.py:196: """**单个**筛选条件（主条件或附加条件）的可执行性检查。"""
+cardforge/content/effects.py:1: """效果 DSL 注册表 —— 效果 IR（:class:`~cardforge.core.models.EffectSpec`）的**唯一词表**。
+cardforge/content/effects.py:9: 3. **注册表只描述"能不能"，不描述"怎么写 Lua"。** 具体脚本片段在
+cardforge/content/effects.py:72: # ``params["continuous"] = True`` 表示这条效果**不入连锁**（永续效果 / 装备效果 /
+cardforge/content/effects.py:147: """按官方写法是否**取对象**（见 ``psct.rules.NON_TARGETING_KINDS``）。"""
+cardforge/content/effects.py:391: """校验**一条**效果 IR，返回问题列表（合法时为空列表）。
+cardforge/content/effects.py:903: """``src[pos]`` 的圈数字是**段落起始标记**，还是「这个卡名的①②的效果」这种行内引用。
+cardforge/content/effects.py:1132: """卡文 → 效果 IR（**纯规则/关键词推断，不依赖 LLM**）。
+cardforge/content/lua/lint.py:5: G2 要求"Lua 语法解析"，但部署环境**不保证有 luac**（跨平台、零安装是本项目硬要求）。
+cardforge/content/lua/lint.py:251: "以 **UTF-8 无 BOM** 保存（带 BOM 事后不可补救）"))
+cardforge/pipeline/gates.py:16: 依赖缺失时：门返回 ``status="skipped"`` 并把原因写进 ``degraded`` —— **绝不假装通过**。
+cardforge/pipeline/gates.py:146: hint="以 UTF-8 **无 BOM** 重新保存"))
+cardforge/pipeline/gates.py:365: """强制放行某条 issue —— **必须填理由**，理由会写进审计报告。"""
+cardforge/pipeline/gates.py:411: lines.append(f"- **降级说明**：{report.degraded}")
+cardforge/content/summon.py:1: """召唤条件 —— 额外卡组 / 仪式的**素材行 + 召唤限制**。
+TOTAL 29

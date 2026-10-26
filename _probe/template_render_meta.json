@@ -1,0 +1,23 @@
+{
+  "positive": "A highly atmospheric anime illustration in a cinematic key-visual style, rendered with clean lineart and soft cel shading, painted for a trading card artwork. 厚涂与硬边结合，鳞片层次清晰，暖色高对比. The subject of the artwork is: 圣痕的龙骑士 露米艾尔：一头巨大的红鳞西方龙，双翼完全展开，长颈向下扭转，张口朝镜头蓄聚一团炽白光球，牙齿与口腔内部是画面最亮处，鳞片边缘被自身的光映出暖色反光. It is depicted as warrior, armored, weapon, solo, 1monster, warm red and orange palette, embers, heat haze. The composition is a single centred subject framed for a square trading-card artwork window (aspect ratio 1.0004), with the whole figure inside the frame and generous empty space around it so nothing is cut off by the window edge. The lighting is exactly as described above, with no additional default dramatic or rim lighting. The frame contains absolutely no text, no lettering, no numbers, no signature, no watermark and no logo; there is no card border, no frame and no UI overlay; only one single subject is shown, centred, with clean empty space around it.",
+  "negative": "text, watermark, signature, username, logo, artist name, border, frame, letterboxed, multiple views, character sheet, lowres, worst quality, low quality, blurry, jpeg artifacts, copyright name, web address, url, speech bubble, caption, card, card (medium), trading card, reference sheet, collage, split screen, 2girls, 2boys, multiple characters, cropped, out of frame",
+  "prompt_mode": "原文直送",
+  "untranslated": [],
+  "user_input": {
+    "subject": "圣痕的龙骑士 露米艾尔：一头巨大的红鳞西方龙，双翼完全展开，长颈向下扭转，张口朝镜头蓄聚一团炽白光球，牙齿与口腔内部是画面最亮处，鳞片边缘被自身的光映出暖色反光",
+    "style": "厚涂与硬边结合，鳞片层次清晰，暖色高对比",
+    "background": "火山岩柱与熔岩裂缝的暗色洞窟，光只从龙口一处来，背景压暗",
+    "extra_positive": "",
+    "extra_negative": ""
+  },
+  "model": "krea2_turbo_bf16.safetensors",
+  "clip": "qwen3vl_4b_fp8_scaled.safetensors",
+  "seed": 20261027,
+  "width": 832,
+  "height": 832,
+  "steps": 8,
+  "cfg": 1.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "prompt_id": "4c30564e-9ed7-43ab-baee-9bdafd8944d9"
+}

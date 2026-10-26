@@ -1,0 +1,4 @@
+G1: warn 2 项告警 degraded=
+   [WARN] G1_EFFECT_COUNT_WARN: 效果条数 3 条，超出官方建议的 2 条
+   [WARN] G1_HOPT_NAME_HINT: 多效果卡建议使用「这个卡名」级别的 HOPT
+G2: pass 全部通过 degraded=

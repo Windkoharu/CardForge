@@ -1,0 +1,8 @@
+written: True
+3 Warrior monsters including a "圣痕" monster
+Cannot be used as Fusion Material.
+Must be Fusion Summoned or Special Summoned by the following method.
+● Special Summon this card from your Extra Deck by banishing the above cards from your field.
+① Once per turn: You can target 1 face-up card your opponent controls; the effects of it are negated until the end of the turn. This is a Quick Effect.
+② Once per turn, when your opponent activates a monster effect: You can send 1 Warrior monster in your Deck to the GY; negate the activation, and if you do, destroy it.
+③ If this card is destroyed by battle or card effect: You can Special Summon 1 Warrior monster other than "圣痕龙骑士 露米艾尔" from your GY.

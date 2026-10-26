@@ -1,0 +1,28 @@
+steps=900 turns=26 errors=[]
+IDLE 提示共 62 次
+
+被测卡出现在 IDLE 列表里的次数：2
+  turn=5 keys=['activate', 'all', 'answer', 'can_shuffle', 'event', 'id', 'layout', 'monster_set', 'player', 'raw', 'repos', 'retry_key', 'spell_set', 'spsummon', 'summon', 'to_battle', 'to_end'] summon=[] spsummon=[210000021, 210000021, 210000021, 210000021, 210000021, 210000021, 210000021, 210000021, 210000021]
+  turn=25 keys=['activate', 'all', 'answer', 'can_shuffle', 'event', 'id', 'layout', 'monster_set', 'player', 'raw', 'repos', 'retry_key', 'spell_set', 'spsummon', 'summon', 'to_battle', 'to_end'] summon=[] spsummon=[210000021, 210000021, 210000021, 210000021, 210000021, 210000021, 210000021, 210000021]
+
+前 3 次 IDLE 快照：
+  {'summon': [2602411, 210000041, 210000041], 'spsummon': [], 'monster_set': [2602411, 210000041, 210000041], 'spell_set': [56889, 4230620], 'activate': [4230620], 'keys': ['activate', 'all', 'answer', 'can_shuffle', 'event', 'id', 'layout', 'monster_set', 'player', 'raw', 'repos', 'retry_key', 'spell_set', 'spsummon', 'summon', 'to_battle', 'to_end'], 'turn_player': 0, 'turn': 1}
+  {'summon': [2602411, 210000041, 210000041], 'spsummon': [], 'monster_set': [2602411, 210000041, 210000041], 'spell_set': [56889], 'activate': [], 'keys': ['activate', 'all', 'answer', 'can_shuffle', 'event', 'id', 'layout', 'monster_set', 'player', 'raw', 'repos', 'retry_key', 'spell_set', 'spsummon', 'summon', 'to_battle', 'to_end'], 'turn_player': 0, 'turn': 1}
+  {'summon': [2602411, 210000041, 210000041], 'spsummon': [], 'monster_set': [2602411, 210000041, 210000041], 'spell_set': [], 'activate': [], 'keys': ['activate', 'all', 'answer', 'can_shuffle', 'event', 'id', 'layout', 'monster_set', 'player', 'raw', 'repos', 'retry_key', 'spell_set', 'spsummon', 'summon', 'to_battle', 'to_end'], 'turn_player': 0, 'turn': 1}
+
+位置移动 57 条；涉及被测卡/素材的：
+  turn=3 code=210000041 from=None to=4
+  turn=5 code=210000041 from=None to=4
+  turn=5 code=210000041 from=None to=32
+  turn=5 code=210000041 from=None to=32
+  turn=5 code=210000041 from=None to=32
+  turn=5 code=210000021 from=None to=4
+  turn=7 code=210000041 from=None to=4
+  turn=9 code=210000021 from=None to=16
+  turn=12 code=210000021 from=None to=32
+  turn=17 code=210000041 from=None to=4
+  turn=25 code=210000041 from=None to=4
+  turn=25 code=210000041 from=None to=32
+  turn=25 code=210000041 from=None to=32
+  turn=25 code=210000041 from=None to=32
+  turn=25 code=210000021 from=None to=4

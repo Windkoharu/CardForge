@@ -461,6 +461,12 @@ def generate(req: ArtRequest, card: CardSpec | None = None,
         "model": name, "clip": clip, "vae": vae,
         "positive": pr["positive"], "negative": pr["negative"],
         "style_tags": pr["style_tags"], "series_style": pr["series_style"],
+        # 提示词保真台账：这张图的提示词是「原文直送」还是「词典翻译」、
+        # 有没有用户的词没能进去 —— 事后能不能复查，全看这三行。
+        "prompt_mode": pr.get("prompt_mode", ""),
+        "untranslated": pr.get("untranslated", []),
+        "user_input": pr.get("user_input", {}),
+        "prompt_structure": pr.get("structure", {}),
         "loras": list(getattr(req, "loras", [])), "seed": seed,
         "width": width, "height": height, "steps": steps, "cfg": cfg,
         "sampler": sampler, "scheduler": scheduler,
@@ -606,6 +612,10 @@ def generate_layers(req: ArtRequest, card: CardSpec | None = None,
             "negative_background": pr["background"]["negative"],
             "negative_subject": pr["subject"]["negative"],
             "style_tags": pr["style_tags"], "series_style": pr["series_style"],
+            "prompt_mode": pr.get("prompt_mode", ""),
+            "untranslated": pr.get("untranslated", []),
+            "user_input": pr.get("user_input", {}),
+            "prompt_structure": pr.get("structure", {}),
             "preset": "t2i_layers", "request": req.to_dict(),
             "notes": pr["notes"]}
     if dry_run:
@@ -863,7 +873,8 @@ def export_workflow(preset: str, path: str, *, profile: str = "auto",
                     spec: CardSpec | None = None, host: str = DEFAULT_HOST,
                     request: ArtRequest | None = None,
                     submit: bool = False,
-                    images: dict | None = None) -> str:
+                    images: dict | None = None,
+                    info: dict | None = None) -> str:
     """导出**可直接导入 ComfyUI** 的工作流 JSON（UI 格式），并在同目录写说明。
 
     :param preset: :data:`cardforge.art.presets.PRESETS` 的键。
@@ -905,8 +916,19 @@ def export_workflow(preset: str, path: str, *, profile: str = "auto",
     if preset == "character_sheet":
         width = int(defaults.get("width", 1536))
         height = int(defaults.get("height", 1024))
-        pr["positive"] = str(defaults.get("positive") or pr["positive"])
-        pr["negative"] = str(defaults.get("negative") or pr["negative"])
+        # 预设里那段是「三视图版式指令」，**不是**提示词替代品 —— 老写法直接
+        # 覆盖，用户写的主体就被整段丢掉了。现在把它**追加**到编译结果后面，
+        # 版式与主体各自都在；负向同理取并集而不是替换。
+        sheet = str(defaults.get("positive") or "").strip()
+        if sheet and sheet.lower() not in pr["positive"].lower():
+            pr["positive"] = (pr["positive"].rstrip(". ") + ". " + sheet
+                              if pr["positive"] else sheet)
+        sheet_neg = str(defaults.get("negative") or "").strip()
+        if sheet_neg:
+            have = {t.strip().lower() for t in pr["negative"].split(",")}
+            add = [t.strip() for t in sheet_neg.split(",")
+                   if t.strip() and t.strip().lower() not in have]
+            pr["negative"] = ", ".join(([pr["negative"]] if pr["negative"] else []) + add)
 
     steps = int(req.steps or prof.steps)
     cfg = float(req.cfg or prof.cfg)
@@ -984,7 +1006,15 @@ def export_workflow(preset: str, path: str, *, profile: str = "auto",
         "warnings": list(g.warnings),
         "positive": pr["positive"],
         "negative": pr["negative"],
+        "prompt_mode": pr.get("prompt_mode", ""),
+        "untranslated": pr.get("untranslated", []),
+        "user_input": pr.get("user_input", {}),
+        "prompt_structure": pr.get("structure", {}),
     }
+    if info is not None:
+        # 回带给调用方（界面「导出工作流 JSON」要照着它显示「你写的 → 实际送进模型的」）
+        info.update(cf_meta)
+        info["profile"] = prof.key
     # 先序列化一遍，才能知道图里还留着哪些占位图片名
     placeholders = [x for x in PLACEHOLDER_IMAGES if x in json.dumps(g.to_ui(meta=cf_meta))]
     cf_meta["placeholders"] = placeholders

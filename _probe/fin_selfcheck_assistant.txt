@@ -1,0 +1,2 @@
+REPORT=D:\游戏王DIY设计\workspace\.cache\selfcheck-assistant.txt
+PASS=81 FAIL=0

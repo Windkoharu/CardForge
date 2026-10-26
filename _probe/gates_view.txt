@@ -1,0 +1,7 @@
+text_i18n keys: []
+zh text:
+ (空)
+
+lua len: 5096
+gates: {"G1": {"gate": "G1", "status": "warn", "summary": "2 项告警", "took_ms": 0, "degraded": "", "issues": [{"gate": "G1", "code": "G1_EFFECT_COUNT_WARN", "level": "WARN", "message": "效果条数 3 条，超出官方建议的 2 条", "hint": "建议把其中一条移到配套的魔法/陷阱上", "field": "effects", "waived": false}, {"gate": "G1", "code": "G1_HOPT_NAME_HINT", "level": "WARN", "message": "多效果卡建议使用「这个卡名」级别的 HOPT", "hint": "「1回合1次」只限制这张卡（离场会重置），卡名 H
+summary: {"id": 210000021, "name": "圣痕龙骑士 露米艾尔", "frame": "fusion", "frame_label": "融合", "attribute": "光", "race": "战士族", "level": 8, "atk": 3000, "def": 2500, "archetype": "圣痕", "rarity": "common", "n_effects": 3}

@@ -28,10 +28,12 @@ cost 位置、取对象都是**可枚举的文本特征**。用模型判定会�
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field as dc_field
 from typing import Optional, Sequence
 
 from ...core.models import CardSpec, Issue
+from .. import summon as S
 from . import gen as _gen
 from . import lexicon as L
 from . import rules
@@ -267,6 +269,10 @@ def _lint_one_text(text: str, lang: str, spec: Optional[CardSpec],
     for p in paras:
         if p.is_only_declaration or p.has_colon:
             continue
+        if not p.is_effect and _is_summon_para(p):
+            # 召唤手续段（素材行 / 「…才能特殊召唤。」 / 「●…」条目）是效果外文本，
+            # 官方本来就没有「：」，不该要求冒号。
+            continue
         if lang == "en":
             if re.search(r"\b(When|If|Once per turn|During)\b", p.core):
                 out.append(_issue("PSCT_MISSING_COLON", f"第 {p.num or '?'} 段", field))
@@ -379,17 +385,20 @@ def _lint_one_text(text: str, lang: str, spec: Optional[CardSpec],
                 break
 
     # ── 6.5 效果处理位置（报告 A8.1 E03）──────────────────────
-    # 处理动词是「结果」，只能出现在分号之后（英文）/ 发动之后（中日文）。
-    # 写在分号左侧 = 把结果塞进了发动条件，引擎会按「发动时就要已经发生」处理。
+    # 处理动词是「结果」，只能出现在**发动之后**。
+    # ⚠ 代价也写在发动之前（中日文靠语序、英文写在 "You can …;" 里），
+    # 所以必须先把代价句式摘掉再查，否则「从卡组把1只战士族怪兽送去墓地才能发动」
+    # 这种官方写法会被自己的校验器判成 ERROR（生成器产出过不了自家 lint）。
     res_verbs = rules.RESOLUTION_VERBS.get(lang, ())
     if lang == "en":
         for p in paras:
             if p.is_only_declaration or ";" not in p.core:
                 continue
             head = p.core.split(";", 1)[0]
-            # 冒号之前是纯条件，只查冒号与分号之间那一段（发动部分）
-            if ":" in head:
-                head = head.split(":", 1)[1]
+            # 冒号之前才是纯条件段；冒号与分号之间是发动段（含代价）
+            if ":" not in head:
+                continue
+            head = head.split(":", 1)[0]
             hit = next((v for v in res_verbs
                         if re.search(rf"\b{re.escape(v)}\b", head, re.I)), "")
             if hit:
@@ -397,6 +406,8 @@ def _lint_one_text(text: str, lang: str, spec: Optional[CardSpec],
                                   f"第 {p.num or '?'} 段：「{hit}」写在分号之前", field))
                 break
     else:
+        cost_shape = rules.COST_SHAPE_RE.get(lang)
+        cond_shape = rules.CONDITION_SHAPE_RE.get(lang)
         for p in paras:
             if p.is_only_declaration or not p.is_effect:
                 continue
@@ -404,6 +415,9 @@ def _lint_one_text(text: str, lang: str, spec: Optional[CardSpec],
             if pos <= 0:
                 continue
             head = p.core[:pos]             # 发动之前 = 条件/代价/取对象
+            for shape in (cost_shape, cond_shape):
+                if shape:
+                    head = re.sub(shape, "", head)
             hit = next((v for v in res_verbs if v in head), "")
             if hit:
                 out.append(_issue("PSCT_RESOLUTION_BEFORE_SEMI",
@@ -487,12 +501,15 @@ def _lint_one_text(text: str, lang: str, spec: Optional[CardSpec],
             out.append(_issue("PSCT_CONJ_AND_RARE", "出现单独的 and", field))
 
     # ── 10. 术语 ──────────────────────────────────────────────
-    if lang in ("zh_cn", "zh_tw"):
-        for bad, good, why in rules.FOLK_TERMS:
-            if _contains_token(plain, bad, lang):
-                out.append(_issue("PSCT_FOLK_TERM",
-                                  f"「{bad}」→ 官方写法「{good}」", field))
-                break
+    # 每条裁决自带 langs：简中官方是「同调／调整」，繁中相反，
+    # 拿一张表同时判两种语言必然报错（历史缺陷：把用户写对的「同调」判成民间误译）。
+    for term in rules.FOLK_TERMS:
+        if lang not in term.langs:
+            continue
+        if _contains_token(plain, term.bad, lang):
+            out.append(_issue("PSCT_FOLK_TERM",
+                              f"「{term.bad}」→ 官方写法「{term.good}」。{term.why}",
+                              field, level=term.level))
     if lang == "en":
         for old, new in rules.OLD_TERMS_EN:
             pat = rf"(?<![A-Za-z]){re.escape(old)}(?![A-Za-z])"
@@ -532,6 +549,18 @@ def _lint_one_text(text: str, lang: str, spec: Optional[CardSpec],
             out.append(_issue("PSCT_ST_QUICK_EFFECT",
                               "魔法/陷阱卡文本里出现诱发即时效果的措辞", field))
 
+    # ── 10.8 额外卡组/仪式的素材行必须在第一段 ────────────────
+    if spec is not None and box == "monster" and S.applies(spec):
+        expected = S.material_line(spec, lang)
+        first = next((p.raw for p in paras if not p.is_only_declaration), "")
+        if expected and first:
+            if _norm_summon(expected) not in _norm_summon(first):
+                out.append(_issue(
+                    "PSCT_SUMMON_LINE_MISSING",
+                    f"第一段是「{first[:32]}…」，应为「{expected[:32]}…」", field))
+        elif expected and not first:
+            out.append(_issue("PSCT_SUMMON_LINE_MISSING", "卡文没有第一段", field))
+
     # ── 11. 版式与数值 ────────────────────────────────────────
     lines = rules.estimate_lines(text, lang, box=box)
     cap = rules.max_lines(box)
@@ -558,6 +587,19 @@ def _lint_one_text(text: str, lang: str, spec: Optional[CardSpec],
         out.append(_issue("PSCT_STAT_LANG",
                           f"该语言习惯写法是「{local_atk}」，不是 {latin}", field))
     return out
+
+
+def _is_summon_para(p: "Para") -> bool:
+    """这一段是召唤手续（素材行 / 召唤限制 / ● 条目）吗 —— 效果外文本。"""
+    text = str(getattr(p, "raw", "") or getattr(p, "core", "") or "")
+    return any(S.is_summon_line(ln) for ln in text.splitlines() if ln.strip())
+
+
+def _norm_summon(text: str) -> str:
+    """素材行比较用：全角/半角、空格、句末标点不参与比较。"""
+    t = unicodedata.normalize("NFKC", text or "")
+    t = re.sub(r"\s+", "", t)
+    return t.strip("。.；;")
 
 
 def _contains_token(text: str, token: str, lang: str) -> bool:

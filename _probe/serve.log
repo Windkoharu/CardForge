@@ -12,4 +12,5 @@
   工作区 workspace   前端 web
   停止：关闭本窗口 / Ctrl-C
 
-[cardforge] PUT /api/cards/210000011 → 422 SpecError
+[cardforge] POST /api/render/preview → 400 CardForgeError
+[cardforge] GET /api/art/library/0 → 400 CardForgeError

@@ -1,24 +1,18 @@
 {
-  "id": 210000000,
-  "name": "星奏的歌姬 艾莉娅",
-  "frame": "link",
-  "attribute": "光",
-  "race": "魔法师族",
+  "id": 210000001,
+  "name": "圣痕的继承者 空",
+  "frame": "effect",
+  "attribute": "炎",
+  "race": "战士族",
   "level": 4,
-  "atk": 2500,
-  "dfd": "?",
-  "link_markers": [
-    "左上",
-    "左",
-    "下",
-    "右下"
-  ],
-  "archetype": "星奏",
-  "setcode": "0x1000",
+  "atk": 1600,
+  "dfd": 1200,
+  "archetype": "圣痕",
+  "setcode": "0x0",
   "effects": [
     {
       "kind": "search",
-      "trigger": "SPECIAL_SUMMON_SUCCESS",
+      "trigger": "SUMMON_ANY_SUCCESS",
       "target": {
         "from_zone": "DECK",
         "to_zone": "HAND",
@@ -26,7 +20,8 @@
         "count": 1,
         "count_max": 0,
         "controller": "self",
-        "exclude_self": false
+        "exclude_self": false,
+        "face_up": false
       },
       "cost": {
         "kind": "none",
@@ -34,31 +29,7 @@
         "filter_kind": "any",
         "lp": 0
       },
-      "limit": "once_per_turn",
-      "params": {
-        "n": 1
-      },
-      "source": "manual"
-    },
-    {
-      "kind": "negate_effect",
-      "trigger": "ON_ACTIVATE",
-      "target": {
-        "from_zone": "FIELD",
-        "to_zone": "FIELD",
-        "filter_kind": "any",
-        "count": 1,
-        "count_max": 0,
-        "controller": "opponent",
-        "exclude_self": false
-      },
-      "cost": {
-        "kind": "none",
-        "count": 0,
-        "filter_kind": "any",
-        "lp": 0
-      },
-      "limit": "once_per_turn",
+      "limit": "hopt_name_activate",
       "params": {
         "n": 1
       },
@@ -96,12 +67,12 @@
     "preview_width": 480,
     "output_size": "edopro"
   },
-  "created": "2026-10-14T02:53:14",
-  "updated": "2026-10-14T02:56:35.060879",
-  "schema_version": 2,
-  "race_bits": 2,
-  "attr_bits": 16,
-  "type_bits": 67108897,
-  "link_bits": 78,
-  "def_value": 78
+  "created": "2026-10-26T21:26:45",
+  "updated": "2026-10-26T21:28:02.965323",
+  "schema_version": 3,
+  "race_bits": 1,
+  "attr_bits": 4,
+  "type_bits": 33,
+  "link_bits": 0,
+  "def_value": 1200
 }

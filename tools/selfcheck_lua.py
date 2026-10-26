@@ -44,7 +44,8 @@ sys.path.insert(0, str(ROOT))
 from cardforge.content import effects as EF
 from cardforge.content.lua import apicatalog as API, emit, fragments as FR, lint
 from cardforge.core import paths
-from cardforge.core.models import CardSpec, EffectCost, EffectSpec, EffectTarget
+from cardforge.core.models import (CardSpec, EffectCost, EffectSpec, EffectTarget,
+                                   MaterialPart, SummonMethod, SummonSpec)
 
 LINES: list[str] = []
 FAIL: list[str] = []
@@ -156,7 +157,16 @@ chk("计数桶互不相同", len(buckets) == len(set(buckets)) and len(buckets) 
 chk("没有裸 SetCountLimit(1)", not re.search(r"SetCountLimit\(\s*1\s*\)", lua),
     str(re.findall(r"SetCountLimit\([^)]*\)", lua)))
 
-# 3.5 额外卡组流程 + EnableReviveLimit
+# 3.5 额外卡组流程 + EnableReviveLimit（素材来自结构化 summon）
+MATS = {
+    "fusion": [MaterialPart(kind="archetype", value="星奏"),
+               MaterialPart(kind="race", value="龙族")],
+    "synchro": [MaterialPart(kind="any", tuner="tuner", count=1),
+                MaterialPart(kind="any", tuner="non_tuner", count=1, count_max=99)],
+    "xyz": [MaterialPart(kind="any", count=2)],
+    "link": [MaterialPart(kind="any", count=2)],
+    "ritual": [],
+}
 for frame, want, cid in (("fusion", "Fusion.AddProc", 210000606),
                          ("synchro", "Synchro.AddProcedure", 210000607),
                          ("xyz", "Xyz.AddProcedure", 210000608),
@@ -165,8 +175,11 @@ for frame, want, cid in (("fusion", "Fusion.AddProc", 210000606),
     kw = {}
     if frame == "link":
         kw = dict(link_markers=["左下", "下"], dfd=0, level=2)
+    summon = SummonSpec(materials=MATS[frame],
+                        limit=("must_be" if frame != "ritual" else ""))
     s = spec_one(cid, frame, [E(f"{frame}_summon", params={"materials": [], "count": 2}),
-                              E("draw", "SPECIAL_SUMMON_SUCCESS", raw="①：抽 1 张。")], **kw)
+                              E("draw", "SPECIAL_SUMMON_SUCCESS", raw="①：抽 1 张。")],
+                 summon=summon, **kw)
     lua = art(f"{frame}流程", s)
     chk(f"{frame} 含 {want}", want in lua, lua[:200])
     chk(f"{frame} 含 EnableReviveLimit", "c:EnableReviveLimit()" in lua, "")
@@ -176,6 +189,257 @@ for frame, want, cid in (("fusion", "Fusion.AddProc", 210000606),
     if frame == "ritual":
         chk("仪式 AddProcGreater 的 desc 不写成 0",
             re.search(r"Ritual\.AddProcGreater\(c,[^)]*,0\)", lua) is None, lua[:300])
+
+# 3.5b 旧版 params['materials'] 迁移：没有 summon 字段也能恢复素材流程
+s = spec_one(210000615, "fusion", [
+    E("fusion_summon", params={"materials": [
+        {"filter_kind": "archetype", "filter_value": "星奏"}]}),
+])
+lua = art("旧版素材迁移", s)
+chk("旧版 params materials 仍能生成 Fusion.AddProcMix",
+    "Fusion.AddProcMix" in lua and "s.mat0_0" in lua, lua[:300])
+
+# 3.5c 没有素材时不生成「任意怪兽」的假流程
+s = spec_one(210000616, "link", [], link_markers=["下"], dfd=0, level=1)
+lua = art("空连接素材", s)
+chk("空连接素材不生成 Link.AddProcedure",
+    re.search(r"^\s*Link\.AddProcedure\(", lua, re.M) is None, lua[:300])
+chk("空连接素材写了需人工补写",
+    "需人工补写" in lua or "未生成 Link.AddProcedure" in lua, lua[:300])
+
+# 3.5d 召唤条件卡文：素材行 + 限制行
+from cardforge.content.psct import gen as PSGEN
+
+_fus = spec_one(210000620, "fusion", [], level=8, summon=SummonSpec(
+    materials=[MaterialPart(kind="name", value="青眼白龙", code=89631139),
+               MaterialPart(kind="race", value="龙族", count=1, count_max=99)],
+    limit="must_be_with_materials", cannot_be_material=["fusion"]))
+_txt = PSGEN.compose(_fus, "zh_cn")
+chk("融合卡文第一行是素材行",
+    _txt.splitlines()[0] == "「青眼白龙」＋龙族怪兽1只以上", _txt[:120])
+chk("融合卡文含素材锁与召唤限制",
+    "不能作为融合素材" in _txt and "以上记的卡为融合素材的融合召唤" in _txt, _txt[:200])
+chk("融合日文限制",
+    "融合素材にできない" in PSGEN.compose(_fus, "ja")
+    and "上記のカードを融合素材にした融合召喚" in PSGEN.compose(_fus, "ja"), "")
+chk("融合英文限制",
+    "Cannot be used as Fusion Material." in PSGEN.compose(_fus, "en")
+    and "Must be Fusion Summoned with the above Fusion Materials" in PSGEN.compose(_fus, "en"), "")
+lua = art("融合限制", _fus)
+chk("融合范围素材用 MixRep", "Fusion.AddProcMixRep(c,true,true,s.mat0_1,1,99,s.mat0_0)" in lua, lua[:400])
+chk("融合召唤限制用 aux.fuslimit", "aux.fuslimit" in lua, lua[:400])
+chk("融合素材锁写入", "EFFECT_CANNOT_BE_FUSION_MATERIAL" in lua, lua[:400])
+
+_fus.text_i18n = {"zh_cn": "①：这张卡不会被战斗破坏。"}
+from cardforge.content.psct import lint as PLINT
+chk("PSCT 素材行缺失被拦",
+    any(i.code == "PSCT_SUMMON_LINE_MISSING"
+        for i in PLINT.lint(_fus, "zh_cn")), "")
+_fus.text_i18n = {}
+
+_syn = spec_one(210000621, "synchro", [], level=8, summon=SummonSpec(
+    materials=[MaterialPart(kind="race", value="龙族", tuner="tuner"),
+               MaterialPart(kind="archetype", value="星奏", tuner="non_tuner",
+                            count=2, count_max=99)]))
+_txt = PSGEN.compose(_syn, "zh_cn")
+chk("同步卡文素材行", _txt.splitlines()[0] == "龙族协调＋协调以外的「星奏」怪兽2只以上", _txt[:120])
+lua = art("同步素材", _syn)
+chk("同步素材过滤 + NonTuner",
+    "Synchro.AddProcedure(c,s.mat0_0,1,1,Synchro.NonTuner(s.mat0_1),2,99)" in lua, lua[:400])
+
+_xyz = spec_one(210000622, "xyz", [], level=4, summon=SummonSpec(
+    materials=[MaterialPart(kind="race", value="龙族", count=2, count_max=99)]))
+_txt = PSGEN.compose(_xyz, "zh_cn")
+chk("超量卡文含阶级", _txt.splitlines()[0] == "龙族4星怪兽×2只以上", _txt[:120])
+lua = art("超量素材", _xyz)
+chk("超量范围素材用 InfiniteMats",
+    "Xyz.AddProcedure(c,s.mat0_0,4,2,nil,nil,Xyz.InfiniteMats)" in lua, lua[:400])
+
+_link = spec_one(210000623, "link", [], level=3, dfd=0,
+                 link_markers=["左下", "下", "右"], summon=SummonSpec(
+    materials=[MaterialPart(kind="type", value="effect", count=2, count_max=99,
+                            include_link=True)]))
+_txt = PSGEN.compose(_link, "zh_cn")
+chk("连接卡文素材行", _txt.splitlines()[0] == "包含连接怪兽的效果怪兽2只以上", _txt[:120])
+lua = art("连接素材", _link)
+chk("连接素材上限跟连接值", "Link.AddProcedure(c,s.mat0_0,2,3,s.lchk0)" in lua, lua[:400])
+chk("连接包含连接怪兽的 specialchk 有定义", "function s.lchk0(sg,lc)" in lua, lua[:600])
+
+_rit = spec_one(210000624, "ritual", [], level=7, summon=SummonSpec(
+    ritual_spell="星奏的仪式", limit="must_be"))
+_txt = PSGEN.compose(_rit, "zh_cn")
+chk("仪式卡文第一行是降临行", _txt.splitlines()[0] == "「星奏的仪式」降临", _txt[:120])
+lua = art("仪式限制", _rit)
+chk("仪式召唤限制用 aux.ritlimit", "aux.ritlimit" in lua, lua[:400])
+
+_locks = spec_one(210000625, "fusion", [], summon=SummonSpec(
+    materials=[MaterialPart(kind="archetype", value="星奏")],
+    cannot_be_material=["fusion", "synchro", "xyz", "link"]))
+lua = art("四素材锁", _locks)
+for _code in ("EFFECT_CANNOT_BE_FUSION_MATERIAL", "EFFECT_CANNOT_BE_SYNCHRO_MATERIAL",
+              "EFFECT_CANNOT_BE_XYZ_MATERIAL", "EFFECT_CANNOT_BE_LINK_MATERIAL"):
+    chk(f"素材锁 {_code}", _code in lua, lua[:600])
+
+_bad = spec_one(210000626, "fusion", [], summon=SummonSpec(
+    materials=[MaterialPart(kind="name", value="没有卡号的卡")]))
+lua = art("素材卡号缺失", _bad)
+chk("卡号缺失不生成假融合流程",
+    re.search(r"^\s*Fusion\.AddProcMix", lua, re.M) is None, lua[:400])
+chk("卡号缺失留下人工补写提示", "-- [CardForge]" in lua and "需人工补写" in lua, lua[:400])
+# 3.5e 一段素材叠多个筛选（官方：「包含「六武众」怪兽的战士族怪兽2只」）
+_multi = spec_one(210000627, "fusion", [], level=8, race="战士族",
+                  summon=SummonSpec(
+                      materials=[MaterialPart(
+                          kind="archetype", value="星奏",
+                          also=[MaterialPart(kind="race", value="战士族")],
+                          count=3)],
+                      limit="must_be"))
+_txt = PSGEN.compose(_multi, "zh_cn")
+chk("多条件素材行写成「包含…的…怪兽」",
+    _txt.splitlines()[0] == "包含「星奏」怪兽的战士族怪兽×3", _txt[:160])
+chk("多条件日文素材行",
+    "「星奏」モンスターを含む戦士族モンスター×３" in PSGEN.compose(_multi, "ja"),
+    PSGEN.compose(_multi, "ja")[:160])
+chk("多条件英文素材行",
+    '3 Warrior monsters including a "星奏" monster' in PSGEN.compose(_multi, "en"),
+    PSGEN.compose(_multi, "en")[:160])
+_lua = art("多条件融合", _multi)
+chk("多条件合成一个 AND 谓词",
+    re.search(r"function s\.mat0_0\(c\)\n\treturn c:IsSetCard\(0x1001\) "
+              r"and c:IsRace\(RACE_WARRIOR\)\nend", _lua) is not None, _lua[:600])
+chk("多条件数量不翻倍（3 段而不是 6 段）",
+    "Fusion.AddProcMix(c,true,true,s.mat0_0,s.mat0_0,s.mat0_0)" in _lua, _lua[:400])
+chk("多条件不生成第二个过滤函数", "s.mat0_1" not in _lua, "")
+
+# 3.5f 接触召唤（额外召唤方法：「以及以下方法」+ ● 条目）
+_contact = spec_one(210000628, "fusion", [], level=8, race="战士族",
+                    summon=SummonSpec(
+                        materials=[MaterialPart(
+                            kind="archetype", value="星奏",
+                            also=[MaterialPart(kind="race", value="战士族")],
+                            count=3)],
+                        methods=[SummonMethod(action="banish", zone="mz")],
+                        limit="must_be", cannot_be_material=["fusion"]))
+_txt = PSGEN.compose(_contact, "zh_cn")
+chk("接触召唤限制行含「以及以下方法」",
+    "这张卡用融合召唤以及以下方法才能特殊召唤。" in _txt, _txt[:250])
+chk("接触召唤 ● 条目按官方写法",
+    "●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。" in _txt, _txt[:250])
+_lua = art("接触融合", _contact)
+chk("接触融合注册 AddContactProc",
+    re.search(r"^\s*Fusion\.AddContactProc\(c,s\.cgrp\d+_0,s\.ctop\d+_0,"
+              r"nil,nil,SUMMON_TYPE_FUSION\)", _lua, re.M) is not None, _lua[:600])
+chk("接触融合候选组同时校验字段与种族",
+    re.search(r"function s\.cfil\d+_0\(c\)\n\treturn "
+              r"\(c:IsSetCard\(0x1001\) and c:IsRace\(RACE_WARRIOR\)\) "
+              r"and c:IsAbleToRemoveAsCost\(\)", _lua) is not None, _lua[:700])
+chk("接触融合从自己场上取候选",
+    re.search(r"Duel\.GetMatchingGroup\(s\.cfil\d+_0,tp,LOCATION_MZONE,"
+              r"LOCATION_MZONE,nil\)", _lua) is not None, _lua[:700])
+chk("接触融合处理是除外", "Duel.Remove(g,POS_FACEUP,REASON_COST|REASON_MATERIAL)"
+    in _lua, _lua[:700])
+chk("接触融合仍受 aux.fuslimit 约束", "aux.fuslimit" in _lua, _lua[:500])
+
+_nosp = spec_one(210000629, "fusion", [], level=8, summon=SummonSpec(
+    materials=[MaterialPart(kind="archetype", value="星奏", count=2)],
+    methods=[SummonMethod(action="banish", zone="mz", no_spelling=True)],
+    limit="must_be"))
+_txt = PSGEN.compose(_nosp, "zh_cn")
+chk("「不需要「融合」」补注写进卡文",
+    "（不需要「融合」）" in _txt, _txt[:250])
+_lua = art("不需要融合的接触召唤", _nosp)
+chk("不需要「融合」不影响脚本流程",
+    re.search(r"^\s*Fusion\.AddContactProc", _lua, re.M) is not None, _lua[:500])
+
+# 3.5g 场上无效化 / 诱发即时 / 表侧表示 / 从卡组代价 / 不取对象的「选」
+_neg = spec_one(210000630, "effect", [E(
+    "negate_card", "QUICK", "once_per_turn",
+    tgt=EffectTarget(from_zone="FIELD", controller="opponent", count=1, face_up=True),
+    params={"until_end_turn": True})])
+_txt = PSGEN.compose(_neg, "zh_cn")
+chk("表侧表示限定写进对象段",
+    "以对方场上1张表侧表示的卡为对象才能发动" in _txt, _txt)
+chk("对象段区域与数量之间不加「的」", "场上的1张" not in _txt, _txt)
+chk("无效化写出时限", "那张卡的效果直到回合结束时无效" in _txt, _txt)
+chk("诱发即时效果有官方收尾句", "这个效果在对方回合也能发动。" in _txt, _txt)
+_lua = art("无效卡的效果", _neg)
+chk("negate_card 挂 EFFECT_DISABLE + EFFECT_DISABLE_EFFECT",
+    "e1:SetCode(EFFECT_DISABLE)" in _lua and "e2:SetCode(EFFECT_DISABLE_EFFECT)" in _lua,
+    _lua[:900])
+chk("negate_card 时限复位到回合结束",
+    "SetReset(RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END)" in _lua, _lua[:900])
+chk("negate_card 只选表侧表示", "return c:IsFaceup()" in _lua, _lua[:900])
+chk("诱发即时用 EFFECT_TYPE_QUICK_O", "EFFECT_TYPE_QUICK_O" in _lua, _lua[:400])
+
+_cost = spec_one(210000631, "effect", [E(
+    "negate", "OPPONENT_ACTIVATE_MONSTER", "once_per_turn",
+    cost=EffectCost(kind="send_grave", zone="DECK", count=1,
+                    filter_kind="race", filter_value="战士族"))])
+_txt = PSGEN.compose(_cost, "zh_cn")
+chk("「对方把怪兽的效果发动时」时点", "对方把怪兽的效果发动时" in _txt, _txt)
+chk("代价用官方的「从卡组把…」", "从卡组把1只战士族怪兽送去墓地才能发动" in _txt, _txt)
+_lua = art("怪兽效果发动时代价堆墓无效", _cost)
+chk("「才能发动」的反击类不是必须发动（非 QUICK_F）",
+    "EFFECT_TYPE_QUICK_F" not in _lua, _lua[:400])
+chk("条件只认怪兽效果", "re:IsMonsterEffect()" in _lua, _lua[:700])
+chk("代价过滤带种族", "c:IsRace(RACE_WARRIOR) and c:IsAbleToGraveAsCost()"
+    in _lua, _lua[:700])
+
+_sel = spec_one(210000632, "effect", [E(
+    "ssummon_grave", "WHEN_DESTROYED", "no_limit",
+    tgt=EffectTarget(from_zone="GRAVE", controller="self", count=1,
+                     filter_kind="race", filter_value="战士族", exclude_self=True),
+    params={"destroyed_by": "battle_effect", "timing": "if", "select": True})])
+_txt = PSGEN.compose(_sel, "zh_cn")
+chk("破坏方式写进时点", "这张卡被战斗·效果破坏的场合才能发动" in _txt, _txt)
+chk("不取对象用「从自己墓地选…以外的」",
+    f"从自己墓地选1只「{_sel.name}」以外的战士族怪兽特殊召唤" in _txt, _txt)
+chk("「选」句式不写「以…为对象」", "为对象" not in _txt, _txt)
+_lua = art("墓地不取对象特召", _sel)
+chk("SelectMatchingCard 排除本卡",
+    re.search(r"Duel\.SelectMatchingCard\(tp,s\.fil\d+,tp,LOCATION_GRAVE,0,1,1,"
+              r"e:GetHandler\(\),e,tp\)", _lua) is not None, _lua[:900])
+chk("IsExistingMatchingCard 也排除本卡",
+    re.search(r"Duel\.IsExistingMatchingCard\(s\.fil\d+,tp,LOCATION_GRAVE,0,1,"
+              r"e:GetHandler\(\),e,tp\)", _lua) is not None, _lua[:900])
+
+# 3.5h 召唤条件相关的 G1 判定
+from cardforge.content import design as DESIGN
+
+_codes = {i.code for i in DESIGN.audit_card(spec_one(
+    210000633, "fusion", [], summon=SummonSpec(
+        materials=[MaterialPart(kind="archetype", value="星奏")],
+        methods=[SummonMethod(action="banish", zone="mz")])))}
+chk("填了召唤方法但没选限制 → G1 提醒",
+    "G1_SUMMON_METHOD_WITHOUT_LIMIT" in _codes, str(sorted(_codes)))
+_codes = {i.code for i in DESIGN.audit_card(spec_one(
+    210000634, "synchro", [], level=7, summon=SummonSpec(
+        materials=[MaterialPart(kind="race", value="龙族", tuner="tuner"),
+                   MaterialPart(kind="any", tuner="non_tuner", count_max=99)],
+        methods=[SummonMethod(action="release", zone="mz")], limit="must_be")))}
+chk("非融合卡的召唤方法 → G1 说明脚本待人工",
+    "G1_SUMMON_METHOD_NOT_FUSION" in _codes, str(sorted(_codes)))
+_codes = {i.code for i in DESIGN.audit_card(spec_one(
+    210000635, "fusion", [], summon=SummonSpec(
+        materials=[MaterialPart(kind="archetype", value="星奏",
+                                also=[MaterialPart(kind="race", value="乱码族")])])))}
+chk("附加条件的种族无效也被 G1 拦",
+    "G1_MATERIAL_FILTER_INVALID" in _codes, str(sorted(_codes)))
+_codes = {i.code for i in DESIGN.audit_card(spec_one(
+    210000636, "fusion", [], summon=SummonSpec(
+        materials=[MaterialPart(kind="archetype", value="星奏",
+                                also=[MaterialPart(kind="name", value="没有卡号的卡")])])))}
+chk("附加条件缺卡号也被 G1 拦",
+    "G1_MATERIAL_CODE_MISSING" in _codes, str(sorted(_codes)))
+_codes = {i.code for i in DESIGN.audit_card(_multi)}
+chk("合法的多条件卡 G1 无 ERROR",
+    not [i for i in DESIGN.audit_card(_multi) if i.level == "ERROR"],
+    str([(i.code, i.message) for i in DESIGN.audit_card(_multi) if i.level == "ERROR"]))
+_codes = {i.code for i in DESIGN.audit_card(_contact)}
+chk("接触召唤卡 G1 无 ERROR",
+    not [i for i in DESIGN.audit_card(_contact) if i.level == "ERROR"],
+    str(sorted(_codes)))
+
 
 # 3.6 灵摆：流程 + 双框分开
 s = spec_one(210000611, "pendulum", [
@@ -299,6 +563,122 @@ if len(got) == 2:
     chk("真实卡 2 个 Stringid", len(s2.strings) == 2, f"{s2.strings}")
     chk("真实卡描述里没有 {占位符}", not re.search(r"\{[a-z]+\}", " ".join(s2.strings)),
         " ".join(s2.strings))
+
+# ══ 6b. 官方卡文往返：卡文 → IR → 卡文 必须一模一样 ═══════════════════
+# 用户把系统投影出的官方格式卡文贴回来（或点「校验」触发反解）时，
+# 反解曾经把「包含「圣痕」怪兽的战士族怪兽×3」读成一条 ① 效果、
+# 把「1只战士族怪兽」读成种族「只战士族」，再投影就是
+# 「把自己场上1只只战士族怪兽送去墓地」。这一节把这类丢信息/串味锁死。
+RT_NAME = "圣痕龙骑士 露米艾尔"
+RT_TEXT = (
+    "①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。"
+    "那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。\n"
+    "②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。"
+    "那个发动无效并破坏。\n"
+    "③：这张卡被战斗·效果破坏的场合才能发动。"
+    "从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。")
+_rt = EF.infer_from_text(RT_TEXT, RT_NAME)
+chk("往返：3 条效果（不掺幽灵效果）", len(_rt) == 3, f"{[e.kind for e in _rt]}")
+if len(_rt) == 3:
+    r1, r2, r3 = _rt
+    chk("往返：①表侧表示 → face_up", bool(r1.target) and r1.target.face_up, "")
+    chk("往返：①诱发即时 → QUICK + params.quick",
+        r1.trigger == "QUICK" and r1.params.get("quick") is True,
+        f"{r1.trigger}/{r1.params}")
+    chk("往返：①无效场上卡的效果 = negate_card", r1.kind == "negate_card", r1.kind)
+    chk("往返：②对方把怪兽的效果发动时", r2.trigger == "OPPONENT_ACTIVATE_MONSTER",
+        r2.trigger)
+    chk("往返：②代价区域是卡组不是怪兽区域",
+        bool(r2.cost) and r2.cost.zone == "DECK", f"{r2.cost}")
+    chk("往返：②代价种族不吞量词",
+        bool(r2.cost) and r2.cost.filter_value == "战士族",
+        f"{r2.cost.filter_value if r2.cost else None}")
+    chk("往返：③破坏方式 battle_effect",
+        r3.trigger == "WHEN_DESTROYED"
+        and r3.params.get("destroyed_by") == "battle_effect", f"{r3.params}")
+    chk("往返：③「「卡名」以外的」→ exclude_self",
+        bool(r3.target) and r3.target.exclude_self, f"{r3.target}")
+    chk("往返：③不取对象的「选」句式 → params.select",
+        r3.params.get("select") is True, f"{r3.params}")
+    _spec = CardSpec(id=210000640, name=RT_NAME, frame="effect", attribute="光",
+                     race="战士族", level=8, atk=3000, dfd=2500,
+                     archetype="圣痕", setcode="0x1001",
+                     effects=[e.to_dict() for e in _rt])
+    _back = PSGEN.compose(_spec, "zh_cn")
+    chk("往返：再投影与原文逐行相同", _back == RT_TEXT,
+        "\n期望:\n" + RT_TEXT + "\n实得:\n" + _back)
+    art("往返卡脚本", _spec)
+
+# 召唤手续段不是效果：贴回来的官方卡文开头那段必须被认出来并交还 summon
+_rt2 = EF.infer_from_text(
+    "包含「圣痕」怪兽的战士族怪兽×3\n这张卡不能作为融合素材。\n"
+    "这张卡用融合召唤以及以下方法才能特殊召唤。\n"
+    "●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。\n"
+    "①：这张卡不会被战斗破坏。", RT_NAME)
+chk("召唤手续不变成编号效果", len(_rt2) == 1 and _rt2[0].kind == "cannot_be_destroyed",
+    f"{[(e.kind, e.raw_text[:20]) for e in _rt2]}")
+from cardforge.content import summon as _SM
+_blk, _rest = _SM.split_leading_block(
+    "「青眼白龙」＋「青眼白龙」\n这张卡用融合召唤才能特殊召唤。\n①：不会被战斗破坏。")
+chk("split_leading_block 切出素材行与限制行",
+    _blk.startswith("「青眼白龙」") and _rest.startswith("①"), f"{_blk}|{_rest}")
+chk("HOPT 声明不会被当成召唤手续",
+    _SM.split_leading_block("这个卡名的效果1回合只能使用1次。\n①：检索。")[0] == "", "")
+chk("种族词表不吞量词",
+    EF._RACE_RE.search("把自己场上1只只战士族怪兽送去墓地").group("race") == "战士族", "")
+chk("卡名差一个「的」仍认得出是自己（排除条件不能丢）",
+    EF._same_card_name("圣痕龙骑士 露米艾尔", "圣痕的龙骑士 露米艾尔")
+    and not EF._same_card_name("圣痕龙骑士", "星奏的见习指挥"), "")
+_rt3 = EF.infer_from_text(
+    "①：这张卡被战斗·效果破坏的场合才能发动。"
+    "从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。",
+    "圣痕的龙骑士 露米艾尔")
+chk("反解：助词差异不影响 exclude_self",
+    bool(_rt3) and bool(_rt3[0].target) and _rt3[0].target.exclude_self,
+    f"{_rt3[0].target if _rt3 else None}")
+chk("兽战士族不被战士族抢走",
+    EF._RACE_RE.search("5星以上的兽战士族怪兽").group("race") == "兽战士族", "")
+chk("质量门提示不带 Markdown 星号",
+    "**" not in (PR2 := __import__("cardforge.core.models", fromlist=["Issue"]).Issue(
+        message="这类**结果**", hint="把**代价**移走").message), "")
+
+# ══ 6c. lint 自己的产出不能被判错（官方代价句 / 被动触发句 / ● 条目）════
+_official_ok = (
+    "包含「圣痕」怪兽的战士族怪兽×3\n"
+    "这张卡不能作为融合素材。\n"
+    "这张卡用融合召唤以及以下方法才能特殊召唤。\n"
+    "●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。\n"
+    "①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。"
+    "那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。\n"
+    "②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。"
+    "那个发动无效并破坏。\n"
+    "③：这张卡被战斗·效果破坏的场合才能发动。"
+    "从自己墓地选1只「圣痕的龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。")
+_ok_spec = CardSpec(id=210000641, name="圣痕的龙骑士 露米艾尔", frame="fusion",
+                    attribute="光", race="战士族", level=8, atk=3000, dfd=2500,
+                    archetype="圣痕", setcode="0x1001",
+                    text_i18n={"zh_cn": _official_ok})
+_codes = [f"{i.level}:{i.code}" for i in PLINT.lint(_ok_spec, "zh_cn")]
+chk("官方代价句不被判成处理前置",
+    "ERROR:PSCT_RESOLUTION_BEFORE_SEMI" not in _codes, str(_codes))
+chk("● 召唤手续条目不要求冒号",
+    "WARN:PSCT_MISSING_COLON" not in _codes, str(_codes))
+chk("被动触发句（被战斗·效果破坏）不被判成处理前置",
+    all("破坏" not in c for c in _codes if "RESOLUTION_BEFORE_SEMI" in c), str(_codes))
+_bad_spec = CardSpec(id=210000642, name="误写卡", frame="effect", attribute="光",
+                     race="战士族", level=4, atk=1600, dfd=1200,
+                     text_i18n={"zh_cn": "①：这张卡从墓地特殊召唤，抽1张卡才能发动。"})
+chk("真把处理写进条件段仍然报 ERROR",
+    any(i.code == "PSCT_RESOLUTION_BEFORE_SEMI" and i.level == "ERROR"
+        for i in PLINT.lint(_bad_spec, "zh_cn")), "")
+_bad_en = CardSpec(id=210000643, name="EN card", frame="effect", attribute="光",
+                   race="战士族", level=4, atk=1600, dfd=1200,
+                   text_i18n={"en": "① Once per turn: You can send 1 Warrior monster "
+                                    "in your Deck to the GY; negate the activation, "
+                                    "and if you do, destroy it."})
+chk("英文代价（send … to the GY;）不被判成处理前置",
+    not any(i.code == "PSCT_RESOLUTION_BEFORE_SEMI"
+            for i in PLINT.lint(_bad_en, "en")), "")
 
 # ══ 7. 命令行 + G2 ══════════════════════════════════════════════════
 from cardforge.pipeline import gates

@@ -71,7 +71,12 @@ def register(app) -> None:
 
     @app.post("/api/art/workflow")
     def art_workflow(req: Request) -> dict:
-        """导出**可直接导入 ComfyUI** 的工作流 JSON。"""
+        """导出**可直接导入 ComfyUI** 的工作流 JSON。
+
+        提示词一律按界面上填的「主体/风格/背景/附加词」编译 —— 以前这里只带卡名，
+        于是「导出工作流 JSON」里的 CLIPTextEncode 和用户刚写的话对不上，
+        看起来就像程序自作主张改了提示词。
+        """
         run = K.require("cardforge.art.run", "工作流导出")
         preset = req.str_arg("preset", "t2i_single")
         spec = None
@@ -80,18 +85,25 @@ def register(app) -> None:
                 spec = K.load_spec(req.int_arg("card"))
             except Exception:
                 spec = None
+        ar = _request_from(req, spec)
+        ar.preset = preset
         out_dir = Path(req.str_arg("out_dir") or (paths.OUT / "workflows"))
         out_dir.mkdir(parents=True, exist_ok=True)
         name = req.str_arg("name") or f"{preset}_{int(Path(str(out_dir)).stat().st_mtime)}"
         path = str(out_dir / f"{_ascii_name(name)}.json")
         try:
+            info: dict[str, Any] = {}
             written = run.export_workflow(preset, path, profile=req.str_arg("profile", "auto"),
                                           spec=spec, host=_host(req),
-                                          submit=req.bool_arg("submit"))
+                                          request=ar, submit=req.bool_arg("submit"),
+                                          info=info)
         except Exception as e:
             raise _comfy_error(e) from e
         data: dict[str, Any] = {"ok": True, "path": paths.rel(Path(written)),
                                 "preset": preset}
+        data.update({k: info.get(k) for k in
+                     ("positive", "negative", "prompt_mode", "untranslated",
+                      "user_input", "profile") if info.get(k) is not None})
         try:
             import json
             data["workflow"] = json.loads(Path(written).read_text(encoding="utf-8"))
@@ -100,6 +112,55 @@ def register(app) -> None:
         except Exception as e:
             data["read_error"] = str(e)
         return data
+
+    @app.get("/api/art/templates")
+    def art_templates(req: Request) -> dict:
+        """提示词模板表（12 套正统母题 + 用户自存），按当前卡的规格排好序。
+
+        ``bilingual`` 决定界面拿中文版还是英文版 —— 口径跟着档案的文本编码器走，
+        不是跟着偏好走（Krea 2 / Qwen-Image 的中文原话直送，CLIP 只能吃英文标签）。
+        """
+        tpl = K.require("cardforge.art.templates", "提示词模板")
+        spec = None
+        if req.arg("card") is not None:
+            try:
+                spec = K.load_spec(req.int_arg("card"))
+            except Exception:
+                spec = None
+        bi = _bilingual(req)
+        rows = [t.to_dict() for t in tpl.list_all()]
+        ranked = tpl.recommend(spec) if spec is not None else []
+        return {"ok": True, "count": len(rows), "templates": rows,
+                "bilingual": bi,
+                "language_note": ("当前档案中文原话直送 → 模板取中文版" if bi
+                                  else "当前档案只认英文 → 模板取英文版标签"),
+                "recommended": [{"key": k, "score": sc} for k, sc in ranked],
+                "groups": sorted({str(r.get("group") or "") for r in rows})}
+
+    @app.post("/api/art/templates/save")
+    def art_templates_save(req: Request) -> dict:
+        """把界面上填好的一版提示词存成「我的模板」（落 workspace，不进代码库）。"""
+        tpl = K.require("cardforge.art.templates", "提示词模板")
+        fields = {k: req.arg(k) for k in
+                  ("subject", "style", "background", "extra_positive",
+                   "extra_negative", "preset", "cutout_bg", "use", "note")}
+        fields = {k: v for k, v in fields.items() if v is not None}
+        if not str(fields.get("subject") or "").strip():
+            raise errors.SpecError("主体是空的，存成模板没有意义",
+                                   "先在「主体（画什么）」里写点东西")
+        try:
+            return tpl.save_user(fields, name=req.str_arg("name"))
+        except ValueError as e:
+            raise errors.SpecError(str(e), "给这一版起个名字，例如「圣痕·龙骑士登场」") from e
+
+    @app.post("/api/art/templates/delete")
+    def art_templates_delete(req: Request) -> dict:
+        tpl = K.require("cardforge.art.templates", "提示词模板")
+        out = tpl.delete_user(req.str_arg("key"))
+        if not out.get("ok"):
+            raise errors.SpecError(out.get("error") or "删除失败",
+                                   out.get("hint") or "看 /api/art/templates 的「我的模板」组")
+        return out
 
     @app.post("/api/art/generate")
     def art_generate(req: Request) -> dict:
@@ -298,6 +359,32 @@ def _host(req: Request) -> str:
     return req.str_arg("host", "") or "http://127.0.0.1:8188"
 
 
+def _bilingual(req: Request) -> bool:
+    """当前档案的文本编码器认不认识中文（决定模板取中文版还是英文版）。
+
+    优先按**指定档案**判；``auto`` 时探一次本机模型再判；
+    ComfyUI 不在（探不到）就按 ``krea2`` 的口径给 True —— 本机默认档案就是它，
+    且界面「预览工作流」仍然会如实显示最终提示词，不会骗人。
+    """
+    prof = K.try_import("cardforge.art.profiles")
+    if prof is None:
+        return True
+    key = str(req.str_arg("profile", "") or "").strip()
+    if key and key != "auto":
+        p = prof.by_key(key)
+        return bool(getattr(p, "bilingual_text_encoder", False)) if p else True
+    run = K.try_import("cardforge.art.run")
+    if run is not None:
+        try:
+            models = (run.probe(host=_host(req), timeout=4) or {}).get("models") or {}
+            chosen = prof.detect(models)
+            if chosen is not None:
+                return bool(getattr(chosen, "bilingual_text_encoder", False))
+        except Exception:                               # noqa: BLE001
+            pass
+    return True
+
+
 def _request_from(req: Request, spec) -> ArtRequest:
     payload = req.arg("request")
     if isinstance(payload, dict):
@@ -305,8 +392,8 @@ def _request_from(req: Request, spec) -> ArtRequest:
                           if k in ArtRequest.__dataclass_fields__})
     else:
         ar = ArtRequest()
-    ar.card_id = spec.id
-    ar.archetype = spec.archetype or ""
+    ar.card_id = int(getattr(spec, "id", 0) or 0)
+    ar.archetype = str(getattr(spec, "archetype", "") or "")
     for k in ("subject", "background", "style", "extra_positive", "extra_negative",
               "preset", "profile", "seed", "count", "steps", "cfg",
               "sampler", "scheduler", "cutout_bg"):
@@ -327,7 +414,7 @@ def _request_from(req: Request, spec) -> ArtRequest:
         if isinstance(v, list):
             setattr(ar, k, [str(x) for x in v])
     if not ar.subject:
-        ar.subject = spec.display_name or "角色"
+        ar.subject = str(getattr(spec, "display_name", "") or "") or "角色"
     # 不覆盖用户在界面上已经排好的系列上下文
     if req.arg("series_style") and isinstance(ar.series_context, dict):
         ar.series_context["series_style"] = str(req.arg("series_style"))
@@ -360,6 +447,8 @@ def _profile_row(p) -> dict:
         return {}
     return {"key": getattr(p, "key", ""), "zh": getattr(p, "zh", ""),
             "chain": getattr(p, "chain", ""), "prompt_style": getattr(p, "prompt_style", ""),
+            "bilingual_text_encoder": bool(getattr(p, "bilingual_text_encoder", False)),
+            "language_line": getattr(p, "language_line", ""),
             "steps": getattr(p, "steps", 0), "cfg": getattr(p, "cfg", 0.0),
             "sampler": getattr(p, "sampler", ""), "scheduler": getattr(p, "scheduler", ""),
             "width": getattr(p, "width", 0), "height": getattr(p, "height", 0),

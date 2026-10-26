@@ -1,0 +1,24 @@
+反解出 3 条效果
+------------------------------------------------------------
+[0] kind=negate_card trigger=QUICK limit=once_per_turn
+    target={"from_zone": "FIELD", "filter_kind": "any", "count": 1, "count_max": 0, "controller": "opponent", "exclude_self": false, "face_up": true}
+    cost=null
+    params={"_index": 0, "quick": true, "until_end_turn": true, "reference": true, "reference_key": "it", "targeting": true}
+    raw=①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。
+------------------------------------------------------------
+[1] kind=negate trigger=OPPONENT_ACTIVATE_MONSTER limit=once_per_turn
+    target=null
+    cost={"kind": "send_grave", "zone": "DECK", "count": 1, "filter_kind": "race", "filter_value": "战士族", "lp": 0}
+    params={"_index": 1, "reference": true, "reference_key": "it"}
+    raw=②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。
+------------------------------------------------------------
+[2] kind=ssummon_grave trigger=WHEN_DESTROYED limit=none
+    target={"from_zone": "GRAVE", "filter_kind": "race", "filter_value": "战士族", "count": 1, "count_max": 0, "controller": "self", "exclude_self": true, "face_up": false}
+    cost=null
+    params={"_index": 2, "destroyed_by": "battle_effect", "timing": "if", "select": true}
+    raw=③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。
+
+==== 反解后再投影 ====
+①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。
+②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。
+③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。

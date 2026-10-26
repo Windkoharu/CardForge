@@ -15,6 +15,7 @@ export const store = {
   caps: null,            // /api/render/capabilities
   cardId: 0,
   spec: null,            // 当前 CardSpec（前端可编辑副本）
+  luaPreview: '',        // 后端按当前规格投影的脚本预览（还没落盘）
   saved: null,           // 上次落盘的 spec，用来算 dirty
   session: '',
   persona: 'professional',

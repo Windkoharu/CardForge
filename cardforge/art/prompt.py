@@ -12,6 +12,22 @@
 * **natural**（krea2 / qwen / flux）：**自然语言长句**，不是标签堆叠。
   Krea 2 是流匹配 DiT + Qwen3-VL 文本编码器，稠密 caption（约 150–230 词）效果最好。
 
+语言口径：**用户在界面上写的中文原话，一个字都不许悄悄消失**
+----------------------------------------------------------------
+提示词要不要翻译，**由文本编码器决定，不由偏好决定**
+（``profile.bilingual_text_encoder``，见 :func:`build` 的 ``verbatim``）：
+
+* Krea 2（``qwen3vl_*``）/ Qwen-Image（Qwen 系）——编码器本身就是多语言 LLM，
+  **中文原话直接送**，不翻译、不抽词、不改写；
+* SDXL / SD1.5 系（英文词表 CLIP）——中文进不去，只能过 :func:`zh_to_tags`
+  翻译，**翻不出来的词进 ``untranslated`` 并由界面点名上报**（以前只是静默丢弃，
+  实测「圣痕 / 露米艾尔 / 眼睛 / 光之翼 / 铠甲」整批消失，用户看到的画面与他写的
+  完全无关 —— 这就是「工作流里的提示词不符合我输入的要求」的头号根因）。
+
+第二条：用户自己说过的取景与光照，系统默认装饰词**必须让路**
+（:func:`_user_overrides`）—— 默认的「全身可见 + 四周留白」和「戏剧性强光 +
+轮廓光」两句会直接把「半身特写、柔和晨光」拧回去。
+
 ``cfg = 1.0`` 的特殊处理
 ------------------------
 Krea 2 / Qwen-Image 是蒸馏少步模型，``cfg = 1.0`` 时**负向那一遍前向根本不跑**，
@@ -666,6 +682,7 @@ ZH_TAGS: dict[str, list[str]] = {
     "一条": [],
     "一只": [],
     "两位": [],
+    "一位": [],
     "一个": [],
     "的": [],
     "着": [],
@@ -710,8 +727,11 @@ for _zh, _tags in ZH_TAGS.items():
     for _t in _tags:
         _TAG_ORIGIN.setdefault(_t.lower(), _zh)
 
-#: 需要拆词的分隔符（中文风格描述常见写法）
-_SPLIT_RE = re.compile(r"[，,、;；/／|｜+\-—\s]+")
+#: 需要拆词的分隔符（中文风格描述常见写法）。
+#: **连号与下划线不当分隔符** —— 老写法把 ``-`` 也切了，于是用户写的
+#: ``"8-bit"`` 会变成 ``8, bit``、``"semi-realistic"`` 变成两个碎片，
+#: 等于把用户的话改得面目全非（这正是「提示词和我的要求不一样」的一类）。
+_SPLIT_RE = re.compile(r"[\s，,、;；|｜/／—]+")
 
 
 def _tokenize_cjk(text: str) -> list[tuple[str, bool]]:
@@ -985,8 +1005,29 @@ def frame_atmosphere(frame: str) -> tuple[str, str]:
 # ══════════════════════════════════════════════════════════════════════
 #  4. 系列风格前缀（冻结，跨卡共享）
 # ══════════════════════════════════════════════════════════════════════
+def _join_slots(parts: list[str]) -> str:
+    """把风格前缀的各段拼成一条。
+
+    上一段已经是**整句**（以 ``.。!！?？`` 收尾，双语档案下的用户原话常这样写）时
+    就用句号分隔 —— 老写法一律用 ``, `` 接，于是产出过
+    ``"...painted for a trading card artwork., 柔和的晨光"`` 这种带「.,」的病句，
+    模型看到的就是被截断的半句话。
+    """
+    out = ""
+    for raw in parts:
+        p = str(raw or "").strip()
+        if not p:
+            continue
+        if not out:
+            out = p
+            continue
+        sep = " " if out.rstrip()[-1:] in ".。!！?？" else ", "
+        out += sep + p
+    return out
+
+
 def series_style_prefix(arch: Archetype | None, profile: ModelProfile,
-                        style_zh: str = "") -> str:
+                        style_zh: str = "", *, verbatim: bool | None = None) -> str:
     """推导**系列风格前缀** —— 同一系列的多张卡共用这一段，一个字都不改。
 
     来源（确定性的组合，保证「同系列名 → 同前缀」）：
@@ -996,9 +1037,13 @@ def series_style_prefix(arch: Archetype | None, profile: ModelProfile,
     3. 调用方显式给的 ``style_zh``；
     4. ``Archetype.binding.attribute`` 决定的色温氛围。
 
-    >>> from cardforge.art.profiles import PROFILES            # doctest: +SKIP
-    >>> series_style_prefix(None, PROFILES[0], "赛璐璐，逆光")  # doctest: +SKIP
+    **``style_zh`` 是用户在界面上亲手写的**，所以它的处理口径跟着编码器走
+    （见 :func:`build` 的 ``verbatim``）：双语编码器 → 原话整句保留；
+    英文词表 CLIP → 才过词典翻译。系列圣经 ``concept`` 是设计散文不是画面指令，
+    两种口径下都只做词典抽取。
     """
+    if verbatim is None:
+        verbatim = bool(getattr(profile, "bilingual_text_encoder", False))
     parts: list[str] = []
     if profile.prompt_prefix:
         parts.append(profile.prompt_prefix.strip())
@@ -1009,12 +1054,16 @@ def series_style_prefix(arch: Archetype | None, profile: ModelProfile,
         attr = str(binding.get("attribute") or "")
         if attr in ATTRIBUTE_MOOD:
             tags.append(ATTRIBUTE_MOOD[attr][0])
+    style_zh = str(style_zh or "").strip()
     if style_zh:
-        tags += zh_to_tags(style_zh)
+        if verbatim:
+            parts.append(style_zh)          # 原话直送：不翻译、不抽词、一个字段都不丢
+        else:
+            tags += zh_to_tags(style_zh)
     for t in tags:
         if t.lower() not in {p.lower() for p in parts}:
             parts.append(t)
-    return ", ".join(p for p in parts if p)
+    return _join_slots(parts)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1053,6 +1102,16 @@ _EXCLUSION_POSITIVE_TAGS = (
     "single subject only, centered, clean empty space"
 )
 
+#: **用户自己指定了取景**时用的精简版：只保留「不要文字/水印/边框」，
+#: 不再附带「单主体居中、四周大量留白」—— 那句会和「半身特写」抢画面。
+_EXCLUSION_POSITIVE_TIGHT = (
+    "The frame contains absolutely no text, no lettering, no numbers, no signature, "
+    "no watermark and no logo; there is no card border, no frame and no UI overlay."
+)
+_EXCLUSION_POSITIVE_TIGHT_TAGS = (
+    "no text, no watermark, no signature, no logo, no border, no frame"
+)
+
 #: **无主体**（背景 pass）用的版本：cfg<=1 时不能靠负向词排除人物，只能靠正向描述，
 #: 而默认的「只有一个居中主体」会把人物又请回来 —— 背景 pass 必须换掉这句。
 _EXCLUSION_POSITIVE_NOFIG = (
@@ -1070,16 +1129,66 @@ _EXCLUSION_NOFIG_TAGS = (
 # ══════════════════════════════════════════════════════════════════════
 #  6. 主入口
 # ══════════════════════════════════════════════════════════════════════
+#: 用户自己说了取景 → 默认的「全身可见 / 四周大量留白」构图句必须撤掉
+_FRAMING_WORDS = (
+    "半身", "特写", "近景", "远景", "全景", "胸像", "头像", "大头", "面部", "脸部",
+    "局部", "只画", "只拍", "俯视", "仰视", "平视", "侧面", "背影", "全身",
+    "close-up", "closeup", "headshot", "upper body", "portrait shot", "full body",
+    "cropped", "wide shot", "from above", "from below", "dutch angle",
+)
+#: 用户自己说了光照 → 默认的「戏剧性强光 / 轮廓光 / 高对比」光照句必须撤掉
+_LIGHTING_WORDS = (
+    "光", "亮", "暗", "影", "黄昏", "傍晚", "清晨", "正午", "午夜", "日食",
+    "backlit", "rim light", "soft light", "sunset", "sunrise", "moonlight",
+    "neon", "candlelight", "volumetric", "silhouette", "dark", "gloomy", "glow",
+)
+
+
+def _user_overrides(user_blob: str) -> tuple[bool, bool]:
+    """用户的原话里有没有自己指定**取景**和**光照**。
+
+    返回 ``(改了取景, 改了光照)``。为什么要读这句话：系统默认要往提示词里塞
+    「single subject, full body visible, ample empty space」和「dramatic lighting,
+    rim light, high contrast」两句装饰词。它们对没想法的人是帮助，对已经写了
+    「半身特写、柔和晨光」的人是**直接反对** —— 实测后者会把模型又拉回「全身 +
+    强对比」，于是用户看到「工作流里的提示词不符合我输入的要求」。检测到就撤掉，
+    宁可不装饰。
+    """
+    s = str(user_blob or "").lower()
+    if not s.strip():
+        return (False, False)
+    framing = any(w in s for w in _FRAMING_WORDS)
+    # 「光」这个字在中文里太宽（发光/光之翼/月光都会写），但它正是用户最常写错方向的词，
+    # 宁可撤掉默认光照句也不跟用户对着写 —— 撤了只是少一层滤镜，对着写是改画面。
+    lighting = any(w in s for w in _LIGHTING_WORDS)
+    return (framing, lighting)
+
+
 def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
           arch: Archetype | None = None, *, with_atmosphere: bool = True,
           with_composition: bool = True, head: str = "",
-          subject_lead: str = "The subject of the artwork is:") -> dict:
+          subject_lead: str = "The subject of the artwork is:",
+          verbatim: bool | None = None) -> dict:
     """把一次 :class:`ArtRequest` 编译成提示词。
+
+    **保真铁律**：用户在界面上写的原话，一个字都不许悄悄消失。
+    做到这一点靠两条不同的路（由档案的文本编码器决定，见 ``verbatim``）：
+
+    * ``verbatim=True``（``profile.bilingual_text_encoder`` —— Krea 2 用
+      ``qwen3vl_*``、Qwen-Image 用 Qwen 系文本编码器，**本身就是多语言 LLM**）
+      → 主体与风格**原话直送**，不过词典、不抽词、不改写；
+    * ``verbatim=False``（SDXL / SD1.5 系的英文词表 CLIP，中文根本进不去）
+      → 走 :func:`zh_to_tags` 翻译，**翻不出来的词进 ``untranslated``**
+      并写进 ``notes``，由界面如实上报（以前只是丢进 notes 里一句话）。
+
+    第二条铁律：**用户自己说过的话，系统的默认装饰词不得反对它**。
+    默认构图句写死「全身可见」、默认光照句写死「戏剧性强光」—— 用户要「半身特写」
+    或「柔和晨光」时这两句会直接把要求拧回去（:func:`_user_overrides`）。
 
     :param req: 出图请求（``subject`` / ``style`` / ``extra_positive`` /
         ``extra_negative`` / ``series_context``）。
     :param spec: 卡牌规格（决定卡种氛围词、属性色温、种族主体）；可为 ``None``。
-    :param profile: 选中的模型档案（决定标签式还是自然语言）。
+    :param profile: 选中的模型档案（决定标签式还是自然语言、认不认识中文）。
     :param arch: 系列圣经（提供系列风格前缀）。
     :param with_atmosphere: 关掉则不注入卡种氛围词。**背景 pass 必须关** ——
         氛围词是「这只生物如何发光」这类**主体导向**的句子，留着它背景图里
@@ -1089,14 +1198,20 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
         权重最高 —— 背景 pass 要靠它把「这是个没有人的空场景」钉住。
     :param subject_lead: 主体句的引导词。背景 pass 换成 "The setting of the
         artwork is:"，否则 "subject" 这个词本身就把人物请回来了。
+    :param verbatim: 覆盖语言口径。``None`` = 跟着档案走。
     :return: ``{"positive": str, "negative": str, "style_tags": [...], "notes": str,
-        "series_style": str, "structure": {...}}``
+        "series_style": str, "structure": {...}, "prompt_mode": "原文直送"|"词典翻译",
+        "untranslated": [...], "user_input": {...}}``
 
     返回的 ``positive`` 是**最终字符串**；``structure`` 是逐槽位拆解，
-    便于 UI 展示「哪一段是哪来的」。
+    便于 UI 展示「哪一段是哪来的」；``user_input`` 是用户原话的回显，
+    给「你写的 → 实际送进模型的」对照用。
     """
     notes: list[str] = []
     natural = bool(profile.natural_language)
+    if verbatim is None:
+        verbatim = bool(getattr(profile, "bilingual_text_encoder", False))
+    verbatim = bool(verbatim)
 
     # ── 风格前缀（系列冻结）──
     ctx = dict(getattr(req, "series_context", None) or {})
@@ -1105,7 +1220,7 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
         style_prefix = frozen
         notes.append(f"使用系列冻结风格前缀（{SERIES_STYLE_KEY}）：{frozen}")
     else:
-        style_prefix = series_style_prefix(arch, profile, req.style)
+        style_prefix = series_style_prefix(arch, profile, req.style, verbatim=verbatim)
         if arch is not None:
             notes.append(f"由系列「{arch.name}」推导风格前缀；"
                          f"把它写进 ArtRequest.series_context['{SERIES_STYLE_KEY}'] "
@@ -1128,17 +1243,44 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
             subj_tags.append(mood[0])
     subject_tags = zh_to_tags(subject) if subject else []
     un = unmatched_terms(subject) if subject else []
-    if un:
-        notes.append("主体描述里这些中文词没命中内置词典，**已被丢弃**（不会进提示词，"
-                     "因为提示词必须是英文）。请把它们换成更常见的词，或直接写英文标签："
-                     + "、".join(un))
-    # 提示词里**绝不放中文原文**：中文只在 notes 里回显给用户看。
-    # 要送进模型的主体一律用「词典命中的英文标签」拼出来。
-    subject_en = ", ".join(subject_tags) if subject_tags else ""
+    untranslated: list[str] = []
+    if verbatim:
+        # 双语编码器（Qwen 系）：原话直送。词典在这里只做「参考译文」，
+        # 绝不用它替换用户的话 —— 替换一定会丢词（实测「圣痕/眼睛/光翼/铠甲」全没）。
+        subject_text = subject
+        if un:
+            notes.append("档案的文本编码器认识中文 → 你的原话**逐字**进入提示词。"
+                         f"词典本来会丢掉这些词：{'、'.join(un)}（现在不用管它）。")
+    else:
+        # 英文词表 CLIP：中文进不去，只能翻。翻不出来的必须点名，不能静默吞。
+        subject_text = ", ".join(subject_tags) if subject_tags else ""
+        untranslated = list(un)
+        if un:
+            notes.append("主体描述里这些中文词没命中内置词典，**没进提示词**"
+                         "（该档案的文本编码器只认英文）。请把它们换成英文标签，"
+                         f"或改选 Krea 2 / Qwen-Image 档案（中文原话直送）：{'、'.join(un)}")
+        if not subject_text and subject:
+            notes.append(f"主体「{subject}」被词典翻成了空 —— 提示词里只剩通用主体句。"
+                         "换 Krea 2 / Qwen-Image 档案可以逐字保留你的原话。")
 
     # ── 卡种氛围 ──
     frame_key = str(getattr(spec, "frame", "") or "effect") if spec is not None else "effect"
     atm_tags, atm_sentence = frame_atmosphere(frame_key)
+
+    # ── 背景描述（单张工作流下以前会被**静默丢掉**）──
+    # 「背景」字段过去只在分层出图的背景 pass 里用；用户在同一条链上填了背景、
+    # 又选了「单张文生图」时，那句话就凭空消失了 —— 和刚修过的丢词是同一类缺陷。
+    bg_text = str(getattr(req, "background", "") or "").strip()
+    bg_clause_tags = "" if (verbatim or not bg_text) else ", ".join(zh_to_tags(bg_text))
+    bg_clause_sentence = bg_text if (verbatim and bg_text) else ""
+    if bg_text and with_composition:
+        notes.append("背景描述已并进这一版提示词（单张工作流也认「背景」字段，"
+                     "不再只有分层出图才生效）。")
+
+    # ── 用户原话里已经说过的取景/光照 → 默认装饰词必须让路 ──
+    user_blob = " ".join(str(x or "") for x in (
+        subject, req.style, getattr(req, "background", ""), req.extra_positive))
+    ov_framing, ov_lighting = _user_overrides(user_blob)
 
     # ── 构图词（卡图窗比例、单主体居中、留白）──
     # 窗比例来自 FRAMES[...].art_ratio（实测：标准框=正方形 1.0004，灵摆合并窗=0.7788）
@@ -1151,16 +1293,26 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
     landscape = ratio >= 1.15          # 只有横窗才说 wide
     orient = ("wide" if landscape else
               "square" if 0.85 <= ratio <= 1.15 else "portrait")
+    win_word = "wide" if landscape else ("square" if orient == "square" else "tall")
     comp_tags = ("centered composition, single subject, full body visible, "
                  f"{orient} orientation {ratio:.4f} aspect ratio, "
                  "ample empty space around the subject")
     comp_sentence = (
-        "The composition is a single centred subject framed for a "
-        + ("wide" if landscape else "square" if orient == "square" else "tall")
+        "The composition is a single centred subject framed for a " + win_word
         + f" trading-card artwork window (aspect ratio {ratio:.4f}), with the whole "
         "figure inside the frame and generous empty space around it so nothing is "
         "cut off by the window edge."
     )
+    if ov_framing and with_composition:
+        # 用户已经写了「半身/特写/远景…」，再挂一句 "full body visible" 就是当面反对他
+        comp_tags = (f"framing follows the description, {orient} orientation "
+                     f"{ratio:.4f} aspect ratio, trading card artwork window")
+        comp_sentence = (
+            f"The framing follows the description above, cropped for a {win_word} "
+            f"trading-card artwork window (aspect ratio {ratio:.4f})."
+        )
+        notes.append("你在描述里已经指定了取景 → 默认的「全身可见、四周大量留白」构图句"
+                     "**已撤掉**，不再跟你的话对着写。")
 
     # ── 光照词 ──
     light_tags = "dramatic lighting, rim light, volumetric light, high contrast, vibrant colors"
@@ -1178,6 +1330,19 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
             "through the empty space, haze in the air and a vibrant, high-contrast "
             "colour finish over the unoccupied scene."
         )
+    if ov_lighting:
+        # 用户写了具体光效（柔光/晨光/逆光…）→ 默认那句「戏剧性强光 + 轮廓光」让位
+        light_tags = "lighting exactly as described above"
+        light_sentence = "The lighting is exactly as described above, with no additional " \
+                         "default dramatic or rim lighting."
+        notes.append("你在描述里已经指定了光照 → 默认的「戏剧性强光 / 轮廓光 / 高对比」"
+                     "光照句**已撤掉**，光效按你写的走。")
+    #: 卡种氛围句要不要进提示词（氛围句自带「光环 / 戏剧性施法光」，同样会反对用户的光照）
+    atm_on = with_atmosphere
+    if ov_lighting and with_atmosphere:
+        atm_on = False
+        notes.append("卡种默认氛围句（自带「光环 / 戏剧性施法强光」）也一并撤掉 —— "
+                     "留着它等于把你写的光照又拉回默认强发光。")
 
     # ── 组装 ──
     style_tags = [t for t in (style_prefix.split(", ") if style_prefix else []) if t]
@@ -1191,15 +1356,17 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
             chunks.append(head.rstrip(".") + ".")
         if style_prefix:
             chunks.append(style_prefix.rstrip(".") + ".")
-        if subject_en:
-            chunks.append(f"{subject_lead} {subject_en}.")
+        if subject_text:
+            chunks.append(f"{subject_lead} {subject_text}.")
         elif subject:
-            # 词典完全没命中（例如写了纯生僻词）→ 明确告知，而不是把中文丢进去
+            # 非双语档案 + 词典完全没命中 → 明确告知，而不是把中文丢进去
             chunks.append("The subject of the artwork is a single fantasy creature "
                           "presented as a duel-monster card illustration.")
         if subj_tags:
             chunks.append("It is depicted as " + ", ".join(subj_tags) + ".")
-        if with_atmosphere:
+        if bg_clause_sentence and with_composition:
+            chunks.append("The scene behind the subject is: " + bg_clause_sentence + ".")
+        if atm_on:
             chunks.append(atm_sentence)
         if with_composition:
             chunks.append(comp_sentence)
@@ -1213,40 +1380,68 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
             pos_items.append(style_prefix)
         if subj_tags:
             pos_items.append(", ".join(subj_tags))
-        if subject_en:
-            pos_items.append(subject_en)
-        if with_atmosphere:
+        if subject_text:
+            pos_items.append(subject_text)
+        if bg_clause_tags and with_composition:
+            pos_items.append(bg_clause_tags)
+        if atm_on:
             pos_items.append(atm_tags)
         if with_composition:
             pos_items.append(comp_tags)
         pos_items.append(light_tags)
         positive_parts = [", ".join(x for x in pos_items if x)]
 
-    if req.extra_positive:
-        positive_parts.append(str(req.extra_positive).strip())
+    # ── 用户手写的附加词 ──
+    # 双语档案：原话照送。英文词表 CLIP：同样要翻（否则中文进去也只是 unknown token，
+    # 等于骗用户「我按你说的做了」），翻不出来的照样进 untranslated 名单。
+    extra_pos = str(req.extra_positive or "").strip()
+    if extra_pos and not verbatim:
+        xt = zh_to_tags(extra_pos)
+        xu = unmatched_terms(extra_pos)
+        if xu:
+            untranslated += xu
+            notes.append("附加正向里这些中文词没命中词典，**没进提示词**：" + "、".join(xu))
+        extra_pos = ", ".join(xt)
+    if extra_pos:
+        positive_parts.append(extra_pos)
 
     # ── cfg<=1：把「排除意图」改写进正向 ──
     if not profile.negative_effective:
-        if with_composition:
-            positive_parts.append(_EXCLUSION_POSITIVE if natural else _EXCLUSION_POSITIVE_TAGS)
+        if not with_composition:
+            positive_parts.append(_EXCLUSION_POSITIVE_NOFIG if natural
+                                  else _EXCLUSION_NOFIG_TAGS)
+        elif ov_framing:
+            positive_parts.append(_EXCLUSION_POSITIVE_TIGHT if natural
+                                  else _EXCLUSION_POSITIVE_TIGHT_TAGS)
         else:
-            positive_parts.append(_EXCLUSION_POSITIVE_NOFIG if natural else _EXCLUSION_NOFIG_TAGS)
+            positive_parts.append(_EXCLUSION_POSITIVE if natural
+                                  else _EXCLUSION_POSITIVE_TAGS)
         notes.append(
             f"档案 {profile.key} 的 cfg={profile.cfg}（蒸馏少步模型）→ **负向提示词基本不生效**"
-            "（那一遍前向不跑）。已把「不要文字/水印/边框、只要单主体居中」改写成**正向描述**"
-            "追加到末尾；negative 字段仍返回，供你把 cfg 调高时使用。"
+            "（那一遍前向不跑）。已把「不要文字/水印/边框」改写成**正向描述**追加到末尾；"
+            "negative 字段仍返回，供你把 cfg 调高时使用。"
         )
 
     positive = ("" if natural else ", ".join(p for p in positive_parts if p))
     if natural:
         positive = " ".join(p for p in positive_parts if p)
 
-    negative = normalize_negative(profile, spec, req.extra_negative)
+    extra_neg = str(req.extra_negative or "").strip()
+    if extra_neg and not verbatim and has_cjk(extra_neg):
+        xn = zh_to_tags(extra_neg)
+        if unmatched_terms(extra_neg):
+            notes.append("附加负向里没命中词典的中文词不会生效（英文词表 CLIP 读不了中文）："
+                         + "、".join(unmatched_terms(extra_neg)))
+        extra_neg = ", ".join(xn)
+    negative = normalize_negative(profile, spec, extra_neg)
     if not profile.negative_effective:
         notes.append(f"负向共 {len(negative.split(','))} 个词，但在 cfg={profile.cfg} 下不参与计算。")
 
     notes.append(f"提示词范式：{profile.prompt_style}"
                  + ("（自然语言长句）" if natural else "（标签堆叠，画质词在最前）"))
+    notes.append("语言口径：" + ("**你的中文原话逐字进入提示词**（文本编码器认识中文）"
+                                 if verbatim else
+                                 "先翻成英文标签再进提示词（文本编码器只认英文）"))
     if arch is not None and not frozen:
         notes.append(f"系列一致性：把下面这段写进 series_context['{SERIES_STYLE_KEY}'] "
                      "可以完全冻结整个系列的画风 —— 这是零额外模型、见效最快的一致性手段"
@@ -1258,15 +1453,32 @@ def build(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
         "style_tags": style_tags,
         "notes": "\n".join(notes),
         "series_style": style_prefix,
+        #: 语言口径：给 UI 与台账判定「你写的话有没有被改写」
+        "prompt_mode": "原文直送" if verbatim else "词典翻译",
+        #: **没能进提示词的用户原话**（空 = 你的话一个字都没少）
+        "untranslated": sorted(set(untranslated)),
+        #: 用户原话回显，用于界面上「你输入的 → 实际送入模型的」对照
+        "user_input": {
+            "subject": str(req.subject or ""),
+            "style": str(req.style or ""),
+            "background": str(getattr(req, "background", "") or ""),
+            "extra_positive": str(req.extra_positive or ""),
+            "extra_negative": str(req.extra_negative or ""),
+        },
         "structure": {
             "style_prefix": style_prefix,
             "subject": subject,
+            #: 实际进提示词的主体文字（原文直送时=用户原话；翻译时=英文标签）
+            "subject_sent": subject_text,
             "subject_tags": subj_tags + subject_tags,
             "frame_atmosphere": atm_tags if not natural else atm_sentence,
             "composition": comp_tags if not natural else comp_sentence,
             "lighting": light_tags if not natural else light_sentence,
             "extra_positive": str(req.extra_positive or ""),
             "natural_language": natural,
+            "verbatim": verbatim,
+            "user_overrode_framing": ov_framing,
+            "user_overrode_lighting": ov_lighting,
         },
     }
 
@@ -1334,7 +1546,7 @@ def build_layers(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
     # ── 主体 pass ──
     sub_pos = ", ".join(x for x in (_SUBJ_POS_TMPL.format(bg=cut_bg),
                                     str(req.extra_positive or "")) if x)
-    req_sub = _replace(req, extra_positive=sub_pos,
+    req_sub = _replace(req, extra_positive=sub_pos, background="",
                        extra_negative=", ".join(x for x in (_SUBJ_NEG, str(req.extra_negative or "")) if x))
     pr_sub = build(req_sub, spec, profile, arch)
 
@@ -1342,6 +1554,8 @@ def build_layers(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
         "分层出图：背景与主体分两次生成，主体抠底成带 alpha 的独立层；"
         "出框时只有主体越出卡图窗，背景严格留在窗内。",
         f"主体 pass 用「{cut_bg}」纯色底（抠底更稳）；背景 pass 已排除任何主体。",
+        "主体 pass 固定要求「全身可见 + 四周留白」：抠底后要能放大压出窗沿，"
+        "主体贴边就没得溢出了 —— 这一句即使用户写了取景也不会撤。",
     ]
     if str(req.style or "").strip():
         notes.append("两个 pass 共用同一风格前缀"
@@ -1350,6 +1564,8 @@ def build_layers(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
     notes.append(pr_bg["notes"])
     notes.append(pr_sub["notes"])
 
+    un_all = sorted(set(list(pr_bg.get("untranslated") or [])
+                        + list(pr_sub.get("untranslated") or [])))
     return {
         "background": pr_bg,
         "subject": pr_sub,
@@ -1360,5 +1576,8 @@ def build_layers(req: ArtRequest, spec: CardSpec | None, profile: ModelProfile,
         "style_tags": pr_bg["style_tags"],
         "series_style": pr_bg["series_style"],
         "notes": "\n".join(x for x in notes if x),
+        "prompt_mode": pr_sub.get("prompt_mode", ""),
+        "untranslated": un_all,
+        "user_input": pr_sub.get("user_input", {}),
         "structure": {"background": pr_bg["structure"], "subject": pr_sub["structure"]},
     }

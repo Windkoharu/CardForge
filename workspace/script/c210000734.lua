@@ -1,14 +1,14 @@
 --[==[ ＡＢＣ
      CardForge 2.0 生成 · 卡种=超量（frame=xyz） · tier=1
      由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。
+     ⚑ 超量素材为空，未生成 Xyz.AddProcedure
      ⚑ stat_change 没有时限信息，默认给「离场 + 回合结束」双重失效（卡文若写「直到回合结束为止」请设 params['until_end_turn']=True）
      ⚑ 效果 kind=__init__ 已降级：kind 不在效果注册表里
 ]==]
 local s,id=GetID()
 function s.initial_effect(c)
-	--超量素材条件：-2 阶 ×2
-	Xyz.AddProcedure(c,nil,-2,2)
-	c:EnableReviveLimit()
+	--超量素材条件
+	-- [CardForge] 超量素材条件为空：请在「召唤条件」里填写素材，未生成 Xyz.AddProcedure
 	--2. ①把②③
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,0))

@@ -1,0 +1,18 @@
+补 exclude_self: True
+保存 ok: True
+--- 卡文 zh ---
+包含「圣痕」怪兽的战士族怪兽×3
+这张卡不能作为融合素材。
+这张卡用融合召唤以及以下方法才能特殊召唤。
+●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。
+①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。
+②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。那个发动无效并破坏。
+③：这张卡被战斗·效果破坏的场合才能发动。从自己墓地选1只「圣痕的龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。
+--- 卡文 en ---
+③ If this card is destroyed by battle or card effect: You can Special Summon 1 Warrior monster other than "圣痕的龙骑士 露米艾尔" from your GY.
+G1: fail 1 项拦截、3 项告警
+G2: pass 全部通过
+G3: pass 全部通过（{"scenarios": 4, "duels": 1, "turns": 8, "blocking": ""}）
+  脚本: if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and Duel.IsExistingMatchingCard(s.fil4,tp,LOCATION_GRAVE,0,1,e:GetHandler(),e,tp) end
+  脚本: Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_GRAVE)
+  脚本: local g=Duel.SelectMatchingCard(tp,s.fil4,tp,LOCATION_GRAVE,0,1,1,e:GetHandler(),e,tp)

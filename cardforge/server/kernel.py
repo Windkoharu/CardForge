@@ -212,17 +212,29 @@ def save_spec(spec: CardSpec, *, note: str = "") -> dict:
 # ══════════════════════════════════════════════════════════════════════
 #  聚合视图
 # ══════════════════════════════════════════════════════════════════════
-def _lua_of(spec: CardSpec) -> str:
-    if getattr(spec, "lua", ""):
-        return spec.lua
+def _lua_of(spec: CardSpec, *, pair: bool = False):
+    """取脚本：优先用已生成的；没有时**在副本上**现场投影一份预览。
+
+    ⚠ 不能在传进来的 spec 上投影：``emit_script`` 会顺手分配 ``aux.Stringid``
+    槽位并写 ``spec.strings``。在一个 GET 里污染真身，就会出现
+    「界面说还没有脚本、质量门却在挑一份看不见的脚本的错」——
+    G2_STRINGID_SYNC 误报（texts.str1 为空）就是这么来的。
+
+    ``pair=True`` 时返回 ``(脚本, 用于质量门的 spec, 是否预览)``。
+    """
+    if getattr(spec, "lua", "").strip():
+        return (spec.lua, spec, False) if pair else spec.lua
     emit = try_import("cardforge.content.lua.emit")
     fn = getattr(emit, "emit_script", None) if emit else None
     if not callable(fn):
-        return ""
+        return ("", spec, False) if pair else ""
     try:
-        return str(fn(spec) or "")
+        clone = CardSpec.from_dict(spec.to_dict())
+        body = str(fn(clone) or "")
+        return (body, clone, True) if pair else body
     except Exception as e:
-        return f"-- [CardForge] 脚本生成失败：{type(e).__name__}: {e}\n"
+        note = f"-- [CardForge] 脚本生成失败：{type(e).__name__}: {e}\n"
+        return (note, spec, True) if pair else note
 
 
 def _texts_of(spec: CardSpec) -> dict:
@@ -263,11 +275,14 @@ def cards_index(archetype: str = "") -> list[dict]:
 def card_view(spec: CardSpec, *, with_gates: Iterable[str] = (),
               preview_width: int = 0) -> dict:
     """一次请求给齐界面需要的东西。"""
+    lua, _gate_spec, lua_preview = _lua_of(spec, pair=True)
     view: dict[str, Any] = {
         "spec": spec.to_dict(),
         "summary": spec.summary(),
         "labels": spec.labels(),
-        "lua": _lua_of(spec),
+        "lua": lua,
+        #: 界面靠这个标记区分「已生成的脚本」与「按当前规格预览的脚本」
+        "lua_preview": bool(lua_preview),
         "texts": _texts_of(spec),
         "type_bits_hex": f"0x{spec.type_bits:X}",
         "files": _files_of(spec),
@@ -302,7 +317,10 @@ def _gate_cached(spec: CardSpec, gate: str) -> Optional[dict]:
         if gate == "G1":
             rep = gates.g1_balance(spec, official())
         elif gate == "G2":
-            rep = gates.g2_script(spec, _lua_of(spec))
+            # 脚本与它的 Stringid 槽位必须成对送进质量门：预览出来的脚本
+            # 自带一份 strings 分配，拿原 spec（strings 还没写回）去比对会假报错
+            lua, gate_spec, _preview = _lua_of(spec, pair=True)
+            rep = gates.g2_script(gate_spec, lua)
         elif gate == "G3":
             rep = gates.g3_duel(spec)
         else:

@@ -1,0 +1,21 @@
+旧 effects： [('must_first_ssummon', '怪兽的战士族', None), ('negate_card', None, None), ('negate', None, '只战士族'), ('ssummon_grave', '以外的战士族', None)]
+新 effects： [('negate_card', 'QUICK', None, None), ('negate', 'OPPONENT_ACTIVATE_MONSTER', None, '战士族'), ('ssummon_grave', 'WHEN_DESTROYED', '战士族', None)]
+Traceback (most recent call last):
+  File "<stdin>", line 36, in <module>
+  File "<stdin>", line 14, in post
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 495, in open
+    response = meth(req, response)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 604, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 533, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 466, in _call_chain
+    result = func(*args)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 613, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request

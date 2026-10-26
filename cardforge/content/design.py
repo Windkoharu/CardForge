@@ -35,8 +35,13 @@ import re
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
-from ..core.models import Archetype, CardSpec, DeckSpec, Issue, ROLES, RosterSlot
+from ..core.models import (
+    MATERIAL_KINDS, MATERIAL_LOCKS, MATERIAL_ROLES, SUMMON_LIMITS,
+    SUMMON_METHOD_ACTIONS, SUMMON_METHOD_ZONES,
+    Archetype, CardSpec, DeckSpec, Issue, ROLES, RosterSlot,
+)
 from ..core import constants as C
+from . import summon as S
 
 # ══════════════════════════════════════════════════════════════════════
 #  阈值表（集中管理，便于用户覆盖与调参）
@@ -147,6 +152,253 @@ def _has_drawback(spec: CardSpec, lang: str = "zh_cn") -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  G1 · 召唤条件（额外卡组 / 仪式）
+# ══════════════════════════════════════════════════════════════════════
+def _audit_summon(spec: CardSpec, add) -> None:
+    """结构化召唤条件的最低可执行性审计。
+
+    这里查的是**卡文与 Lua 都需要的硬信息**：素材从哪里来、字段码/卡号是否
+    解析得了、数量与连接值是否矛盾。审美层面的素材宽泛度仍由原有规则判断。
+    """
+    if not S.applies(spec):
+        return                    # 主卡组非仪式怪 / 魔陷：召唤条件字段不参与审计
+    s = S.normalize(spec)
+    base = S.frame_kind(spec)
+    is_extra = bool(spec.frame_def.extra_deck)
+    parts = s.parts()
+
+    if is_extra and not parts:
+        add("G1_SUMMON_MATERIAL_MISSING", "ERROR",
+            f"{spec.frame_def.zh_cn}没有填写素材条件",
+            "到「召唤条件」面板填写素材；卡文第一行与 Fusion/Synchro/Xyz/Link "
+            "AddProc* 都由它生成", "summon.materials")
+
+    if s.limit and s.limit not in SUMMON_LIMITS:
+        add("G1_SUMMON_LIMIT_UNKNOWN", "ERROR",
+            f"未知的召唤限制「{s.limit}」", "从召唤条件面板重新选择",
+            "summon.limit")
+    if s.limit == "cannot_spsummon" and is_extra:
+        add("G1_EXTRA_CANNOT_SPSUMMON", "ERROR",
+            "额外卡组怪兽声明了「不能特殊召唤」，但它只能靠特殊召唤上场",
+            "额外卡组怪兽应改为「只能用本卡种的召唤方式特殊召唤」，"
+            "或换成主卡组的怪兽", "summon.limit")
+    if s.limit == "cannot_spsummon" and base == "ritual":
+        add("G1_RITUAL_CANNOT_SPSUMMON", "ERROR",
+            "仪式怪兽声明了「不能特殊召唤」，但仪式召唤本身是特殊召唤",
+            "仪式怪兽应改为「不用仪式召唤不能特殊召唤」"
+            "（即「只能用仪式召唤特殊召唤」）", "summon.limit")
+    if s.cannot_normal_summon and is_extra:
+        add("G1_EXTRA_CANNOT_NORMAL", "WARN",
+            "额外卡组怪兽写「不能通常召唤」是冗余的",
+            "额外卡组怪兽本来就不能通常召唤；删掉这条限制", "summon.cannot_normal_summon")
+
+    def check_cond(cond, field: str, label: str) -> None:
+        """**单个**筛选条件（主条件或附加条件）的可执行性检查。"""
+        kind = str(cond.kind or "any")
+        if kind not in MATERIAL_KINDS:
+            add("G1_MATERIAL_KIND_UNKNOWN", "ERROR",
+                f"{label}的种类「{kind}」无效", "重新选择素材种类", field + ".kind")
+            return
+        if kind == "name":
+            try:
+                code = int(cond.code or 0)
+            except Exception:
+                code = 0
+            if not code:
+                add("G1_MATERIAL_CODE_MISSING", "ERROR",
+                    f"{label}「{cond.value or '?'}」还没有解析出卡号",
+                    "点素材名旁的「解析卡号」；DIY 卡需要手填卡号", field + ".code")
+        elif kind == "archetype":
+            if not S.resolve_setcode(spec, cond):
+                add("G1_MATERIAL_SETCODE_MISSING", "ERROR",
+                    f"{label}字段「{cond.value or '?'}」没有对应字段码",
+                    "本家字段可留空（自动用本卡 setcode）；其他字段请填 setcode",
+                    field + ".setcode")
+        elif kind in ("race", "attribute"):
+            vals = cond.value if isinstance(cond.value, (list, tuple)) else [cond.value]
+            table = C.RACE_MAP if kind == "race" else C.ATTRIBUTE_MAP
+            if not any(str(v or "").strip() in table for v in vals):
+                add("G1_MATERIAL_FILTER_INVALID", "ERROR",
+                    f"{label}的{'种族' if kind == 'race' else '属性'}无效",
+                    "重新选择", field + ".value")
+        elif kind == "type":
+            if not S.type_key(cond.value):
+                add("G1_MATERIAL_FILTER_INVALID", "ERROR",
+                    f"{label}的卡种「{cond.value}」无效",
+                    "重新选择效果/通常/融合/同步/超量/连接等", field + ".value")
+        elif kind in ("level", "rank"):
+            try:
+                if int(cond.value) < 1:
+                    raise ValueError
+            except Exception:
+                add("G1_MATERIAL_FILTER_INVALID", "ERROR",
+                    f"{label}的{'等级' if kind == 'level' else '阶级'}无效",
+                    "填 1–13 的整数", field + ".value")
+
+    for i, p in enumerate(parts, start=1):
+        f = f"summon.materials[{i - 1}]"
+        kind = str(p.kind or "any")
+        if kind and kind not in MATERIAL_KINDS:
+            add("G1_MATERIAL_KIND_UNKNOWN", "ERROR",
+                f"第 {i} 段素材的种类「{kind}」无效", "重新选择素材种类", f + ".kind")
+        if p.tuner and p.tuner not in MATERIAL_ROLES:
+            add("G1_SYNCHRO_ROLE_UNKNOWN", "ERROR",
+                f"第 {i} 段素材的同调角色「{p.tuner}」无效",
+                "协调 / 协调以外 / 普通素材", f + ".tuner")
+        try:
+            raw_count = int(p.count or 0)
+        except Exception:
+            raw_count = 0
+        try:
+            raw_hi = int(p.count_max or 0)
+        except Exception:
+            raw_hi = 0
+        if raw_count < 1:
+            add("G1_MATERIAL_COUNT_ZERO", "ERROR",
+                f"第 {i} 段素材数量必须 ≥1", "填 1 或更大的整数", f + ".count")
+        if raw_hi and raw_hi < raw_count:
+            add("G1_MATERIAL_COUNT_RANGE", "ERROR",
+                f"第 {i} 段素材数量上限 {raw_hi} 小于下限 {raw_count}",
+                "把「以上」勾掉，或把上限调大", f + ".count_max")
+        # 主条件 + 附加条件（字段＋种族这类官方一段多条件）逐个查
+        for ci, cond in enumerate(p.conditions()):
+            if ci == 0 and str(cond.kind or "any") == kind:
+                check_cond(cond, f, f"第 {i} 段素材")
+            else:
+                check_cond(cond, f"{f}.also[{ci - 1}]", f"第 {i} 段素材的附加条件")
+
+    if base == "synchro" and parts:
+        tuner, non = S.synchro_roles(parts)
+        if not tuner or not non:
+            add("G1_SYNCHRO_ROLES", "ERROR",
+                "同调素材必须包含「协调」与「协调以外」两段",
+                "在素材行的「同调角色」里分别选协调 / 协调以外；"
+                "数量可写成「协调2只」", "summon.materials")
+        elif not any(str(p.tuner or "") for p in parts):
+            add("G1_SYNCHRO_ROLE_IMPLICIT", "WARN",
+                "同调素材没有显式标记协调/协调以外",
+                "生成器会按第一段=协调、第二段=协调以外处理；建议显式选择，"
+                "避免改顺序后卡文与脚本错位", "summon.materials")
+        if len(parts) > 2:
+            add("G1_SYNCHRO_TOO_MANY_PARTS", "ERROR",
+                f"同调素材有 {len(parts)} 段，但只能有协调段 + 协调以外段",
+                "把重复的同类素材合并成一段，用数量表达", "summon.materials")
+
+    if base in ("xyz", "link") and len(parts) > 1:
+        add("G1_MATERIAL_TOO_MANY_PARTS", "ERROR",
+            f"{spec.frame_def.zh_cn}素材只支持一组筛选条件，当前有 {len(parts)} 段",
+            "合并成一段；数量写在「数量/以上」里", "summon.materials")
+
+    if base == "xyz" and parts:
+        p = parts[0]
+        if p.count_lo < 1:
+            add("G1_XYZ_MATERIAL_COUNT", "ERROR", "超量素材数量至少为 1",
+                "填「4星怪兽×2」这类数量", "summon.materials[0].count")
+        if p.kind == "rank" and p.count_hi and p.count_hi >= 99:
+            add("G1_XYZ_MATERIAL_RANGE", "WARN",
+                "「阶级素材 ×N 只以上」在官方卡池里很罕见",
+                "确认是否需要无限素材；上限写成具体数字会更稳",
+                "summon.materials[0].count_max")
+
+    if base == "link" and parts:
+        p = parts[0]
+        rating = int(spec.effective_level or 0)
+        lo = p.count_lo
+        hi = p.count_hi or lo
+        if rating and lo > rating:
+            add("G1_LINK_MATERIAL_COUNT", "ERROR",
+                f"连接素材至少 {lo} 只，超过连接值 {rating}",
+                "连接值由箭头数量决定；减少素材数量或增加箭头",
+                "summon.materials[0].count")
+        if rating and hi < 99 and hi > rating:
+            add("G1_LINK_MATERIAL_COUNT_MAX", "ERROR",
+                f"连接素材上限 {hi} 只，超过连接值 {rating}",
+                "把「以上」的上限交给连接值，或减少箭头数",
+                "summon.materials[0].count_max")
+        if p.include_link and p.exclude_link:
+            add("G1_LINK_LINK_CONFLICT", "ERROR",
+                "素材同时写了「包含连接怪兽」与「连接怪兽以外」",
+                "这两条互相排斥，删掉一条", "summon.materials[0]")
+        if p.include_link and p.kind == "type"                 and S.type_key(p.value) in ("normal", "ritual", "fusion",
+                                           "synchro", "xyz"):
+            add("G1_LINK_INCLUDE_LINK_CONFLICT", "ERROR",
+                f"「包含连接怪兽」与素材卡种「{p.value}」互斥",
+                "连接怪兽不是该卡种；把卡种改成效果/连接，或去掉「包含连接怪兽」",
+                "summon.materials[0]")
+        if p.exclude_link and p.kind == "type" and S.type_key(p.value) == "link":
+            add("G1_LINK_EXCLUDE_LINK_CONFLICT", "ERROR",
+                "「连接怪兽以外」与素材卡种「连接」互斥",
+                "删掉「连接怪兽以外」，或把卡种改成别的", "summon.materials[0]")
+
+    if base == "fusion" and len(parts) > 5:
+        add("G1_FUSION_TOO_MANY_PARTS", "WARN",
+            f"融合素材有 {len(parts)} 段，卡文会很长",
+            "官方融合素材通常不超过 4–5 段；考虑合并或拆卡", "summon.materials")
+
+    if is_extra and parts and all(str(p.kind or "any") == "any"
+                                  and not p.tuner and not p.exclude_token
+                                  and not p.include_link and not p.exclude_link
+                                  for p in parts):
+        add("G1_SUMMON_MATERIAL_GENERIC", "ERROR",
+            "所有素材都是「任意怪兽」，没有绑定字段/种族/卡名",
+            "额外卡组素材必须具体；「任意 2 只怪兽」是禁卡制造机",
+            "summon.materials")
+
+    if base == "ritual":
+        if not str(s.ritual_spell or "").strip():
+            add("G1_RITUAL_NO_SPELL", "WARN",
+                "仪式怪兽没有填写仪式魔法卡名",
+                "卡文第一行应为「「XX」降临」；在召唤条件面板填写仪式魔法卡名",
+                "summon.ritual_spell")
+
+    for lock in (s.cannot_be_material or []):
+        if str(lock) not in MATERIAL_LOCKS:
+            add("G1_MATERIAL_LOCK_UNKNOWN", "ERROR",
+                f"未知的素材锁定「{lock}」", "重新勾选", "summon.cannot_be_material")
+
+    # ── 「以下方法」条目（接触召唤等额外特殊召唤方式）──
+    methods = s.item_methods()
+    if methods and s.limit not in ("must_be", "must_be_with_materials"):
+        add("G1_SUMMON_METHOD_WITHOUT_LIMIT", "WARN",
+            "填了额外召唤方法，但召唤限制没选「只能用本卡种的召唤方式特殊召唤」",
+            "官方写法是「这张卡用融合召唤以及以下方法才能特殊召唤。」——"
+            "把限制选成「只能用本卡种的召唤方式特殊召唤」，素材行才会带上"
+            "「以及以下方法」，脚本才会注册接触召唤流程", "summon.limit")
+    for i, m in enumerate(methods, start=1):
+        f = f"summon.methods[{i - 1}]"
+        if str(m.action or "") not in SUMMON_METHOD_ACTIONS:
+            add("G1_SUMMON_METHOD_ACTION_UNKNOWN", "ERROR",
+                f"第 {i} 条额外召唤方法的处理「{m.action}」无效",
+                "可选：" + "、".join(SUMMON_METHOD_ACTIONS.values()), f + ".action")
+        if str(m.zone or "") not in SUMMON_METHOD_ZONES:
+            add("G1_SUMMON_METHOD_ZONE_UNKNOWN", "ERROR",
+                f"第 {i} 条额外召唤方法的区域「{m.zone}」无效",
+                "可选：" + "、".join(SUMMON_METHOD_ZONES.values()), f + ".zone")
+        if not m.use_materials and not m.item_parts():
+            add("G1_SUMMON_METHOD_PARTS_MISSING", "ERROR",
+                f"第 {i} 条额外召唤方法取消了「用上记的卡」却没填自己的素材条件",
+                "勾回「用上记的卡」，或补素材筛选", f + ".parts")
+        for ci, cond in enumerate(m.item_parts()):
+            check_cond(cond, f"{f}.parts[{ci}]", f"第 {i} 条额外召唤方法的素材")
+        if base != "fusion":
+            add("G1_SUMMON_METHOD_NOT_FUSION", "WARN",
+                f"第 {i} 条额外召唤方法写在{spec.frame_def.zh_cn}卡上，"
+                f"卡文会生成，但脚本还要人工补写",
+                "接触召唤目前只有融合卡能自动生成 Fusion.AddContactProc；"
+                "同调/超量/连接需要手写 EFFECT_SPSUMMON_PROC", f)
+
+    if is_extra:
+        summon_like = [str(e.kind or "") for e in spec.effect_specs()
+                       if str(e.kind or "").endswith("_summon")]
+        if summon_like:
+            add("G1_SUMMON_EFFECT_HINT", "INFO",
+                f"额外卡组卡里还有 {len(summon_like)} 条「召唤」类效果"
+                f"（{'、'.join(sorted(set(summon_like)))}）",
+                "如果它写的是本卡自己的召唤手续，请改填到「召唤条件」；"
+                "它现在会被当成 ①② 效果编号，和素材行重复", "effects")
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  G1 · 单卡平衡审计
 # ══════════════════════════════════════════════════════════════════════
 def audit_card(spec: CardSpec, official=None, lang: str = "zh_cn",
@@ -203,7 +455,10 @@ def audit_card(spec: CardSpec, official=None, lang: str = "zh_cn",
                     f"{LIMITS['l4_normal_atk_max']}",
                     "官方明确规定 4 星通常怪兽 ATK 上限为 2000", "atk")
         else:
-            can_normal = not (spec.type_bits & C.TYPE_SPSUMMON)
+            # 额外卡组怪兽不能通常召唤；旧实现只看 SPSUMMON 位，会把
+            # 连接/融合怪兽误判成「可通常召唤的 3 星效果怪兽」。
+            can_normal = (not spec.frame_def.extra_deck
+                          and not (spec.type_bits & C.TYPE_SPSUMMON))
             if can_normal and lv <= 4 and atk > LIMITS["l4_effect_atk_max"] \
                     and not drawback:
                 add("G1_L4_EFFECT_ATK", "ERROR",
@@ -240,6 +495,7 @@ def audit_card(spec: CardSpec, official=None, lang: str = "zh_cn",
                 "effects")
 
     # ── 4. 额外卡组素材条件（泛用卡雷区）──
+    _audit_summon(spec, add)
     if spec.frame_def.extra_deck:
         if not spec.archetype:
             add("G1_EXTRA_NO_ARCHETYPE", "ERROR",
@@ -251,11 +507,16 @@ def audit_card(spec: CardSpec, official=None, lang: str = "zh_cn",
             add("G1_GENERIC_MATERIAL", "ERROR",
                 f"素材条件含「{m.group(0)}」，过于宽泛",
                 "改成「「字段」怪兽 ×2」这类绑定写法", "text")
-        if not any(k in body for k in ("＋", "+", "×", "只")) and spec.frame != "link":
+        structured = bool(S.normalize(spec).parts())
+        already = any(i.code == "G1_SUMMON_MATERIAL_MISSING" for i in out)
+        if not already and not structured \
+                and not any(k in body for k in ("＋", "+", "×", "只")) \
+                and spec.frame != "link":
             add("G1_MATERIAL_MISSING", "WARN",
                 "未找到明确的素材条件写法",
-                "融合写「×＋×」、同步写「协调＋协调以外的怪兽」、"
-                "超量写「4星怪兽×2」、连接写「效果怪兽2只」", "text")
+                "在「召唤条件」面板填写素材；融合写「×＋×」、同步写"
+                "「协调＋协调以外的怪兽」、超量写「4星怪兽×2」、"
+                "连接写「效果怪兽2只」", "text")
     if spec.frame == "link" and not spec.link_markers:
         add("G1_LINK_NO_MARKER", "ERROR", "连接怪兽没有指定任何连接标记",
             "至少选 1 个方向；连接数由箭头数量决定", "link_markers")
@@ -340,7 +601,10 @@ def audit_card(spec: CardSpec, official=None, lang: str = "zh_cn",
                 add(f"G1_{rf.code}", rf.level, rf.zh, rf.hint, "effects")
 
     # ── 11. 文本是否为空 ──
-    if spec.is_monster and spec.frame != "normal" and not effects and not body.strip():
+    # 额外卡组/仪式的「素材行 + 召唤限制」本身也是卡文，不能因为没效果就报空。
+    has_summon_text = bool(S.block(spec, lang).strip())
+    if spec.is_monster and spec.frame != "normal" and not effects \
+            and not body.strip() and not has_summon_text:
         add("G1_EMPTY_TEXT", "WARN", "效果怪兽没有卡文",
             "补上效果文本，或把卡种改为通常怪兽", "text")
     if spec.frame == "normal" and not spec.flavor_in(lang).strip():

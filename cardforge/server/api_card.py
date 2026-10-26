@@ -134,6 +134,23 @@ def register(app) -> None:
                 out["write_error"] = f"{type(e).__name__}: {e}"
         return out
 
+    @app.post("/api/psct/summon")
+    def psct_summon(req: Request) -> dict:
+        """召唤条件预览（素材行 + 召唤限制），与 psct.compose 的同一份投影。"""
+        spec = _spec_of(req, allow_missing_text=True)
+        langs = _langs_of(req)
+        mod = K.require("cardforge.content.summon", "召唤条件投影")
+        out: dict[str, Any] = {"ok": True, "langs": {}}
+        for lang in langs:
+            try:
+                out["langs"][lang] = mod.compose_meta(spec, lang)
+            except Exception as e:
+                out["langs"][lang] = {
+                    "text": "", "error": f"{type(e).__name__}: {e}",
+                    "notes": ["召唤条件生成失败；检查素材字段"],
+                }
+        return out
+
     @app.post("/api/psct/infer")
     def psct_infer(req: Request) -> dict:
         """卡文 → 结构化效果（纯规则推断，**不依赖大模型**）。
@@ -168,6 +185,35 @@ def register(app) -> None:
                 "lang": lang or "(自动)",
                 "hint": "推断结果只到「种类/时点/对象/代价」这一层，"
                         "数值与特殊条件请核对后再保存"}
+
+    @app.post("/api/psct/tidy")
+    def psct_tidy(req: Request) -> dict:
+        """把手写卡文**整理**成标准描述 —— 纯规则，零大模型，且**不动 IR**。
+
+        与 ``/api/psct/infer`` 的分工：infer 是「文本 → 效果列表」（会改你的卡），
+        tidy 是「文本 → 更规范的文本」（只碰这个文本框）。
+        界面拿 ``paragraphs`` 渲染逐段对照，``safe_to_apply`` 决定
+        能不能一键整段替换 —— 判据是「每段都被识别 + 数值与卡名逐字保真 +
+        整理后校验的 ERROR 不增加」。
+        """
+        spec = _spec_of(req, allow_missing_text=True)
+        lang = req.str_arg("lang", "") or DEFAULT_LANG
+        text = req.str_arg("text") or spec.text_in(lang) or ""
+        if not text.strip():
+            raise errors.SpecError("没有可整理的文本",
+                                   "先在卡文框里贴一段效果文本，或带上 text=<文本>")
+        mod = K.require("cardforge.content.psct.tidy", "卡文整理器")
+        try:
+            out = mod.tidy(text, spec, lang,
+                           name=req.str_arg("name") or "",
+                           rewrite=req.bool_arg("rewrite", True))
+        except Exception as e:
+            raise errors.LintError(f"整理失败：{e}",
+                                   "这段文本可能不是效果文本（例如只有一句风味文）"
+                                   "；可以只勾「只做表层整理」。") from e
+        out["hint"] = ("逐段对照后采纳。认不出的句子已原样保留 —— "
+                       "要让它也变标准，去规格页把那条效果补全（种类/时点/代价/对象）。")
+        return out
 
     @app.post("/api/psct/lint")
     def psct_lint(req: Request) -> dict:
@@ -551,17 +597,30 @@ def _run_gate_obj(req: Request, gate: str, spec: CardSpec):
 
 
 def _next_id() -> int:
+    """分配一个**同时避开官方池与工作区**的卡号。
+
+    历史缺陷：这里原本只问官方池 ``next_free_id(210000000)``，工作区里已经
+    存在的 DIY 卡不会被告知，于是「+ 新卡」会拿到 210000000 并覆盖同号旧卡。
+    分配必须把两边合并起来查。
+    """
+    used = {int(c["id"]) for c in K.cards_index()
+            if isinstance(c, dict) and c.get("id") is not None}
     pool = K.official()
     fn = getattr(pool, "next_free_id", None) if pool else None
+    n = 210000000
     if callable(fn):
         try:
-            return int(fn(210000000))
+            n = int(fn(n))
         except Exception:
-            pass
-    used = {c["id"] for c in K.cards_index() if isinstance(c, dict) and "id" in c}
-    n = 210000000
+            n = 210000000
     while n in used:
         n += 1
+        if callable(fn):
+            try:
+                # 官方池占用的号也跳过；next_free_id 从候选号继续找
+                n = int(fn(n))
+            except Exception:
+                pass
     return n
 
 

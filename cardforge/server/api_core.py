@@ -11,7 +11,9 @@ from typing import Any
 from ..core import errors, paths
 from ..core import enums as E
 from ..core import constants as C
-from ..core.models import TRIGGERS, EFFECT_LIMITS, ROLES
+from ..core.models import (
+    TRIGGERS, EFFECT_LIMITS, ROLES, SUMMON_METHOD_ACTIONS, SUMMON_METHOD_ZONES,
+)
 from . import kernel as K
 from .http import Request, Response, safe_join
 
@@ -56,9 +58,19 @@ def register(app) -> None:
     @app.get("/api/meta")
     def api_meta(req: Request) -> dict:
         """所有下拉框的数据源。一次取全，前端缓存。"""
+        from ..content import summon as S
         return {
             "ok": True,
             "frames": {k: _drop(v) for k, v in E.FRAMES.items()},
+            "summon": {
+                "material_kinds": dict(S.MATERIAL_KINDS),
+                "material_roles": dict(S.MATERIAL_ROLES),
+                "limits": dict(S.SUMMON_LIMITS),
+                "material_locks": dict(S.MATERIAL_LOCKS),
+                "material_types": dict(S.MATERIAL_TYPE_LABELS),
+                "method_actions": dict(SUMMON_METHOD_ACTIONS),
+                "method_zones": dict(SUMMON_METHOD_ZONES),
+            },
             "rarities": {k: _drop(v) for k, v in E.RARITIES.items()},
             "langs": {k: _drop(v) for k, v in E.LANGS.items()},
             "spell_kinds": E.SPELL_KINDS,
@@ -94,6 +106,40 @@ def register(app) -> None:
         except Exception as e:
             return {"ok": False, "results": [],
                     "error": f"查询失败：{type(e).__name__}: {e}"}
+
+    @app.get("/api/pool/name")
+    def api_pool_name(req: Request) -> dict:
+        """卡名 → 卡号（素材编辑器「解析卡号」）。
+
+        先查官方池的**精确同名**，再查工作区里的 DIY 卡；都没命中时给出
+        官方搜索的前 5 个候选，避免用户卡在「差一个字」。
+        """
+        name = req.str_arg("name").strip()
+        if not name:
+            raise errors.SpecError("要解析的卡名不能为空", "输入完整卡名")
+        pool = K.official()
+        if pool is not None:
+            try:
+                hit = pool.name_exists(name)
+            except Exception:
+                hit = None
+            if hit:
+                return {"ok": True, "id": int(hit["id"]), "name": hit.get("name", name),
+                        "source": "official"}
+        for c in K.cards_index():
+            if str(c.get("name") or "") == name:
+                return {"ok": True, "id": int(c.get("id") or 0),
+                        "name": name, "source": "workspace"}
+        cands: list[dict] = []
+        if pool is not None:
+            try:
+                cands = [{"id": r.get("id"), "name": r.get("name")}
+                         for r in pool.search(name, limit=5)]
+            except Exception:
+                cands = []
+        return {"ok": False, "error": f"卡池里没有卡名「{name}」",
+                "hint": "核对完整卡名；DIY 卡可直接手填卡号",
+                "candidates": cands}
 
     @app.get("/api/pool/card")
     def api_pool_card(req: Request) -> dict:

@@ -253,8 +253,8 @@ def emit_script(spec: CardSpec, *, tier: int = 1) -> str:
     tail_notes: list[str] = []
 
     # ① 召唤流程（灵摆 / 融合 / 同步 / 超量 / 连接 / 仪式 / 装备）
-    proc_effect = _summon_source_effect(spec)
-    proc_lines = summon_procedure_lines(ctx, spec, proc_effect)
+    # 数据源是 spec.summon；旧版 effects[].params['materials'] 由 normalize 迁移。
+    proc_lines = summon_procedure_lines(ctx, spec)
     if proc_lines:
         body.extend(proc_lines)
         ctx.slot += 1
@@ -293,18 +293,6 @@ def emit_script(spec: CardSpec, *, tier: int = 1) -> str:
     # 描述槽写回 spec.strings（G2 的 check_stringid_sync 查的就是这个）
     _sync_strings(spec, [s["string_text"] for s in slots if s["needs_string"]])
     return out
-
-
-def _summon_source_effect(spec: CardSpec) -> Optional[EffectSpec]:
-    """找描述「本卡怎么被召唤」的那条效果（``*_summon`` + ``params['materials']``）。"""
-    for eff in spec.effect_specs():
-        k = str(eff.kind or "")
-        if k.endswith("_summon") and (eff.params or {}).get("materials"):
-            return eff
-    for eff in spec.effect_specs():
-        if str(eff.kind or "").endswith("_summon"):
-            return eff
-    return None
 
 
 def _equip_source_effect(spec: CardSpec) -> Optional[EffectSpec]:
