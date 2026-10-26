@@ -231,10 +231,27 @@ def _lua_of(spec: CardSpec, *, pair: bool = False):
     try:
         clone = CardSpec.from_dict(spec.to_dict())
         body = str(fn(clone) or "")
+        # 把脚本挂回**副本**：G3 要拿这份 spec 真开一局，只返回文本它拿不到。
+        # 这是副本 —— 真身仍然干净，界面照样把 lua_preview 标成 true。
+        try:
+            clone.lua = body
+        except Exception:
+            pass
         return (body, clone, True) if pair else body
     except Exception as e:
         note = f"-- [CardForge] 脚本生成失败：{type(e).__name__}: {e}\n"
         return (note, spec, True) if pair else note
+
+
+def spec_for_gate(spec: CardSpec) -> CardSpec:
+    """给质量门用的 spec：脚本没落盘时把预览脚本投影到**副本**上。
+
+    G2 / G3 都必须走这里。G3 尤其不能拿真身：真身的 ``lua`` 是空的
+    （新卡不把脚本写回 spec.json），引擎会直接判「没有脚本」，
+    把「没测到」错报成「这张卡失败」—— 与本项目的诚实性约束正相反。
+    """
+    _lua, gate_spec, _preview = _lua_of(spec, pair=True)
+    return gate_spec
 
 
 def _texts_of(spec: CardSpec) -> dict:
@@ -316,13 +333,14 @@ def _gate_cached(spec: CardSpec, gate: str) -> Optional[dict]:
     try:
         if gate == "G1":
             rep = gates.g1_balance(spec, official())
-        elif gate == "G2":
+        elif gate in ("G2", "G3"):
             # 脚本与它的 Stringid 槽位必须成对送进质量门：预览出来的脚本
-            # 自带一份 strings 分配，拿原 spec（strings 还没写回）去比对会假报错
+            # 自带一份 strings 分配，拿原 spec（strings 还没写回）去比对会假报错。
+            # G3 同理 —— 它要拿这份脚本真开一局；给原 spec 就会出现
+            # 「界面明明有预览脚本、G3 却报没有 Lua 脚本」的自相矛盾。
             lua, gate_spec, _preview = _lua_of(spec, pair=True)
-            rep = gates.g2_script(gate_spec, lua)
-        elif gate == "G3":
-            rep = gates.g3_duel(spec)
+            rep = (gates.g2_script(gate_spec, lua) if gate == "G2"
+                   else gates.g3_duel(gate_spec))
         else:
             return None
     except Exception as e:

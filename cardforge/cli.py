@@ -527,6 +527,15 @@ def cmd_card(args) -> int:
             return 0
 
         if action == "verify":
+            # 与界面同一个口径：脚本还没落盘时先投影一份再进 G3。
+            # 否则对「生成而不落盘」的卡，G3 会报「没有 Lua 脚本」——
+            # 那不是卡的问题，是命令行少做了一步投影。
+            if not (getattr(spec, "lua", "") or "").strip():
+                try:
+                    from .content.lua import emit as _emit
+                    spec.lua = _emit.emit_script(spec)
+                except Exception:
+                    pass
             rep = gates.g3_duel(spec)
             o.say(f"G3 实跑验证 — {rep.status}：{rep.summary}")
             if rep.degraded:

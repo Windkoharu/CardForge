@@ -302,6 +302,7 @@
 [PASS] 官方代价句不被判成处理前置
 [PASS] ● 召唤手续条目不要求冒号
 [PASS] 被动触发句（被战斗·效果破坏）不被判成处理前置
+[PASS] 「召唤·特殊召唤成功时」不被判成处理前置
 [PASS] 真把处理写进条件段仍然报 ERROR
 [PASS] 英文代价（send … to the GY;）不被判成处理前置
 [PASS] gates.g2_script 无 ERROR

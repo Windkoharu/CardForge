@@ -167,9 +167,41 @@ def g2_script(spec: CardSpec, lua: str = "") -> GateReport:
 # ══════════════════════════════════════════════════════════════════════
 #  G3 · 实跑验证（三层降级）
 # ══════════════════════════════════════════════════════════════════════
+def _spec_with_script(spec: CardSpec) -> CardSpec:
+    """spec 里没有脚本时，按落盘的 ``c<卡号>.lua`` 补一份**副本**。
+
+    为什么要有这一步：脚本可以「生成而不落盘」（界面预览就是投影在副本上），
+    这时 spec.lua 是空的、但 workspace/script/ 下可能有用户导出过的脚本。
+    G3 要真开一局，不能因为「没写回 spec」就判成「这张卡没有脚本」——
+    那会把「没测」错报成「失败」，正好违反本模块的诚实性约束。
+    只读文件、只改副本，绝不把副作用写回调用方的 spec。
+    """
+    if (getattr(spec, "lua", "") or "").strip():
+        return spec
+    try:
+        p = paths.script_path(spec.id)
+    except Exception:
+        return spec
+    try:
+        if not Path(p).exists():
+            return spec
+        body = Path(p).read_text(encoding="utf-8")
+    except Exception:
+        return spec
+    if not body.strip():
+        return spec
+    try:
+        clone = CardSpec.from_dict(spec.to_dict())
+    except Exception:
+        return spec
+    clone.lua = body
+    return clone
+
+
 def g3_duel(spec: CardSpec, *, scenario: bool = True, duels: int = 10,
             deck: Optional[list] = None) -> GateReport:
     t0 = time.perf_counter()
+    spec = _spec_with_script(spec)
     engine = _try_import(".duel.engine") or _try_import("cardforge.duel.engine")
     if engine is None:
         # 没有对局模块 → 降级为 G2 的静态结论，并**明确标注**

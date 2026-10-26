@@ -571,9 +571,15 @@ def _run_gate_obj(req: Request, gate: str, spec: CardSpec):
         rep = (gates.g1_balance(spec, K.official(), lang=lang) if lang
                else gates.g1_balance(spec, K.official()))
     elif gate == "G2":
-        rep = gates.g2_script(spec, req.str_arg("lua"))
+        # 同 G3：没显式传脚本时，与卡片视图同口径地投影一份，
+        # 否则会误报「效果怪兽没有脚本」—— 界面上明明有预览脚本。
+        lua = req.str_arg("lua")
+        rep = gates.g2_script(K.spec_for_gate(spec) if not lua else spec, lua)
     elif gate == "G3":
-        rep = gates.g3_duel(spec, scenario=req.bool_arg("scenario", True),
+        # 脚本没落盘时先投影一份再开跑，否则 G3 会报「没有 Lua 脚本」——
+        # 那不是卡的问题（卡片视图里明明有预览脚本）。
+        rep = gates.g3_duel(K.spec_for_gate(spec),
+                            scenario=req.bool_arg("scenario", True),
                             duels=req.int_arg("duels", 10))
     elif gate == "G4":
         arch = repo.load_archetype(spec.archetype or req.str_arg("archetype"))

@@ -261,6 +261,16 @@ python3 tools/build_exe.py
 | [PSCT 与制卡方法论调研](research/PSCT与制卡方法论调研报告.md) | 官方 PSCT 规范全文整理 + 可编码的校验规则清单 |
 | [多语言术语表说明](data/lexicons/README.md) | 术语来源 · 可信度分级 · 覆盖率与缺口 |
 
+### 教学视频
+
+| 片子 | 讲什么 | 怎么重出 |
+|---|---|---|
+| 实战案例 · 圣痕的追迹者 赛拉（5 分 35 秒） | **一条完整链路**：卡组缺什么 → 规格 → 效果 → 卡文 → 39 条规则 → 脚本 → G1/G2/G3 → 卡图（模板 + 提示词对账）→ 卡面 → 上桌 → 复盘。画面里的每个数字都来自系统产物，附 `manifest.json` 逐段对账 | `python -m cardforge serve --port 8790` 后 `python tools/teach_case.py` |
+| 召唤条件 · 素材行与接触召唤（约 2 分半） | 额外卡组的召唤条件：素材行 / 召唤限制 / 素材锁定 / 接触召唤，卡文与 Lua 同源 | `python tools/teach_video.py --card 210000021` |
+
+两集共用版式件 `tools/vidkit.py`（片头 chrome / 截图卡 / 文本卡 / SRT / 章节 / ffmpeg 合成），
+各自的生成器只负责分镜与取数 —— 改一集不会把另一集的成片改坏。
+
 ---
 
 ## 关键设计决策（都有据可依）

@@ -1,0 +1,118 @@
+{
+  "id": 210000031,
+  "name": "圣痕的追迹者 赛拉",
+  "frame": "effect",
+  "attribute": "光",
+  "race": "战士族",
+  "level": 4,
+  "atk": 1600,
+  "dfd": 1200,
+  "archetype": "圣痕",
+  "setcode": "0x1000",
+  "text_i18n": {
+    "zh_cn": "①：这张卡召唤·特殊召唤成功时才能发动。从卡组把1只「圣痕」怪兽加入手卡。\n②：这张卡被送去墓地时才能发动。从自己墓地选1只「圣痕的追迹者 赛拉」以外的「圣痕」怪兽加入手卡。\n这个卡名的①②的效果1回合各能使用1次。"
+  },
+  "effects": [
+    {
+      "kind": "search",
+      "trigger": "SUMMON_ANY_SUCCESS",
+      "target": {
+        "from_zone": "DECK",
+        "to_zone": "HAND",
+        "filter_kind": "archetype",
+        "filter_value": "圣痕",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": false,
+        "face_up": false
+      },
+      "cost": {
+        "kind": "none",
+        "count": 1,
+        "filter_kind": "any",
+        "lp": 0
+      },
+      "limit": "hopt_name",
+      "params": {
+        "n": 1,
+        "card_type": "monster",
+        "_index": 0
+      },
+      "source": "manual"
+    },
+    {
+      "kind": "search_grave",
+      "trigger": "WHEN_SENT_GRAVE",
+      "target": {
+        "from_zone": "GRAVE",
+        "to_zone": "HAND",
+        "filter_kind": "archetype",
+        "filter_value": "圣痕",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": true,
+        "face_up": false
+      },
+      "cost": {
+        "kind": "none",
+        "count": 1,
+        "filter_kind": "any",
+        "lp": 0
+      },
+      "limit": "hopt_name",
+      "params": {
+        "n": 1,
+        "card_type": "monster",
+        "select": true,
+        "_index": 1
+      },
+      "source": "manual"
+    }
+  ],
+  "render": {
+    "rarity": "ultra",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0.0,
+      "bleed_bottom": 0.0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0.0,
+      "subject_scale": 0.0,
+      "subject_offset_y": 0.0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0.0,
+    "art_scale": 1.0,
+    "art_ring": 0.0,
+    "bezel": 1.0,
+    "font_scale_name": 1.0,
+    "font_scale_text": 1.0,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 圣痕的追迹者 赛拉\n     CardForge 2.0 生成 · 卡种=效果（frame=effect） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--1. 从卡组把…加入手卡\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)\n\te1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te1:SetProperty(EFFECT_FLAG_DELAY)\n\te1:SetRange(LOCATION_MZONE)\n\te1:SetCode(EVENT_SUMMON_SUCCESS)\n\te1:SetCountLimit(1,{id,1})\n\te1:SetTarget(s.tg1)\n\te1:SetOperation(s.op1)\n\tc:RegisterEffect(e1)\n\tlocal e1b=e1:Clone()\n\te1b:SetCode(EVENT_SPSUMMON_SUCCESS)\n\tc:RegisterEffect(e1b)\n\t--2. 从墓地把…加入手卡\n\tlocal e2=Effect.CreateEffect(c)\n\te2:SetDescription(aux.Stringid(id,1))\n\te2:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)\n\te2:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te2:SetProperty(EFFECT_FLAG_DELAY)\n\te2:SetRange(LOCATION_GRAVE)\n\te2:SetCode(EVENT_TO_GRAVE)\n\te2:SetCountLimit(1,{id,2})\n\te2:SetCondition(s.con2)\n\te2:SetTarget(s.tg2)\n\te2:SetOperation(s.op2)\n\tc:RegisterEffect(e2)\nend\ns.listed_series={0x1000}\n\nfunction s.fil1(c)\n\treturn c:IsSetCard(0x1000) and c:IsType(TYPE_MONSTER) and c:IsAbleToHand()\nend\n\nfunction s.tg1(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(s.fil1,tp,LOCATION_DECK,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)\nend\n\nfunction s.op1(e,tp,eg,ep,ev,re,r,rp)\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil1,tp,LOCATION_DECK,0,1,1,nil)\n\tif #g>0 then\n\t\tDuel.SendtoHand(g,nil,REASON_EFFECT)\n\t\tDuel.ConfirmCards(1-tp,g)\n\tend\nend\n\nfunction s.fil2(c)\n\treturn c:IsSetCard(0x1000) and c:IsType(TYPE_MONSTER) and c:IsAbleToHand()\nend\n\nfunction s.tg2(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(s.fil2,tp,LOCATION_GRAVE,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_GRAVE)\nend\n\nfunction s.op2(e,tp,eg,ep,ev,re,r,rp)\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil2,tp,LOCATION_GRAVE,0,1,1,nil)\n\tif #g>0 then\n\t\tDuel.SendtoHand(g,nil,REASON_EFFECT)\n\t\tDuel.ConfirmCards(1-tp,g)\n\tend\nend\n\nfunction s.con2(e,tp,eg,ep,ev,re,r,rp)\n\tlocal c=e:GetHandler()\n\treturn c:IsPreviousLocation(LOCATION_ONFIELD) and c:IsLocation(LOCATION_GRAVE)\nend\n",
+  "strings": [
+    "这张卡召唤·特殊召唤成功时才能发动。从卡组把1只「圣痕」怪兽加入手卡。",
+    "这张卡被送去墓地时才能发动。从自己墓地选1只「圣痕的追迹者 赛拉」以外的「圣痕」怪兽加入手卡。"
+  ],
+  "created": "2026-10-27T01:03:02",
+  "updated": "2026-10-27T01:06:44.231306",
+  "schema_version": 3,
+  "race_bits": 1,
+  "attr_bits": 16,
+  "type_bits": 33,
+  "link_bits": 0,
+  "def_value": 1200
+}

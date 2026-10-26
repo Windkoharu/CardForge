@@ -665,6 +665,16 @@ chk("● 召唤手续条目不要求冒号",
     "WARN:PSCT_MISSING_COLON" not in _codes, str(_codes))
 chk("被动触发句（被战斗·效果破坏）不被判成处理前置",
     all("破坏" not in c for c in _codes if "RESOLUTION_BEFORE_SEMI" in c), str(_codes))
+# 「…成功时」是**时点**不是处理结果 —— 官方最常见的一类诱发效果不能被自家
+# 校验器判错（2026-10-26 实测：①「召唤·特殊召唤成功时才能发动」曾被误报 ERROR）
+_trigger_ok = CardSpec(
+    id=210000644, name="圣痕的追迹者 赛拉", frame="effect", attribute="光",
+    race="战士族", level=4, atk=1600, dfd=1200, archetype="圣痕", setcode="0x1001",
+    text_i18n={"zh_cn": "①：这张卡召唤·特殊召唤成功时才能发动。"
+                        "从卡组把1只「圣痕」怪兽加入手卡。"})
+chk("「召唤·特殊召唤成功时」不被判成处理前置",
+    not any(i.code == "PSCT_RESOLUTION_BEFORE_SEMI"
+            for i in PLINT.lint(_trigger_ok, "zh_cn")), "")
 _bad_spec = CardSpec(id=210000642, name="误写卡", frame="effect", attribute="光",
                      race="战士族", level=4, atk=1600, dfd=1200,
                      text_i18n={"zh_cn": "①：这张卡从墓地特殊召唤，抽1张卡才能发动。"})

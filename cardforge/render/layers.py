@@ -778,7 +778,15 @@ def draw_stats(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: FontOf,
         return
 
     ax, ay = f.point("atk_value")
-    if font is not None:
+    if fd.has_def:
+        # ATK 与 DEF 之间要留出官方卡面那样的空隙：两个数值各自右对齐到自己的
+        # 锚点，画布窄的时候会贴成「1600DEF/1200」（2026-10-26 实测）。
+        # 这里按字号留 0.32em 的缝，只动 ATK 的落点，不影响 DEF 与分隔线。
+        gap = max(float(f.px(3)), size * 0.32)
+        if font is not None:
+            d.text((ax - gap, ay), f"ATK/{_fmt_num(spec.atk)}", font=font,
+                   fill=ink, anchor="rm")
+    elif font is not None:
         d.text((ax, ay), f"ATK/{_fmt_num(spec.atk)}", font=font, fill=ink, anchor="rm")
     if fd.has_def:
         dx, dy = f.point("def_value")

@@ -31,7 +31,8 @@
       },
       "limit": "hopt_name_activate",
       "params": {
-        "n": 1
+        "n": 1,
+        "_index": 0
       },
       "source": "manual"
     }
@@ -67,8 +68,12 @@
     "preview_width": 480,
     "output_size": "edopro"
   },
+  "lua": "--[==[ 圣痕的继承者 空\n     CardForge 2.0 生成 · 卡种=效果（frame=effect） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n     ⚑ 字段引用没有对应 setcode，过滤条件已放宽成「任何卡」\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--1. 从卡组把…加入手卡\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)\n\te1:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te1:SetProperty(EFFECT_FLAG_DELAY)\n\te1:SetRange(LOCATION_MZONE)\n\te1:SetCode(EVENT_SUMMON_SUCCESS)\n\te1:SetCountLimit(1,{id,1},EFFECT_COUNT_CODE_OATH)\n\te1:SetTarget(s.tg1)\n\te1:SetOperation(s.op1)\n\tc:RegisterEffect(e1)\n\tlocal e1b=e1:Clone()\n\te1b:SetCode(EVENT_SPSUMMON_SUCCESS)\n\tc:RegisterEffect(e1b)\nend\n\nfunction s.fil1(c)\n\treturn c:IsAbleToHand()\nend\n\nfunction s.tg1(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(s.fil1,tp,LOCATION_DECK,0,1,nil) end\n\tDuel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)\nend\n\nfunction s.op1(e,tp,eg,ep,ev,re,r,rp)\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil1,tp,LOCATION_DECK,0,1,1,nil)\n\tif #g>0 then\n\t\tDuel.SendtoHand(g,nil,REASON_EFFECT)\n\t\tDuel.ConfirmCards(1-tp,g)\n\tend\nend\n",
+  "strings": [
+    "这张卡召唤·特殊召唤成功时才能发动。从卡组把1张「圣痕」卡加入手卡。"
+  ],
   "created": "2026-10-26T21:26:45",
-  "updated": "2026-10-26T21:28:02.965323",
+  "updated": "2026-10-27T01:06:43.971362",
   "schema_version": 3,
   "race_bits": 1,
   "attr_bits": 4,

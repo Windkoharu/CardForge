@@ -83,6 +83,21 @@ REF_SIZE = 30
 _HARD_BREAK = -1.0
 #: 伪粗体的描边宽度（px）
 FAUX_BOLD = 0.9
+
+#: 字库缺字形时的**渲染层**替换表（不改数据，只改画出来用哪个字形）。
+#:
+#: 官方简中卡文用的是 U+00B7「·」（vendor/data/cards_zh.cdb 里 6485 张卡都有），
+#: 但官方简中字库 ``data/assets/ygo-sc.ttf`` 的 cmap 里**没有这个码位**
+#: （只有 ・ U+30FB）。于是「①：这张卡召唤·特殊召唤成功时」在卡面上会画出
+#: 一个豆腐块 —— 数据是对的，字库画不出来。这里在排版入口统一换成字库里
+#: 等价的 ・，卡文数据（cdb / texts / 导出）一个字节都不动。
+GLYPH_SUBSTITUTES: dict[str, str] = {"\u00b7": "\u30fb"}
+_SUBS_TABLE = str.maketrans(GLYPH_SUBSTITUTES)
+
+
+def substitute_missing_glyphs(text: str) -> str:
+    """把官方字库画不出来的标点换成等价字形（**只用于渲染**）。"""
+    return text.translate(_SUBS_TABLE) if text else text
 #: 伪斜体的横向切变量（相对行高）
 FAUX_ITALIC_SHEAR = 0.18
 
@@ -926,6 +941,13 @@ def fit(runs: list[TextRun], font_of: FontOf | None, box: tuple[float, float],
       ``size_scale`` 也乘一遍 → 相对密度被放大，200 字中文会从 5 行涨到 10 行。
     """
     w0, h0 = float(box[0]), float(box[1])
+    # 排版前统一做一次「字库缺字形」替换（官方简中字库没有 ·，见 GLYPH_SUBSTITUTES）。
+    # 必须在量宽度之前做，否则换行位置与实际字形对不上。
+    if runs and any("\u00b7" in (r.text or "") for r in runs):
+        runs = [r if "\u00b7" not in (r.text or "")
+                else TextRun(substitute_missing_glyphs(r.text), r.bold, r.italic,
+                             r.size_scale)
+                for r in runs]
     if apply_inset:
         left, top, right, bottom = text_inset(lang)
         w0 -= left + right
