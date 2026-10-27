@@ -191,6 +191,8 @@ ART_FADE_MASK_BLUR = 0.75
 # ══════════════════════════════════════════════════════════════════════
 FULLART_DEFAULTS: dict[str, dict] = {
     "none":         {"bleed_top": 0.00, "bleed_bottom": 0.00, "panel_opacity": 1.00, "fade_px": 0.0},
+    # 官方超框：插画铺满内框，面板含类型行；数值只给 UI/capabilities 看
+    "overframe":    {"bleed_top": 0.00, "bleed_bottom": 0.00, "panel_opacity": 0.88, "fade_px": 0.0},
     "art_bleed":    {"bleed_top": 0.13, "bleed_bottom": 0.10, "panel_opacity": 0.86, "fade_px": 0.0},
     "art_over":     {"bleed_top": 0.34, "bleed_bottom": 0.18, "panel_opacity": 0.78, "fade_px": 0.0},
     "full_bleed":   {"bleed_top": 1.00, "bleed_bottom": 1.00, "panel_opacity": 0.72, "fade_px": 26.0},

@@ -358,9 +358,14 @@ _MASK_CACHE: dict[tuple, Image.Image] = {}
 
 
 def region_mask(region: str, frame_obj: G.Frame, *, pendulum: bool = False,
-                feather: float = 1.5) -> Image.Image:
-    """生成某作用区域的 L 模式遮罩（255 = 完全作用）。结果缓存。"""
-    key = (region, frame_obj.width, frame_obj.height, pendulum, round(feather, 2))
+                feather: float = 1.5, art_rect=None) -> Image.Image:
+    """生成某作用区域的 L 模式遮罩（255 = 完全作用）。结果缓存。
+
+    ``art_rect``：出血类出框档的实际插画矩形 —— ``artwork`` 遮罩要跟着它走，
+    否则闪膜只落在标准卡图窗里，而出框的画面反而不闪（「不该闪的不闪」的反例）。
+    """
+    ar = (tuple(round(v) for v in art_rect) if art_rect is not None else None)
+    key = (region, frame_obj.width, frame_obj.height, pendulum, round(feather, 2), ar)
     hit = _MASK_CACHE.get(key)
     if hit is not None:
         return hit
@@ -383,7 +388,10 @@ def region_mask(region: str, frame_obj: G.Frame, *, pendulum: bool = False,
         d.rectangle([0, 0, w, h], fill=255)
         d.rectangle(box("frame_inset"), fill=0)
     elif region == "artwork":
-        d.rectangle(box(G.PENDULUM_ART_KEY if pendulum else G.STANDARD_ART_KEY), fill=255)
+        if ar is not None:
+            d.rectangle([ar[0], ar[1], ar[0] + ar[2], ar[1] + ar[3]], fill=255)
+        else:
+            d.rectangle(box(G.PENDULUM_ART_KEY if pendulum else G.STANDARD_ART_KEY), fill=255)
     elif region == "name":
         d.rounded_rectangle(box("title_bevel"), radius=max(2, frame_obj.px(8)), fill=255)
     elif region == "textbox":
@@ -587,11 +595,11 @@ RARITY_DEFS: dict[str, RarityDef] = {
 
 #: 出框卡常见的官方组合（供 UI 快捷选项）
 COMBO_PRESETS = {
-    "ofpse": ("prismatic_secret", "art_over", "出框 + 棱镜碎（OFPSE）"),
-    "ofur": ("ultra", "art_bleed", "出框 + 金闪"),
-    "gmr": ("quarter_century", "art_over", "Grand Master Rare 风格（虹色厚盛箔 + 序列号）"),
-    "ghost_full": ("ghost", "full_bleed", "全息 + 全画"),
-    "default_extended": ("secret", "art_bleed", "出血出框 + 银碎"),
+    "ofpse": ("prismatic_secret", "overframe", "官方超框 + 棱镜碎（OFPSE）"),
+    "ofur": ("ultra", "overframe", "官方超框 + 金闪"),
+    "gmr": ("quarter_century", "overframe", "Grand Master Rare 风格（官方超框 + 虹色厚盛箔）"),
+    "ghost_full": ("ghost", "full_bleed", "全息 + 全画（DIY）"),
+    "default_extended": ("secret", "overframe", "官方超框 + 银碎"),
 }
 
 
@@ -650,10 +658,11 @@ def _emboss(img: Image.Image, mask: Image.Image, depth: float, angle: float) -> 
 def apply_rarity(canvas: Image.Image, rarity: str, frame_obj: G.Frame, *,
                  pendulum: bool = False, palette: Optional[Palette] = None,
                  seed: int = 7, emboss_texture: Image.Image | None = None,
-                 assets=None) -> Image.Image:
+                 assets=None, art_rect=None) -> Image.Image:
     """在 ``canvas`` 上叠加某罕贵的效果，返回新图（不修改入参）。
 
     ``canvas`` 必须是 RGB 或 RGBA，尺寸与 ``frame_obj`` 一致。
+    ``art_rect``：出血类出框档的实际插画矩形，artwork 遮罩跟随它（见 :func:`region_mask`）。
     """
     d = by_key(rarity)
     if not d.layers and not d.frame_edge_fx and (not d.name_fx or d.name_fx.style == "none"):
@@ -665,7 +674,8 @@ def apply_rarity(canvas: Image.Image, rarity: str, frame_obj: G.Frame, *,
     for layer in d.layers:
         if not isinstance(layer, Foil):
             continue
-        mask = region_mask(layer.region, frame_obj, pendulum=pendulum, feather=layer.feather)
+        mask = region_mask(layer.region, frame_obj, pendulum=pendulum,
+                           feather=layer.feather, art_rect=art_rect)
         if layer.opacity <= 0:
             continue
 

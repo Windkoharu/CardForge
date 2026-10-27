@@ -464,6 +464,15 @@ def cmd_render(args) -> int:
         spec.render.lang_text = spec.render.lang_name = args.lang
     if args.fullart:
         spec.render.fullart = FullArtOptions(mode=args.fullart)
+    # 只兜官方超框：旧 DIY 档的组合范围本轮不动（验收后再统一收拾）。
+    if args.fullart == "art_over":
+        o.warn("旧「超框」档（art_over）已并入官方超框 → 本卡按官方超框渲染")
+    if spec.render.fullart.mode == "overframe":
+        from .render import fullart as _fa
+        if not _fa.supports("overframe", spec.frame):
+            o.warn(f"「{FULL_ART_MODES['overframe'].zh_cn}」暂无"
+                   f"{FRAMES[spec.frame].zh_cn}的官方参考 → 已回退标准")
+            spec.render.fullart.mode = "none"
     if getattr(args, "bezel", None) is not None:
         spec.render.bezel = float(args.bezel)
     if args.set_number:

@@ -23,14 +23,16 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from ..core.models import CardSpec, FullArtOptions
 from . import geometry as G
 
-MODES = ("none", "art_bleed", "art_over", "full_bleed", "pendulum_full",
-         "subject_bleed")
+MODES = ("none", "overframe", "art_bleed", "art_over", "full_bleed",
+         "pendulum_full", "subject_bleed")
 
 #: 每种模式下，插画绘制完成后需要**从原卡框回贴**的区域（保证框体与卡名栏正常显示）
 #: ⚠ 只回贴卡名条与魔陷标签这类**必读信息条**。绝不能回贴 ``frame_inset``——
 #: 那等于把整张卡框盖回插画上，超框档位的插画会被整片擦掉（实测踩过这个坑）。
 _RESTORE_REGIONS: dict[str, tuple[str, ...]] = {
     "none": (),
+    # 官方超框：插画止于内框，外框由底图保留；卡名条/类型条都不回贴（官方没有名条）
+    "overframe": (),
     "art_bleed": ("title_bevel", "st_label"),
     "art_over": ("title_bevel", "st_label"),
     "full_bleed": ("title_bevel", "st_label"),
@@ -42,6 +44,8 @@ _RESTORE_REGIONS: dict[str, tuple[str, ...]] = {
 #: 绘制次序。``art`` 出现的位置之后绘制的元素会盖在插画上。
 DRAW_ORDER: dict[str, list[str]] = {
     "none": ["frame", "art", "panel", "content", "finish"],
+    # 官方超框：插画先铺满内框，面板/名/星级/文本全部后画
+    "overframe": ["frame", "art", "panel", "content", "finish"],
     "art_bleed": ["frame", "art", "restore", "panel", "content", "finish"],
     "art_over": ["frame", "art", "restore", "panel", "content", "finish"],
     "full_bleed": ["art", "frame_ghost", "restore", "panel", "content", "finish"],
@@ -68,6 +72,25 @@ class FullArtPlan:
     subject_offset_y: float = 0.0
     order: list[str] = field(default_factory=list)
     notes: str = ""
+    #: 官方超框：面板从类型行顶部起（REF 系 y）；None = 用标准 ``text_panel``
+    panel_top: Optional[float] = None
+    panel_border: bool = False
+    panel_shadow: bool = False
+    hide_password: bool = False
+    code_above_panel: bool = False
+    #: 卡名填充色（官方超框在无箔罕贵下用白字 + 深描边）；None = 沿用旧逻辑
+    name_fill: Optional[tuple[int, int, int]] = None
+        #: 官方超框：类型行/卡种标签的矩形（默认用卡框的类型行位置）
+    type_label_rect: Optional[tuple[float, float, float, float]] = None
+    #: 官方超框：类型行落在浅色面板上 → 强制用面板深色墨（魔陷框默认是白字）
+    type_label_dark: bool = False
+    #: 官方超框：面板下沿（REF 系 y）；None = 用标准 ``text_panel`` 下沿。
+    #: 官方超框的面板一直包到版权行上方，把 ATK·DEF 数值也包进框内。
+    #: ⚠ 新字段一律加在末尾：旧代码用位置参数构造 FullArtPlan。
+    panel_bottom: Optional[float] = None
+    #: 出血类档位（art_bleed / full_bleed / pendulum_full）：类型行/卡号/密码压在
+    #: 插画上 → 绘制时按底图明暗自适应墨色与描边，保证可读。
+    contrast_text: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -83,6 +106,18 @@ class FullArtPlan:
             "subject_offset_y": round(self.subject_offset_y, 3),
             "order": list(self.order),
             "notes": self.notes,
+            "panel_top": (round(self.panel_top, 2) if self.panel_top is not None else None),
+            "panel_bottom": (round(self.panel_bottom, 2)
+                             if self.panel_bottom is not None else None),
+            "panel_border": self.panel_border,
+            "panel_shadow": self.panel_shadow,
+            "hide_password": self.hide_password,
+            "code_above_panel": self.code_above_panel,
+            "name_fill": list(self.name_fill) if self.name_fill is not None else None,
+            "type_label_rect": (tuple(round(v, 2) for v in self.type_label_rect)
+                                if self.type_label_rect is not None else None),
+            "type_label_dark": self.type_label_dark,
+            "contrast_text": self.contrast_text,
         }
 
 
@@ -93,6 +128,9 @@ def supports(mode: str, frame: str = "") -> bool:
     if frame == "skill":
         return False
     if mode == "pendulum_full" and "pendulum" not in frame:
+        return False
+    # 官方超框目前没有灵摆参考；灵摆仍走「灵摆出框」DIY 档
+    if mode == "overframe" and "pendulum" in frame:
         return False
     return True
 
@@ -121,6 +159,71 @@ def plan(mode: str, frame_obj: G.Frame, spec: CardSpec,
         return FullArtPlan("none", (wx, wy, ww, wh), 1.0, 0.0, 0.0, (), None, 1.0,
                            1.0, 0.0, list(DRAW_ORDER["none"]))
 
+    if mode == "overframe" and ("pendulum" in spec.frame or spec.frame == "skill"):
+        # 官方暂无灵摆/技能超框参考：回退标准，避免把灵摆面板叠坏
+        return FullArtPlan(
+            mode="none", art_rect=(wx, wy, ww, wh), panel_opacity=1.0,
+            name_stroke=0.0, fade_px=0.0, restore_regions=(),
+            clip_bottom=None, frame_alpha=1.0, subject_scale=1.0,
+            subject_offset_y=0.0, order=list(DRAW_ORDER["none"]),
+            notes="官方超框暂无灵摆/技能参考 → 回退标准",
+        )
+
+    if mode == "art_over":
+        # 旧 DIY「超框」档并入官方超框（2026-10-27 验收通过）：历史卡不静默变样，
+        # 直接按官方几何渲染，notes 里写明迁移。灵摆/技能仍走回退。
+        p = plan("overframe", frame_obj, spec, art_size, opts)
+        if p.mode == "overframe":
+            p.notes = "旧「超框」档已并入官方超框；本卡按官方几何渲染"
+        else:
+            p.notes = "旧「超框」档已并入官方超框；" + p.notes
+        return p
+
+    if mode == "overframe":
+        # 官方超框：插画铺满**内框整片**（外框由底图保留），
+        # 下方在版权表记处截断；名/星/属性、面板、文本全部后画。
+        ix, iy, iw, ih = frame_obj.rect("frame_inset")
+        cx, cy = frame_obj.point("copyright")
+        clip_bottom = min(float(frame_obj.height), cy - frame_obj.px(6, "y"))
+        bottom = min(iy + ih, clip_bottom)
+        rect = (ix, iy, iw, max(1.0, bottom - iy))
+        # 类型行按**官方样张**处理：面板上沿只比类型行高 ~21px（官方 18px@702 折算），
+        # 类型行紧贴正文上方（间隙 ~7px），用面板同款深色墨。怪物用 type_line、
+        # 魔陷用 st_label（OCG 官方把卡种印在类型行右侧，不是卡名下方）。
+        box = frame_obj.rect("text_box" if spec.is_monster else "text_box_st")
+        row = frame_obj.rect("type_line" if spec.is_monster else "st_label")
+        il, _it, ir, _ib = G.text_inset(spec.render.lang_text)
+        body_l = box[0] + frame_obj.px(il, "x")
+        body_r = box[0] + box[2] - frame_obj.px(ir, "x")
+        # 正文首行墨迹顶 ≈ 文本框顶 + 首行留白（经验 11.5px@813）；
+        # 类型行 rect 的墨迹顶还要再往下 ~11px（字体自带行距），所以整体再提 7px。
+        row_y = box[1] - frame_obj.px(33, "y")
+        # 面板上沿：官方「面板边 → 类型行墨迹」= 18px@702（折算 21px@813）。
+        # 类型行 rect 顶到墨迹还有 ~4px，所以 rect 上方留 17px。
+        panel_top = box[1] - frame_obj.px(50, "y")
+        if spec.is_monster:
+            label_rect = (body_l, row_y, max(1.0, body_r - body_l), row[3])
+        else:
+            label_rect = (body_r - row[2], row_y, row[2], row[3])
+        notes = ("官方超框：插画铺满内框、外框保留；卡名/星级/属性浮于画上；"
+                 "面板半透明带金边与投影、上沿只比类型行高约 21px；"
+                 "类型行贴正文上方用面板深色墨；密码隐藏；卡号在面板上沿外")
+        if pendulum:
+            notes += "；官方暂无灵摆超框参考，此档沿用同一内框几何"
+        return FullArtPlan(
+            mode="overframe", art_rect=rect, panel_opacity=0.88,
+            name_stroke=4.0, fade_px=0.0, restore_regions=(),
+            clip_bottom=clip_bottom, frame_alpha=1.0,
+            subject_scale=1.0, subject_offset_y=0.0,
+            order=list(DRAW_ORDER["overframe"]), notes=notes,
+            panel_top=panel_top, panel_border=True, panel_shadow=True,
+            panel_bottom=cy - frame_obj.px(20, "y"),
+            hide_password=True, code_above_panel=True,
+            name_fill=(255, 255, 255),
+            type_label_rect=label_rect,
+            type_label_dark=True,
+        )
+
     if mode == "subject_bleed":
         # 背景**不**出血：art_rect 就是标准窗；溢出量全部体现在主体层的缩放与上移上
         d = G.FULLART_DEFAULTS["subject_bleed"]
@@ -134,6 +237,19 @@ def plan(mode: str, frame_obj: G.Frame, spec: CardSpec,
             order=list(DRAW_ORDER["subject_bleed"]),
             notes="背景严格留在卡图窗内；只有主体层放大并压出窗沿，卡名条与类型行回贴")
 
+    if mode == "full_bleed":
+        # 全画：插画铺满**整卡**（含外框），卡框以低不透明度叠回 —— 旧版 art_rect
+        # 仍框在内框里，观感与出血档几乎一样，没有兑现「铺满整卡」的档位承诺。
+        # 正文/类型行压在画上，用自适应对比保证可读。
+        return FullArtPlan(
+            mode="full_bleed", art_rect=(0.0, 0.0, float(frame_obj.width),
+                                         float(frame_obj.height)),
+            panel_opacity=panel_op, name_stroke=opts.name_stroke or 2.4, fade_px=0.0,
+            restore_regions=_RESTORE_REGIONS["full_bleed"], clip_bottom=None,
+            frame_alpha=0.55, contrast_text=True,
+            order=list(DRAW_ORDER["full_bleed"]),
+            notes="插画铺满整卡（含外框），卡框以 55% 透明度叠回；类型行/卡号自适应对比")
+
     # 版权行以上为插画下边界（官方：版权表记处截断）
     cx, cy = frame_obj.point("copyright")
     clip_bottom = min(frame_obj.height, cy - frame_obj.px(6, "y"))
@@ -145,25 +261,28 @@ def plan(mode: str, frame_obj: G.Frame, spec: CardSpec,
     bottom = min(clip_bottom, bottom)
 
     # 横向：出框时轻微放大，避免两侧出现空框
-    pad_x = ww * (0.035 if mode == "art_over" else 0.018)
+    pad_x = ww * 0.018
     left = max(0.0, wx - pad_x)
     right = min(float(frame_obj.width), wx + ww + pad_x)
 
     rect = (left, top, right - left, bottom - top)
-    frame_alpha = 0.30 if mode == "full_bleed" else 1.0
-    stroke = opts.name_stroke or (2.4 if mode in ("art_over", "full_bleed") else 0.0)
+    stroke = opts.name_stroke or 0.0
+
+    # 怪物没有卡种标签，回贴 st_label 只会留下一块空色块（2026-10-27 实测）；
+    # 魔陷才需要把标签条贴回来。
+    restore = _RESTORE_REGIONS.get(mode, ())
+    if spec.is_monster:
+        restore = tuple(rr for rr in restore if rr != "st_label")
 
     notes = {
         "art_bleed": "插画溢出卡图窗并压住类型行；文本框半透明；版权行截断",
-        "art_over": "插画越到卡名条与边框之上；卡名加描边保证可读；卡名栏从原卡框回贴",
-        "full_bleed": "插画铺满整卡，卡框以低不透明度叠加；下缘渐隐",
         "pendulum_full": "灵摆双区分别溢出，左右刻度从原卡框回贴",
     }.get(mode, "")
 
     return FullArtPlan(
         mode=mode, art_rect=rect, panel_opacity=panel_op, name_stroke=stroke,
-        fade_px=fade, restore_regions=_RESTORE_REGIONS.get(mode, ()),
-        clip_bottom=clip_bottom, frame_alpha=frame_alpha,
+        fade_px=fade, restore_regions=restore,
+        clip_bottom=clip_bottom, frame_alpha=1.0, contrast_text=True,
         order=list(DRAW_ORDER.get(mode, DRAW_ORDER["none"])), notes=notes,
     )
 

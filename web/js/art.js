@@ -257,15 +257,39 @@ function buildRenderForm() {
   if (!box) return;
   clear(box);
   const rar = Object.entries(meta.rarities || {}).map(([k, v]) => [k, v.zh_cn || v.zh || k]);
-  const fa = Object.entries(meta.fullart_modes || {}).map(([k, v]) => [k, v.zh || v.zh_cn || k]);
+  const frameKey = (store.spec && store.spec.frame) || 'effect';
+  const fa = Object.entries(meta.fullart_modes || {})
+    .filter(([k]) => {
+      // 官方超框暂无灵摆/技能参考；旧「超框」档已并入官方，不再单列。
+      if (k === 'overframe') return !frameKey.includes('pendulum') && frameKey !== 'skill';
+      if (k === 'art_over') return false;
+      return true;
+    })
+    .map(([k, v]) => [k, v.zh || v.zh_cn || k]);
   const lg = Object.entries(meta.langs || {}).map(([k, v]) => [k, v.zh_cn || k]);
   const spec = store.spec || {};
   const r = spec.render || {};
+  let curMode = (r.fullart || {}).mode || 'none';
+  if (curMode === 'art_over' && spec.render) {
+    // 历史卡迁移：旧「超框」档按官方超框渲染，落盘也改成 overframe。
+    const nextFa = Object.assign({}, (typeof spec.render.fullart === 'object' && spec.render.fullart) || {});
+    nextFa.mode = 'overframe';
+    spec.render.fullart = nextFa;
+    curMode = 'overframe';
+    setRenderOverride(Object.assign({}, getRenderOverride(), { fullart: 'overframe' }));
+  }
+  const faKeys = fa.map(([k]) => k);
+  if (!faKeys.includes(curMode) && spec.render) {
+    const nextFa = Object.assign({}, (typeof spec.render.fullart === 'object' && spec.render.fullart) || {});
+    nextFa.mode = 'none';
+    spec.render.fullart = nextFa;
+    setRenderOverride(Object.assign({}, getRenderOverride(), { fullart: 'none' }));
+  }
   box.append(
     field('罕贵度', select(rar, r.rarity || 'common',
       { onChange: (v) => setRender(Object.assign({}, getRenderOverride(), { rarity: v })) }),
       { hint: '25 种罕贵按「五层可叠加」实现：卡名/卡图/属性/文本框/卡框各自独立参与' }),
-    field('出框档位', select(fa, (r.fullart || {}).mode || 'none',
+    field('出框档位', select(fa, (faKeys.includes(curMode) ? curMode : 'none'),
       { onChange: (v) => setRender(Object.assign({}, getRenderOverride(), { fullart: v })) }),
       { hint: '出框是设计处理，与罕贵正交，可任意叠加' }),
     field('卡面文字语言', select(lg, r.lang_text || 'zh_cn',

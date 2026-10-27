@@ -339,7 +339,10 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
         if spec.is_pendulum:
             L.draw_pendulum_panels(canvas, f, pal, opacity=fa_plan.panel_opacity)
         else:
-            L.draw_text_panel(canvas, f, pal, opacity=fa_plan.panel_opacity)
+            L.draw_text_panel(canvas, f, pal, opacity=fa_plan.panel_opacity,
+                              top=fa_plan.panel_top, bottom=fa_plan.panel_bottom,
+                              border=fa_plan.panel_border,
+                              shadow=fa_plan.panel_shadow)
 
     # 内容元素
     L.draw_badge(canvas, spec, f, assets=mods["assets"])
@@ -349,10 +352,18 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
 
     name_fx = R.name_effect(r.rarity)
     L.draw_name(canvas, spec, f, font_of, pal, assets=mods["assets"],
-                name_fx=name_fx, stroke=fa_plan.name_stroke)
+                name_fx=name_fx, stroke=fa_plan.name_stroke,
+                fill=fa_plan.name_fill)
 
     L.draw_type_line(canvas, spec, f, font_of, pal, lang=r.lang_text,
-                     pendulum=spec.is_pendulum)
+                     pendulum=spec.is_pendulum,
+                     label_rect=fa_plan.type_label_rect,
+                     fill=(pal.type_ink if fa_plan.type_label_dark else None),
+                     stroke=0.0,
+                     size_ref=(G.FONT_SIZE["type_line"]
+                               if (fa_plan.mode == "overframe" and not spec.is_monster)
+                               else None),
+                     contrast=fa_plan.contrast_text)
 
     if mods["text"] is not None:
         if spec.frame == "normal" and spec.flavor_in(r.lang_flavor):
@@ -363,7 +374,8 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
             if pend.strip():
                 info = L.draw_effect_text(canvas, spec, f, font_of, pal,
                                           lang=r.lang_text, pendulum=True,
-                                          box_key="pendulum_text")
+                                          box_key="pendulum_text",
+                                          uniform_ink=(fa_plan.mode == "overframe"))
                 rep.text_lines = info.get("lines", 0)
                 rep.text_size = info.get("size", 0)
                 rep.text_overflow = bool(info.get("overflow"))
@@ -371,7 +383,8 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
             if body.strip():
                 info2 = L.draw_effect_text(canvas, spec, f, font_of, pal,
                                            lang=r.lang_text, pendulum=False,
-                                           box_key="pendulum_monster_text")
+                                           box_key="pendulum_monster_text",
+                                           uniform_ink=(fa_plan.mode == "overframe"))
                 rep.text_lines += info2.get("lines", 0)
                 rep.text_size = rep.text_size or info2.get("size", 0)
                 rep.text_overflow = rep.text_overflow or bool(info2.get("overflow"))
@@ -379,7 +392,8 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
                 rep.warnings.append("卡文过长，已压到最小字号仍溢出一行以内，建议精简")
         else:
             info = L.draw_effect_text(canvas, spec, f, font_of, pal,
-                                      lang=r.lang_text, pendulum=False)
+                                      lang=r.lang_text, pendulum=False,
+                                      uniform_ink=(fa_plan.mode == "overframe"))
             rep.text_lines = info.get("lines", 0)
             rep.text_size = info.get("size", 0)
             rep.text_overflow = bool(info.get("overflow"))
@@ -393,9 +407,13 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
     # ══ 第 3 段：完成 ══
     if r.rarity and r.rarity != "common":
         canvas = R.apply_rarity(canvas, r.rarity, f, pendulum=spec.is_pendulum,
-                               palette=pal, assets=mods["assets"]).convert("RGBA")
+                               palette=pal, assets=mods["assets"],
+                               art_rect=fa_plan.art_rect).convert("RGBA")
 
-    L.draw_meta(canvas, spec, f, font_of, pal, assets=mods["assets"])
+    L.draw_meta(canvas, spec, f, font_of, pal, assets=mods["assets"],
+                overframe=(fa_plan.mode == "overframe"),
+                panel_top=fa_plan.panel_top,
+                contrast=fa_plan.contrast_text)
 
     # 单次降采样
     out = canvas.convert("RGB")
@@ -427,9 +445,11 @@ def render_stages(spec: CardSpec, art: Optional[Image.Image] = None,
                            clip_bottom=plan_.clip_bottom)
     stages["02_artwork"] = c.convert("RGB").copy()
 
-    if plan_.panel_opacity < 0.999:
+    if plan_.panel_opacity < 0.999 or plan_.panel_border:
         L.draw_text_panel(c, f, pal, opacity=plan_.panel_opacity,
-                          pendulum=spec.is_pendulum)
+                          pendulum=spec.is_pendulum,
+                          top=plan_.panel_top, bottom=plan_.panel_bottom,
+                          border=plan_.panel_border, shadow=plan_.panel_shadow)
         stages["03_panel"] = c.convert("RGB").copy()
 
     _memo: dict[int, object] = {}
@@ -457,13 +477,15 @@ def render_stages(spec: CardSpec, art: Optional[Image.Image] = None,
                      pendulum=spec.is_pendulum)
     if mods["text"] is not None:
         L.draw_effect_text(c, spec, f, font_of, pal, lang=spec.render.lang_text,
-                           pendulum=spec.is_pendulum)
+                           pendulum=spec.is_pendulum,
+                           uniform_ink=(plan_.mode == "overframe"))
     L.draw_stats(c, spec, f, font_of, pal)
     stages["04_text"] = c.convert("RGB").copy()
 
     if spec.render.rarity != "common":
         c = R.apply_rarity(c, spec.render.rarity, f, pendulum=spec.is_pendulum,
-                           assets=mods["assets"]).convert("RGBA")
+                           assets=mods["assets"],
+                           art_rect=plan_.art_rect).convert("RGBA")
         stages["05_rarity"] = c.convert("RGB").copy()
 
     L.draw_meta(c, spec, f, font_of, pal, assets=mods["assets"])

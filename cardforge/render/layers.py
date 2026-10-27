@@ -24,7 +24,10 @@ from .palettes import Palette, darken, lighten, name_is_white
 FontOf = Callable[[int], Optional[ImageFont.FreeTypeFont]]
 
 #: 行距相对字号的最小比例。官方卡文约 1.16；模板自带的 0.98–1.02 会让 CJK 行间压字。
-MIN_LINE_RATIO = 1.12
+MIN_LINE_RATIO = 1.16
+#: 段间距（相对行距）。官方样张的 ①②③ 是连续行、不额外加空；留 0.12 只为
+#: 让段落切换有一点点呼吸感，不能再按旧版的 0.28 撑开。
+PARA_GAP = 0.12
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -92,8 +95,13 @@ def _fit_to_width(draw, txt: str, font_of: FontOf, max_w: float, base_size: floa
 # ══════════════════════════════════════════════════════════════════════
 def draw_name(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: FontOf,
               pal: Palette, *, assets=None, name_fx=None, stroke: float = 0.0,
-              lang: Optional[str] = None) -> None:
-    """卡名条。支持卡名箔（金/银/钻石切/虹/红）与描边（超框时用）。"""
+              lang: Optional[str] = None,
+              fill: Optional[tuple] = None) -> None:
+    """卡名条。支持卡名箔（金/银/钻石切/虹/红）与描边（超框时用）。
+
+    ``fill`` 是官方超框的兜底填充：无箔罕贵（平卡）时用白字 + 深描边，
+    保证卡名压在插画上仍然可读；有箔罕贵仍走 ``name_fx`` 的金属渐变。
+    """
     lang = lang or spec.render.lang_name
     txt = spec.name_in(lang)
     if not txt:
@@ -138,7 +146,10 @@ def draw_name(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: FontOf,
                              pal, stroke)
         return
 
-    ink = (255, 255, 255) if name_is_white(spec.frame) else pal.name_ink
+    if fill is not None:
+        ink = fill
+    else:
+        ink = (255, 255, 255) if name_is_white(spec.frame) else pal.name_ink
     if squeeze < 0.999:
         _draw_squeezed(d, canvas, txt, font, (x + pad_l, cy), max_w, squeeze,
                        ink, pal.name_outline if stroke > 0 else None, stroke)
@@ -492,23 +503,63 @@ def st_label_text(spec: CardSpec, lang: str = "zh_cn") -> str:
     return "[" + txt + "]"
 
 
+def _bg_lum(canvas: Image.Image, box) -> float:
+    """采样一块区域的平均亮度（0-255），给压字元素选墨色用。失败按浅底处理。"""
+    try:
+        x0, y0, x1, y1 = [max(0, int(v)) for v in box]
+        g = canvas.convert("L").crop((x0, y0, x1, y1))
+        if g.width < 1 or g.height < 1:
+            return 200.0
+        px = list(g.resize((16, 4), Image.LANCZOS).getdata())
+        return sum(px) / float(len(px))
+    except Exception:
+        return 200.0
+
+
 def draw_type_line(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: FontOf,
-                   pal: Palette, *, lang: str = "zh_cn", pendulum: bool = False) -> None:
+                   pal: Palette, *, lang: str = "zh_cn", pendulum: bool = False,
+                   label_rect=None, fill=None, stroke: float = 0.0,
+                   size_ref: Optional[float] = None,
+                   contrast: bool = False) -> None:
+    """类型行 / 魔陷类型标签。
+
+    官方超框里魔陷标签也在类型行位置（OCG 官方做法）并用面板深色墨，字号
+    与怪物类型行一致（``size_ref``）；``label_rect`` / ``fill`` / ``stroke``
+    只由 ``overframe`` 传入，旧档不传，行为不变。
+    """
     d = ImageDraw.Draw(canvas)
     txt = type_line_text(spec, lang) if spec.is_monster else st_label_text(spec, lang)
     if not txt:
         return
     key = "pendulum_type_line" if pendulum else ("type_line" if spec.is_monster else "st_label")
-    x, y, w, h = f.rect(key)
-    base = f.font(G.FONT_SIZE["st_label"] if not spec.is_monster else G.FONT_SIZE["type_line"])
+    x, y, w, h = (tuple(label_rect) if label_rect is not None else f.rect(key))
+    ref = (G.FONT_SIZE["st_label"] if not spec.is_monster else G.FONT_SIZE["type_line"])
+    if size_ref is not None:
+        ref = float(size_ref)
+    base = f.font(ref)
     base *= G.font_scale(lang) * (spec.render.font_scale_text or 1.0)
     anchor_x = x + w if not spec.is_monster else x
     anc = "rm" if not spec.is_monster else "lm"
     font, squeeze = _fit_to_width(d, txt, font_of, w, base, base * 0.6)
     if font is None:
         return
-    ink = (255, 255, 255) if name_is_white(spec.frame) else pal.type_ink
-    d.text((anchor_x, y + h / 2), txt, font=font, fill=ink, anchor=anc)
+    ink = fill if fill is not None else (
+        (255, 255, 255) if name_is_white(spec.frame) else pal.type_ink)
+    if contrast and fill is None and stroke <= 0:
+        # 出血档：类型行压在插画上 → 按底图明暗自适应墨色与描边
+        lum = _bg_lum(canvas, (x, y, x + w, y + h))
+        if lum < 120:
+            ink, out_c, sw = (255, 255, 255), (32, 26, 20), 1.8
+        else:
+            ink, out_c, sw = (pal.type_ink if not name_is_white(spec.frame)
+                              else (40, 34, 28)), (246, 240, 228), 1.4
+        text_with_outline(d, (anchor_x, y + h / 2), txt, font, ink, out_c, sw, anc)
+        return
+    if stroke and stroke > 0:
+        text_with_outline(d, (anchor_x, y + h / 2), txt, font, ink,
+                          pal.name_outline, stroke, anc)
+    else:
+        d.text((anchor_x, y + h / 2), txt, font=font, fill=ink, anchor=anc)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -543,8 +594,12 @@ def split_paragraphs(body: str) -> list[str]:
 def draw_effect_text(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: FontOf,
                      pal: Palette, *, lang: Optional[str] = None,
                      pendulum: bool = False, box_key: Optional[str] = None,
-                     profile: str = "description") -> dict:
+                     profile: str = "description",
+                     uniform_ink: bool = False) -> dict:
     """效果正文：**按段逐块排版**，逐段自适应字号，段间留白。
+
+    ``uniform_ink=True`` 关掉 PSCT 强调（编号/「」/关键词加粗），用于官方超框：
+    官方卡文是同一墨色同一字重，只有 DIY 档才做关键词强调。
 
     返回 ``{lines, size, overflow, paragraphs}`` 供调用方做溢出提示。
     """
@@ -614,7 +669,8 @@ def draw_effect_text(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: F
         def pinned(_size, _px=px):
             return font_of(_px)
 
-        runs = (T.mark_psct(para, lang) if spec.render.psct_bold
+        runs = (T.mark_psct(para, lang)
+                if (spec.render.psct_bold and not uniform_ink)
                 else [T.TextRun(para)])
         fit = T.fit(runs, pinned, (fit_w, max(10.0, avail_h)), lang,
                     profile=profile, max_lines=None, min_size=1, apply_inset=False,
@@ -633,12 +689,16 @@ def draw_effect_text(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: F
         total_h = 0.0
         fits: list = []
         ok = True
-        for para in paragraphs:
+        for pi, para in enumerate(paragraphs):
             fit = _fit_at(para, fs, fit_h - total_h)
             if fit.overflow:
                 ok = False
                 break
-            total_h += len(fit.lines) * lh_tier + lh_tier * 0.28
+            # 段间距只加在段与段之间：旧版连最后一段也算一次，
+            # 长卡文会被误报「溢出」（实际画得下）。
+            total_h += len(fit.lines) * lh_tier
+            if pi < len(paragraphs) - 1:
+                total_h += lh_tier * PARA_GAP
             if total_h > fit_h + 0.5:
                 ok = False
                 break
@@ -695,10 +755,11 @@ def draw_effect_text(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: F
         # fit.size 已是画布像素字号 → 这里用 font_of（按像素直取），不再二次缩放
         T.draw_fitted(d, fit, (x, cy), font_of, pal.text_ink,
                       squeeze_x=fit.squeeze_x,
-                      bold_fill=(darken(pal.text_ink, 0.25)
-                                 if spec.render.psct_bold else None))
+                      bold_fill=(darken(pal.text_ink, 0.12)
+                                 if (spec.render.psct_bold and not uniform_ink)
+                                 else None))
         total_lines += len(fit.lines)
-        cy += len(fit.lines) * lh + lh * (0.28 if i < len(paragraphs) - 1 else 0.0)
+        cy += len(fit.lines) * lh + lh * (PARA_GAP if i < len(paragraphs) - 1 else 0.0)
         if fit.overflow:
             overflow = True
             if i < len(paragraphs) - 1:
@@ -803,23 +864,55 @@ _COPYRIGHT_LANG = {"zh_cn": "sc", "zh_tw": "sc", "ja": "jp", "en": "en",
 
 
 def draw_meta(canvas: Image.Image, spec: CardSpec, f: G.Frame, font_of: FontOf,
-              pal: Palette, *, assets=None) -> None:
+              pal: Palette, *, assets=None, overframe: bool = False,
+              panel_top: Optional[float] = None,
+              contrast: bool = False) -> None:
     d = ImageDraw.Draw(canvas)
     r = spec.render
 
+    def _contrast_ink(cx: float, cyy: float):
+        """卡号/密码压在插画上时按底图明暗选墨色（白字深边 / 深字浅边）。"""
+        lum = _bg_lum(canvas, (cx - 240, cyy - 22, cx + 6, cyy + 22))
+        if lum < 120:
+            return (255, 248, 228), pal.name_outline
+        return pal.text_ink, (246, 240, 228)
+
     # 卡号（右上，斜体小字观感）
     ccx, ccy = f.point("card_code")
+    if overframe:
+        # 官方超框：卡号在面板上沿外侧，白/金 + 深描边（压在画上）；
+        # 右列对齐——与 ATK·DEF 共用一条右基线，别比数值缩进 20px。
+        if getattr(spec.frame_def, "has_def", False):
+            ccx = f.point("def_value")[0]
+        ccy = (float(panel_top) if panel_top is not None
+               else f.rect("type_line")[1]) - f.px(18, "y")
     if r.set_number:
         fnt = font_of(int(round(f.font(G.FONT_SIZE["card_code"]))))
         if fnt is not None:
-            d.text((ccx, ccy), r.set_number, font=fnt, fill=pal.text_ink, anchor="rm")
+            if overframe:
+                d.text((ccx, ccy), r.set_number, font=fnt,
+                       fill=(255, 248, 228), anchor="rm",
+                       stroke_width=max(1, int(round(f.px(1.6)))),
+                       stroke_fill=pal.name_outline)
+            elif contrast:
+                cfill, cout = _contrast_ink(ccx, ccy)
+                d.text((ccx, ccy), r.set_number, font=fnt, fill=cfill, anchor="rm",
+                       stroke_width=max(1, int(round(f.px(1.4)))), stroke_fill=cout)
+            else:
+                d.text((ccx, ccy), r.set_number, font=fnt, fill=pal.text_ink, anchor="rm")
 
-    # 密码（8 位数字，在卡号下方的固定位置）
-    if r.show_password and spec.id:
+    # 密码（8 位数字，在卡号下方的固定位置）。官方超框把密码区交给画面盖住。
+    if r.show_password and spec.id and not overframe:
         fnt = font_of(int(round(f.font(G.FONT_SIZE["card_code"]) * 0.92)))
         if fnt is not None:
-            d.text((ccx, ccy + f.px(26, "y")), f"{int(spec.id):08d}", font=fnt,
-                   fill=pal.text_ink, anchor="rm")
+            if contrast:
+                cfill, cout = _contrast_ink(ccx, ccy + f.px(26, "y"))
+                d.text((ccx, ccy + f.px(26, "y")), f"{int(spec.id):08d}", font=fnt,
+                       fill=cfill, anchor="rm",
+                       stroke_width=max(1, int(round(f.px(1.4)))), stroke_fill=cout)
+            else:
+                d.text((ccx, ccy + f.px(26, "y")), f"{int(spec.id):08d}", font=fnt,
+                       fill=pal.text_ink, anchor="rm")
 
     # 版权标（矢量素材，失败则画占位小字）
     if r.show_copyright:
@@ -904,20 +997,73 @@ def draw_pendulum_panels(canvas: Image.Image, f: G.Frame, pal: Palette, *,
 
 def draw_text_panel(canvas: Image.Image, f: G.Frame, pal: Palette, *,
                     opacity: float = 1.0, pendulum: bool = False,
-                    radius_px: float = 10.0) -> None:
-    """效果文本框底色。``opacity < 1`` 用于出框（官方做法：复用灵摆效果栏的半透明方案）。"""
+                    radius_px: float = 10.0, top: Optional[float] = None,
+                    bottom: Optional[float] = None,
+                    border: bool = False, shadow: bool = False) -> None:
+    """效果文本框底色。
+
+    ``opacity < 1`` 用于出框（官方做法：复用灵摆效果栏的半透明方案）。
+
+    官方超框额外用这几个参数（旧档不传，行为完全不变）：
+
+    * ``top``：面板上沿（REF 系 y）。官方超框从类型行顶部起，把类型行一起包进面板；
+    * ``bottom``：面板下沿。官方超框一直包到版权行上方，把 ATK·DEF 也包进框内；
+    * ``border``：金边 + 深色外线 + 内侧高光；
+    * ``shadow``：面板向画面上方投下的软阴影。
+    """
     if pendulum:
         draw_pendulum_panels(canvas, f, pal, opacity=opacity, radius_px=radius_px)
         return
-    if opacity >= 0.999:
+    if opacity >= 0.999 and not border and not shadow and top is None and bottom is None:
         return
-    overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(overlay)
-    a = int(round(max(0.0, min(1.0, opacity)) * 255))
-    x, y, w, h = f.rect("text_panel")
-    d.rounded_rectangle([x, y, x + w, y + h], radius=f.px(radius_px),
-                        fill=pal.text_panel + (a,))
-    canvas.alpha_composite(overlay)
+    x, py, w, ph = f.rect("text_panel")
+    panel_bottom = py + ph
+    if bottom is not None:
+        panel_bottom = float(bottom)
+    if top is not None:
+        py = float(top)
+        ph = max(1.0, panel_bottom - py)
+    elif bottom is not None:
+        ph = max(1.0, panel_bottom - py)
+    if border:
+        # 官方超框：边框要包住类型行的【】；标准 text_panel 比 type_line 窄 2px
+        pad_x = float(f.px(3.0))
+        x -= pad_x
+        w += pad_x * 2
+    r = max(1.0, float(f.px(radius_px)))
+
+    if shadow:
+        sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        sd = ImageDraw.Draw(sh)
+        sd.rounded_rectangle([x + f.px(2), py + f.px(3),
+                              x + w + f.px(2), py + ph + f.px(3)],
+                             radius=r, fill=(0, 0, 0, 80))
+        sh = sh.filter(ImageFilter.GaussianBlur(max(1.0, f.px(4.0))))
+        canvas.alpha_composite(sh)
+
+    if opacity < 0.999:
+        overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        d = ImageDraw.Draw(overlay)
+        a = int(round(max(0.0, min(1.0, opacity)) * 255))
+        d.rounded_rectangle([x, py, x + w, py + ph], radius=r,
+                            fill=pal.text_panel + (a,))
+        canvas.alpha_composite(overlay)
+
+    if border:
+        bd = ImageDraw.Draw(canvas)
+        w_out = max(1, int(round(f.px(1.2))))
+        w_gold = max(1, int(round(f.px(1.8))))
+        bd.rounded_rectangle([x, py, x + w, py + ph], radius=r,
+                             outline=(38, 30, 20, 235), width=w_out)
+        inset = w_out + 0.5 * w_gold
+        bd.rounded_rectangle([x + inset, py + inset, x + w - inset, py + ph - inset],
+                             radius=max(1.0, r - inset),
+                             outline=(208, 174, 108, 238), width=w_gold)
+        inset2 = inset + w_gold + 0.5
+        bd.rounded_rectangle([x + inset2, py + inset2,
+                              x + w - inset2, py + ph - inset2],
+                             radius=max(1.0, r - inset2),
+                             outline=(255, 244, 214, 90), width=1)
 
 
 def module_capabilities() -> dict:

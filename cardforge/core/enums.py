@@ -234,10 +234,13 @@ class FullArtMode:
 FULL_ART_MODES: dict[str, FullArtMode] = {
     m.key: m for m in [
         FullArtMode("none", "标准", "通常", "Standard", "插画严格限制在卡图窗内"),
+        FullArtMode("overframe", "官方超框", "オーバーフレーム", "Overframe",
+                    "官方 2026 超框卡：插画铺满内框、外框保留；名/星/属性浮于画上，"
+                    "面板半透明含类型行；密码隐藏（中文官方商品名「超框卡」）"),
         FullArtMode("art_bleed", "出血出框", "出血出框", "Art Bleed",
                     "插画上下溢出卡图窗，压住类型行/文本框边缘"),
-        FullArtMode("art_over", "超框", "オーバーフレーム", "Overframe",
-                    "插画溢出到卡名条与边框之上，卡名压在图上"),
+        FullArtMode("art_over", "超框（旧·并入官方）", "オーバーフレーム（旧）", "Overframe (legacy)",
+                    "兼容别名：历史卡按官方超框几何渲染，界面不再单列这一档"),
         FullArtMode("full_bleed", "全画", "フルアート", "Full Art",
                     "除必要信息条外无框，插画铺满整卡"),
         FullArtMode("pendulum_full", "灵摆出框", "ペンデュラム出框", "Pendulum Full Art",
