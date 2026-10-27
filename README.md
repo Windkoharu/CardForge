@@ -49,6 +49,7 @@ Full tutorial (Chinese): [docs/05-使用教学.md](docs/05-使用教学.md)
 python -m cardforge doctor                    # 环境自检（先跑这个）
 python -m cardforge launch                    # 一键启动：自检 → 起服务 → 开浏览器（带进度条）
 python -m cardforge serve                     # 只起服务（不带自检与进度条）
+python -m cardforge update                    # 检查 GitHub 上的新版本（走 api.github.com）
 python -m cardforge render --demo --rarity prismatic_secret --fullart overframe
 ```
 

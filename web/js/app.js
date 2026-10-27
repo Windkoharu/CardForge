@@ -232,6 +232,37 @@ function bindRail() {
     const li = e.target.closest('li[data-id]');
     if (li) openCard(parseInt(li.dataset.id, 10));
   });
+  const updBtn = $('#btn-update');
+  if (updBtn) updBtn.addEventListener('click', checkUpdate);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   更新检测 —— 本地版本 vs GitHub main（走 api.github.com）
+   ══════════════════════════════════════════════════════════════════ */
+async function checkUpdate() {
+  const btn = $('#btn-update');
+  if (!btn || btn.dataset.busy) return;
+  btn.dataset.busy = '1';
+  const label = btn.innerHTML;
+  btn.innerHTML = '<span class="btn-glyph" aria-hidden="true">⭳</span>检查中…';
+  try {
+    const r = await api.get('/api/update/check');
+    if (!r.ok) {
+      toast('更新检查失败：' + (r.error || '网络不可达'),
+            { kind: 'err', hint: r.hint || '需要能访问 api.github.com；不影响本地使用' });
+    } else if (r.update_available) {
+      toast(`有新版本：${r.local_version} → ${r.remote_version}`,
+            { kind: 'ok', hint: r.hint || '', ms: 10000 });
+      if (r.url) window.open(r.url, '_blank', 'noopener');
+    } else {
+      toast(r.hint || `已是最新版本（${r.local_version}）`, { kind: 'ok' });
+    }
+  } catch (e) {
+    toast('更新检查失败：' + e.message, { kind: 'err', hint: '需要能访问 api.github.com' });
+  } finally {
+    delete btn.dataset.busy;
+    btn.innerHTML = label;
+  }
 }
 
 export async function refreshCards() {

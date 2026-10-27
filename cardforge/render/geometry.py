@@ -161,6 +161,10 @@ FIT_PROFILES: dict[str, list[dict]] = {
         {"id": "medium", "fontSize": 24.4, "lineHeight": 25.0, "maxLines": 6},
         {"id": "small", "fontSize": 21.0, "lineHeight": 22.0, "maxLines": 7},
         {"id": "extra-small", "fontSize": 17.0, "lineHeight": 16.67, "maxLines": 9},
+        # 2026-10-27 补：官方文本框比我们的高约 40px，247 字长卡文在 extra-small
+        # 仍放不下（假"已压到最小字号"）。往下再探两档，让长卡文真正收进框内。
+        {"id": "micro", "fontSize": 15.0, "lineHeight": 15.5, "maxLines": 10},
+        {"id": "nano", "fontSize": 13.5, "lineHeight": 14.0, "maxLines": 11},
     ],
     "lore": [
         {"id": "large", "fontSize": 28.0, "lineHeight": 28.0, "maxLines": 2},

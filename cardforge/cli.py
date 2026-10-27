@@ -249,6 +249,28 @@ def doctor_report(*, on_step: Optional[Callable[[str], None]] = None) -> dict:
     return report
 
 
+def cmd_update(args) -> int:
+    """检查 GitHub ``main`` 上的新版本（走 api.github.com，失败不炸）。"""
+    from .core.update import check_update
+    o = Out(args.json)
+    info = check_update(timeout=float(getattr(args, "timeout", 5.0) or 5.0))
+    if not info.get("ok"):
+        o.warn(f"更新检查失败：{info.get('error', '网络不可达')}")
+        o.say(f"        → {info.get('hint', '')}")
+        o.emit(info)
+        return 0
+    if info.get("update_available"):
+        o.warn(f"有新版本：{info['local_version']} → {info['remote_version']}")
+        if info.get("url"):
+            o.say(f"        → {info['url']}")
+    elif info.get("hint"):
+        o.ok(info["hint"])
+    else:
+        o.ok(f"已是最新版本（{info['local_version']}）")
+    o.emit(info)
+    return 0
+
+
 def cmd_doctor(args) -> int:
     """把 :func:`doctor_report` 打印成人读文本（或原样吐 JSON）。"""
     o = Out(args.json)
@@ -1131,6 +1153,10 @@ def build_parser() -> argparse.ArgumentParser:
         return sp
 
     common(sub.add_parser("doctor", help="环境自检")).set_defaults(func=cmd_doctor)
+
+    sp = common(sub.add_parser("update", help="检查 GitHub 上的新版本"))
+    sp.add_argument("--timeout", type=float, default=5.0, help="网络超时秒数")
+    sp.set_defaults(func=cmd_update)
 
     sp = common(sub.add_parser("launch", help="一键启动：自检 + 起服务（带启动进度条）"))
     sp.add_argument("--host", default="127.0.0.1")

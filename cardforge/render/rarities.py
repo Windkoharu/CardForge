@@ -655,23 +655,45 @@ def _emboss(img: Image.Image, mask: Image.Image, depth: float, angle: float) -> 
     return Image.composite(out, img, mask)
 
 
+#: 箔/底色类区域 —— 官方是「箔在下、油墨在上」：这些区域要在**正文墨色之前**铺
+UNDER_INK_REGIONS = {"whole", "artwork", "frame", "frame_edge", "textbox", "type_line"}
+#: 压在墨色之上的区域（给数值/星级/属性章本身镀色）
+OVER_INK_REGIONS = {"stats", "level", "attribute", "name"}
+
+
 def apply_rarity(canvas: Image.Image, rarity: str, frame_obj: G.Frame, *,
                  pendulum: bool = False, palette: Optional[Palette] = None,
                  seed: int = 7, emboss_texture: Image.Image | None = None,
-                 assets=None, art_rect=None) -> Image.Image:
+                 assets=None, art_rect=None,
+                 phase: str = "all") -> Image.Image:
     """在 ``canvas`` 上叠加某罕贵的效果，返回新图（不修改入参）。
 
     ``canvas`` 必须是 RGB 或 RGBA，尺寸与 ``frame_obj`` 一致。
     ``art_rect``：出血类出框档的实际插画矩形，artwork 遮罩跟随它（见 :func:`region_mask`）。
+    ``phase``：``"under"`` 只铺「箔在下」的区域（整卡/卡图/文本框/卡框），
+    ``"over"`` 只做压在墨色上的部分（数值/星级/属性镀色 + 卡框边镀）；
+    ``"all"`` 维持旧行为（一次性全画）——合成管线现在分两次调用，
+    官方罕贵的文字永远是实墨压在箔上，不再被整卡闪膜糊住。
     """
     d = by_key(rarity)
-    if not d.layers and not d.frame_edge_fx and (not d.name_fx or d.name_fx.style == "none"):
+    if phase == "under":
+        layers = [l for l in d.layers if isinstance(l, (Foil, Emboss))
+                  and l.region in UNDER_INK_REGIONS]
+    elif phase == "over":
+        layers = [l for l in d.layers if isinstance(l, (Foil, Emboss))
+                  and l.region in OVER_INK_REGIONS]
+    else:
+        layers = list(d.layers)
+    if phase != "all" and not layers and not (phase == "over" and d.frame_edge_fx):
+        return canvas
+    if not layers and not d.frame_edge_fx and phase == "all" and (
+            not d.name_fx or d.name_fx.style == "none"):
         return canvas
 
     base = canvas.convert("RGB")
     size = base.size
 
-    for layer in d.layers:
+    for layer in layers:
         if not isinstance(layer, Foil):
             continue
         mask = region_mask(layer.region, frame_obj, pendulum=pendulum,
@@ -698,14 +720,14 @@ def apply_rarity(canvas: Image.Image, rarity: str, frame_obj: G.Frame, *,
         base = Image.composite(blended, base, m)
 
     # 浮雕层
-    for layer in d.layers:
+    for layer in layers:
         if isinstance(layer, Emboss):
             mask = region_mask(layer.region, frame_obj, pendulum=pendulum, feather=2.0)
             src = emboss_texture.convert("RGB") if emboss_texture is not None else base
             base = _emboss(src, mask, layer.depth, layer.angle)
 
-    # 卡框边框镀色
-    if d.frame_edge_fx:
+    # 卡框边框镀色（压在墨色上的收尾，与旧版一致）
+    if phase in ("all", "over") and d.frame_edge_fx:
         edge = region_mask("frame_edge", frame_obj, pendulum=pendulum, feather=0.8)
         tex = pattern_texture(d.frame_edge_fx, size, angle=0.0, scale=1.0, seed=seed)
         base = Image.composite(_blend(base, tex, "soft_light"), base,

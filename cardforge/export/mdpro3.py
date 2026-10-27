@@ -275,6 +275,7 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
     written: dict[str, list[str]] = {"cdb": [], "script": [], "pics": [],
                                      "strings": [], "deck": [], "other": []}
     skipped_no_script: list[int] = []
+    n_overframe = 0
     tmp = out.with_suffix(out.suffix + ".tmpdir")
     _rmtree(tmp)
     tmp.mkdir(parents=True, exist_ok=True)
@@ -337,6 +338,31 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
                                     hint="客户端会显示占位图。渲一张或上传一张再打包",
                                     field="art"))
 
+        # ── 3b. Picture/OverFrame/<卡号>.png（官方超框的原生通路）──────
+        # 客户端对这张 704×1024 **纯插画层** 自行合成框体与文字（拆包实测，
+        # mdpro3fork 同款）。只有官方超框档写它；DIY 档的整卡图走 pics/。
+        if render_pics and getattr(getattr(c, "render", None), "fullart", None) is not None \
+                and getattr(c.render.fullart, "mode", "none") == "overframe":
+            art_src = src if (src and Path(src).exists()) else None
+            if art_src:
+                try:
+                    from PIL import Image
+                    from ..render.fullart import _fit_cover
+                    with Image.open(art_src) as im:
+                        im.load()
+                    layer = _fit_cover(im, MDPRO3_SIZE[0], MDPRO3_SIZE[1]).convert("RGB")
+                    of_dir = tmp / "Picture" / "OverFrame"
+                    of_dir.mkdir(parents=True, exist_ok=True)
+                    layer.save(of_dir / f"{cid}.png", "PNG", optimize=True)
+                    written["other"].append(f"Picture/OverFrame/{cid}.png")
+                    n_overframe += 1
+                except Exception as e:                       # noqa: BLE001
+                    issues.append(Issue(gate="MDPRO", code="MD_OVERFRAME_FAIL",
+                                        level="WARN",
+                                        message=f"卡 {cid} 的 OverFrame 插画层没写进去：{e}",
+                                        hint="不影响 .ypk 导入；客户端会退回 pics/ 整卡图",
+                                        field="art"))
+
     # ── 4. strings.conf ───────────────────────────────────────────
     auto_sets, auto_counters = _collect_strings(specs, setnames, counters)
     conf = STR.render(setnames=auto_sets, counters=auto_counters,
@@ -394,6 +420,7 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
         "name": name, "members": members, "n_cards": len(specs),
         "n_cdb_rows": n_rows, "n_scripts": len(written["script"]),
         "n_pics": len(written["pics"]), "n_rendered": n_rendered,
+        "n_overframe": n_overframe,
         "n_deck": len(written["deck"]), "langs": [LANG_CODES.get(x, x) for x in langs],
         "cards_without_script": skipped_no_script,
         "clients_found": [d["path"] for d in detect()],

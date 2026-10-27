@@ -15,5 +15,5 @@
     cli.py      命令行内核
 """
 
-__version__ = "2.0.0.dev1"
+__version__ = "2.1.0.dev1"
 __all__ = ["__version__"]

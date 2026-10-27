@@ -684,8 +684,9 @@ def _probe_cardforge(host: str, port: int, *, tries: int = 3,
 # ══════════════════════════════════════════════════════════════════════
 def create_app(cfg: Optional[dict] = None) -> App:
     app = App(cfg)
-    from . import api_core, api_card, api_render, api_art, api_assistant, api_llm, api_export  # noqa: E402
-    for mod in (api_core, api_card, api_render, api_art, api_assistant, api_llm, api_export):
+    from . import api_core, api_card, api_render, api_art, api_assistant, api_llm, api_export, api_update  # noqa: E402
+    for mod in (api_core, api_card, api_render, api_art, api_assistant, api_llm, api_export,
+                api_update):
         mod.register(app)
     app.state.setdefault("routes", [(r.method, r.path) for r in app.routes])
     return app

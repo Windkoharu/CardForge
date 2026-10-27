@@ -344,6 +344,15 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
                               border=fa_plan.panel_border,
                               shadow=fa_plan.panel_shadow)
 
+    # ══ 第 2.5 段：箔在下、油墨在上 ══
+    # 官方罕贵的整卡/卡图/文本框箔要铺在**正文墨色之前**，文字保持实墨可读
+    # （旧版一次性画在最后，PSER 的整卡闪膜会把文字糊住）。数值/星级/属性
+    # 的镀色与卡框边镀仍压在墨上，见第 3 段的 phase="over"。
+    if r.rarity and r.rarity != "common":
+        canvas = R.apply_rarity(canvas, r.rarity, f, pendulum=spec.is_pendulum,
+                                palette=pal, assets=mods["assets"],
+                                art_rect=fa_plan.art_rect, phase="under").convert("RGBA")
+
     # 内容元素
     L.draw_badge(canvas, spec, f, assets=mods["assets"])
     L.draw_stars(canvas, spec, f, font_of, pal, assets=mods["assets"])
@@ -408,7 +417,7 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
     if r.rarity and r.rarity != "common":
         canvas = R.apply_rarity(canvas, r.rarity, f, pendulum=spec.is_pendulum,
                                palette=pal, assets=mods["assets"],
-                               art_rect=fa_plan.art_rect).convert("RGBA")
+                               art_rect=fa_plan.art_rect, phase="over").convert("RGBA")
 
     L.draw_meta(canvas, spec, f, font_of, pal, assets=mods["assets"],
                 overframe=(fa_plan.mode == "overframe"),
@@ -450,7 +459,12 @@ def render_stages(spec: CardSpec, art: Optional[Image.Image] = None,
                           pendulum=spec.is_pendulum,
                           top=plan_.panel_top, bottom=plan_.panel_bottom,
                           border=plan_.panel_border, shadow=plan_.panel_shadow)
-        stages["03_panel"] = c.convert("RGB").copy()
+    if spec.render.rarity != "common":
+        # 箔在下：整卡/卡图/文本框箔铺在正文墨色之前（与 render_card 管线一致）
+        c = R.apply_rarity(c, spec.render.rarity, f, pendulum=spec.is_pendulum,
+                           assets=mods["assets"], art_rect=plan_.art_rect,
+                           phase="under").convert("RGBA")
+    stages["03_panel"] = c.convert("RGB").copy()
 
     _memo: dict[int, object] = {}
 
@@ -484,8 +498,8 @@ def render_stages(spec: CardSpec, art: Optional[Image.Image] = None,
 
     if spec.render.rarity != "common":
         c = R.apply_rarity(c, spec.render.rarity, f, pendulum=spec.is_pendulum,
-                           assets=mods["assets"],
-                           art_rect=plan_.art_rect).convert("RGBA")
+                           assets=mods["assets"], art_rect=plan_.art_rect,
+                           phase="over").convert("RGBA")
         stages["05_rarity"] = c.convert("RGB").copy()
 
     L.draw_meta(c, spec, f, font_of, pal, assets=mods["assets"])
