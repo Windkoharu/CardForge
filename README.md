@@ -75,6 +75,25 @@ python -m cardforge render --demo --rarity prismatic_secret --fullart art_over
 
 只要机器上有 **Python 3.10+**，就能跑起来。没有 pip 包也能跑核心功能。
 
+### 在另一台电脑上第一次运行
+
+`启动.bat` 会**真的逐个试跑**候选解释器（`py -3.13…3.10`、`.venv`、PATH、常见安装
+目录），而不是只看 `where` 找没找到名字。这条规则来自缺陷 #36：有些电脑的
+`where python` 能命中 Windows 自带的「应用执行别名」，但那个空壳根本启动不了——
+旧版启动器在这里直接退出，屏幕上只剩一句
+`The system cannot execute the specified program.`。
+
+| 情况 | 现在的行为 |
+|---|---|
+| 有可用的 Python 3.10+ | 打印解释器与版本后正常启动：`Using Python 3.13.x [py -3.13]` |
+| PATH 命中的是坏别名，但别处装了 Python | 跳过坏的，自动改用装好的那个（venv / py / 常见目录） |
+| 完全没装，或只有 3.9 及以下 | 说明具体原因，并调起**双语安装助手**：自动装 Python 3.12（用户级、无需管理员；国内镜像 + 官方 MD5/签名校验），或打开 python.org 下载页 |
+| 有 Python 但缺 Pillow | 首次启动问一句要不要自动装（`CARDFORGE_NO_PIP=1` 可关） |
+
+手动兜底：从 [python.org](https://www.python.org/downloads/windows/) 装 3.10+ 并勾选
+**Add python.exe to PATH**；便携版 / conda 用 `set CARDFORGE_PYTHON=D:\python\python.exe`
+指定解释器，启动器会优先试它。macOS / Linux 的 `start.sh` 遵循同一套规则。
+
 ---
 
 ## 它能做什么
@@ -242,7 +261,7 @@ python3 tools/build_exe.py
 ├── workspace/                 你的项目数据（卡片 / 系列 / 卡组 / 卡图 / 导出）
 ├── docs/                      设计文档
 ├── research/                  调研报告
-├── tools/                     辅助脚本（含 build_exe.py 打包入口）
+├── tools/                     辅助脚本（build_exe.py 打包入口 · install_python.ps1 换机装 Python）
 ├── .packaging/                构建现场：venv / 暂存与备份 out/ / 入口脚本（可安全删除，重建即可）
 └── dist/                      打包产物（build_exe.py 生成）
 ```
@@ -353,3 +372,5 @@ G1 平衡审计 pass、G2 脚本静态检查 pass、**G3 真开了一局 38 回�
 | `CARDFORGE_DATA` | 覆盖内置数据目录 |
 | `CARDFORGE_VENDOR` | 覆盖 vendor（引擎/脚本库/卡池）目录 |
 | `CARDFORGE_OCGCORE` | 直接指定 ocgcore 原生库路径 |
+| `CARDFORGE_PYTHON` | 直接指定启动用的 `python.exe`（便携版 / conda 常用） |
+| `CARDFORGE_NO_PIP` | `1` = 启动时不要提示自动安装 Pillow |

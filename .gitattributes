@@ -5,6 +5,9 @@
 # （缺陷 #31：双击启动.bat 一闪而过的根因之一）。不要让 git 换行归一化碰它。
 *.bat text eol=crlf
 *.cmd text eol=crlf
+# PowerShell 助手（tools/install_python.ps1）在 Windows 上运行，
+# 与 .bat 一样固定 CRLF；文件头必须保留 UTF-8 BOM（PowerShell 5.1 靠它认中文）
+*.ps1 text eol=crlf
 
 # shell 脚本保持 LF
 *.sh text eol=lf

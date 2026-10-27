@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Callable, Optional
@@ -139,7 +140,8 @@ def doctor_report(*, on_step: Optional[Callable[[str], None]] = None) -> dict:
         caps = compositor.capabilities()
         report["levels"]["L1-render"] = bool(caps.get("L1_render"))
         check("Pillow", bool(caps.get("pillow")), "已安装" if caps.get("pillow") else "未安装",
-              "pip install Pillow（缺失时只能用浏览器端矢量预览）")
+              "启动 launch 时会询问自动安装；也可 pip install Pillow"
+              "（缺失时只能用浏览器端矢量预览）")
         check("排版引擎", bool(caps.get("text_engine")),
               "可用" if caps.get("text_engine") else "不可用", "")
         fd = caps.get("font_diagnose") or {}
@@ -287,6 +289,76 @@ def cmd_serve(args) -> int:
 # ══════════════════════════════════════════════════════════════════════
 #  launch —— 「自检 + 起服务」合成一条进度流（双击启动走这条）
 # ══════════════════════════════════════════════════════════════════════
+def _pillow_missing() -> bool:
+    try:
+        import PIL  # noqa: F401
+        return False
+    except Exception:
+        return True
+
+
+def _is_interactive() -> bool:
+    try:
+        return bool(sys.stdin) and bool(sys.stdin.isatty())
+    except Exception:
+        return False
+
+
+def _offer_pillow_install(interactive: bool) -> None:
+    """缺 Pillow 时征得同意后自动装 —— 换一台电脑最常见的「能开张、出不了图」。
+
+    * 不装也能启动（浏览器端仍有矢量预览），所以这里只提示，不阻断。
+    * ``CARDFORGE_NO_PIP=1`` 可完全关掉这个提示（离线/受管机器）。
+    * 默认源装不上时依次试清华镜像与 ``--user``；三条都失败就如实说，
+      绝不把「没装上」说成「已安装」。
+    """
+    if not _pillow_missing():
+        return
+    if os.environ.get("CARDFORGE_NO_PIP") == "1":
+        return
+    console.eprint("\n  [!] 缺少 Pillow —— 卡面渲染（L1）需要它；"
+                   "装好后卡框 / 罕贵 / 出框才能出图。")
+    console.eprint(f"      当前解释器：{sys.executable}")
+    if not interactive:
+        console.eprint("      如需安装：%s -m pip install Pillow\n" % sys.executable)
+        return
+    console.eprint("      现在自动安装 Pillow？[Y/n] ", end="")
+    try:
+        ans = input().strip().lower()
+    except (EOFError, OSError):      # 没有输入可读（重定向/服务化）→ 不擅自动手
+        console.eprint("")
+        ans = "n"
+    except KeyboardInterrupt:
+        console.eprint("\n      已取消。")
+        raise
+    if ans in ("n", "no", "0", "否"):
+        console.eprint("      已跳过。需要时可运行：pip install Pillow\n")
+        return
+
+    import subprocess
+    base = [sys.executable, "-m", "pip", "install",
+            "--disable-pip-version-check", "--no-input",
+            "--retries", "1", "--timeout", "20", "Pillow"]
+    attempts = [
+        ("默认源", base),
+        ("清华镜像", base + ["-i", "https://pypi.tuna.tsinghua.edu.cn/simple"]),
+        ("用户目录", base + ["--user"]),
+    ]
+    for i, (label, cmd) in enumerate(attempts, 1):
+        console.eprint(f"      安装中（{i}/{len(attempts)}，{label}）…")
+        try:
+            rc = subprocess.run(cmd, timeout=600).returncode
+        except Exception as exc:
+            console.eprint(f"      [!] {type(exc).__name__}: {exc}")
+            rc = 1
+        if rc == 0 and not _pillow_missing():
+            console.eprint("      [OK] Pillow 已安装，继续启动。\n")
+            return
+    console.eprint("      [X] 自动安装没成功（多半是网络 / 代理 / 权限）。")
+    console.eprint("          手动安装：pip install Pillow")
+    console.eprint("          或设 CARDFORGE_NO_PIP=1 关掉这个提示。\n")
+
+
 def cmd_launch(args) -> int:
     """一键启动：带**真实进度条**地走完 自检 → 绑定端口 → 就绪 → 打开浏览器。
 
@@ -302,6 +374,10 @@ def cmd_launch(args) -> int:
     p = Progress("CardForge 卡锻 2.0 · 启动中",
                  enabled=False if quiet else enabled_by_default())
     o.say(BANNER)
+
+    # 换电脑第一件事：缺 Pillow 时问一句要不要装（不装也能开，只是不能合成卡面）
+    if not quiet:
+        _offer_pillow_install(_is_interactive())
 
     if not args.skip_check:
         p.sub("环境自检…")
