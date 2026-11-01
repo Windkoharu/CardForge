@@ -1,0 +1,11 @@
+{
+  "name": "cardforge-studio",
+  "version": "2.0.0-dev.1",
+  "private": true,
+  "description": "CardForge local DIY card studio preview launcher",
+  "scripts": {
+    "dev": "node tools/dev_server.mjs",
+    "start": "node tools/dev_server.mjs",
+    "check:ui": "python tools/ui_check.py"
+  }
+}

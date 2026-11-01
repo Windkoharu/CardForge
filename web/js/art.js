@@ -32,6 +32,7 @@ let artReq = {
 
 let profileOpts = [['auto', '自动（按本机模型选）']];
 let TPL = { templates: [], recommended: [], bilingual: true, language_note: '' };
+let artCardId = null;
 
 export function initArt() {
   profiles().then((rows) => { if (rows && rows.length) { profileOpts = [['auto', '自动（按本机模型选）'], ...rows]; buildArtForm(); } })
@@ -41,7 +42,16 @@ export function initArt() {
   buildRenderForm();
   checkComfy();
   store.on('card', () => {
-    if (!artReq.subject && store.spec) artReq.subject = store.spec.display_name || store.spec.name;
+    const nextId = store.spec ? store.spec.id : 0;
+    if (nextId !== artCardId) {
+      artCardId = nextId;
+      // 出图主体和即时渲染覆盖都按卡隔离，不能把上一张卡带进下一张。
+      artReq.subject = store.spec ? (store.spec.display_name || store.spec.name || '') : '';
+      artReq.template = '';
+      setRenderOverride({});
+      buildArtForm();
+    }
+    buildRenderForm();
     $('#f-art') && fillArtSubject();
     renderArtStrip();
     refreshArtPreview();
@@ -181,59 +191,52 @@ function buildArtForm() {
     field('提示词模板', select(tplOpts, artReq.template || '', {
       onChange: (v) => { v ? applyTemplate(v) : (artReq.template = '', buildArtForm()); }
     }), { full: true, hint: (TPL.templates.length
-        ? `12 套正统卡图母题 + 你自存的模板，按这张卡的种族/属性排过序；`
-        : '模板表还没取到（不影响自己写）；') +
-      (TPL.language_note || '') + '。套完仍可逐字改。' }),
+        ? '内置卡图母题与你的模板，套用后仍可自由修改。'
+        : '模板尚未读取，不影响手动填写。') + (TPL.language_note || '') }),
     field('主体（画什么）', textInput(artReq.subject, {
       onChange: (v) => { artReq.subject = v; }
-    }), { full: true, hint: '中文直接写就行：Krea 2 / Qwen-Image 的文本编码器是 Qwen 系' +
-      '多语言模型，**你写的原话逐字进提示词**（点「预览工作流」可对账）。' +
-      '选 animagine / pony / illustrious 这类英文词表底模时才必须先翻成英文标签' }),
+    }), { full: true, hint: '描述人物或怪兽、动作和关键特征。生成前可点「预览工作流」核对实际提示词与语言要求。' }),
     field('风格描述', textInput(artReq.style, { onChange: (v) => { artReq.style = v; } }),
-      { full: true, hint: '写了取景（半身/特写/远景）或光照（柔光/晨光/逆光）时，' +
-        '系统默认的「全身可见」「戏剧性强光」两句会自动撤掉，不跟你的话对着写' }),
+      { full: true, hint: '可写画风、取景和光照；你的设置会优先于默认描述。' }),
     field('背景（画在主体后面）', textInput(artReq.background, {
       onChange: (v) => { artReq.background = v; }
-    }), { full: true, hint: '只在「分层出图」里用：先出这张「没有人」的环境，' +
-      '再单独出主体并抠底。留空则按主体自动补一句空场景描述' }),
+    }), { full: true, hint: '仅用于分层出图：先生成无主体的环境，再生成主体并抠底。' }),
     field('工作流', select(PRESETS, artReq.preset, {
       onChange: (v) => {
         artReq.preset = v;
         if (v === 't2i_layers') artReq.layers = true;
         buildArtForm();
       }
-    }), { hint: '「分层出图」= 背景与主体分两次生成，出框时只有主体越出卡图窗' }),
+    }), { hint: '分层出图会分别生成背景与主体，便于处理出框效果' }),
     field('主体纯色底', select([['grey', '灰（默认，最稳）'], ['white', '白'],
       ['black', '黑'], ['green', '绿幕'], ['magenta', '品红']],
       artReq.cutout_bg, { onChange: (v) => { artReq.cutout_bg = v; } }),
-      { hint: '主体 pass 用这块纯色底再抠底。主体是白色就换灰/黑，别用白底' }),
-    field('模型档案', select(profileOpts, artReq.profile,
+      { hint: '用于分层抠底；主体为白色时请避免白底' }),
+    field('出图模型', select(profileOpts, artReq.profile,
       { onChange: (v) => { artReq.profile = v; } }),
-      { hint: '自动选择会给出理由，见「本机模型」' }),
-    field('种子', h('input', { type: 'number', value: artReq.seed,
+      { hint: '自动选择的依据见「本机模型」' }),
+    field('随机种子', h('input', { type: 'number', value: artReq.seed,
       oninput: (e) => { artReq.seed = parseInt(e.target.value || '-1', 10); } }),
-      { hint: '-1 = 随机。批量时每张必须换 seed，同 seed 会让构图雷同' }),
+      { hint: '-1 = 随机；相同种子更容易复现构图' }),
     field('张数', h('input', { type: 'number', min: 1, max: 8, value: artReq.count,
       oninput: (e) => { artReq.count = parseInt(e.target.value || '1', 10); } })),
-    field('附加正向', textInput(artReq.extra_positive, { onChange: (v) => { artReq.extra_positive = v; } })),
-    field('附加负向', textInput(artReq.extra_negative, { onChange: (v) => { artReq.extra_negative = v; } })),
+    field('补充画面要求', textInput(artReq.extra_positive, { onChange: (v) => { artReq.extra_positive = v; } })),
+    field('避免出现的元素', textInput(artReq.extra_negative, { onChange: (v) => { artReq.extra_negative = v; } })),
     field('增强', h('div.chips', {},
       h('label', {}, checkbox('upscale', '放大', artReq.upscale, (v) => { artReq.upscale = v; })),
       h('label', {}, checkbox('remove_bg', '抠底', artReq.remove_bg, (v) => { artReq.remove_bg = v; })),
       h('label', {}, checkbox('layers', '分层（背景+主体两次生成）', artReq.layers,
         (v) => { artReq.layers = v; }))
-    ), { full: true, hint: '本机没有 clip_vision / controlnet 模型时，' +
-      'IPAdapter 与 ControlNet 链路不可用，界面会自动跳过这些环节' }),
-    field('工具', h('div', {},
+    ), { full: true, hint: '可用环节由本机模型决定，详情见「本机模型」。' }),
+    field('工具', h('div.tool-row', {},
       h('button.mini-btn', { onclick: showModels, type: 'button' }, '本机模型'),
-      h('button.mini-btn.alt', { onclick: uploadArt, type: 'button' }, '上传我自己的图'),
-      h('button.mini-btn.alt', { onclick: exportWorkflow, type: 'button' }, '导出工作流 JSON'),
+      h('button.mini-btn.alt', { onclick: uploadArt, type: 'button' }, '上传我的卡图'),
+      h('button.mini-btn.alt', { onclick: exportWorkflow, type: 'button' }, '导出工作流'),
       h('button.mini-btn.alt', { onclick: saveTemplate, type: 'button' }, '存为我的模板'),
       isCustomTemplate(artReq.template) ? h('button.mini-btn.danger', {
         type: 'button', onclick: deleteTemplate,
       }, '删除这个模板') : null
-    ), { full: true, hint: '「存为我的模板」把当前表单这一版提示词存进 workspace，' +
-      '下次直接选；内置的 12 套不能删，只有「我的模板」可以' }),
+    ), { full: true, hint: '我的模板会保存在工作区，下次可直接复用；内置模板不会改动。' }),
   );
   fillArtSubject();
 }
@@ -270,12 +273,14 @@ function buildRenderForm() {
   const spec = store.spec || {};
   const r = spec.render || {};
   let curMode = (r.fullart || {}).mode || 'none';
+  let migrated = false;
   if (curMode === 'art_over' && spec.render) {
     // 历史卡迁移：旧「超框」档按官方超框渲染，落盘也改成 overframe。
     const nextFa = Object.assign({}, (typeof spec.render.fullart === 'object' && spec.render.fullart) || {});
     nextFa.mode = 'overframe';
     spec.render.fullart = nextFa;
     curMode = 'overframe';
+    migrated = true;
     setRenderOverride(Object.assign({}, getRenderOverride(), { fullart: 'overframe' }));
   }
   const faKeys = fa.map(([k]) => k);
@@ -283,8 +288,10 @@ function buildRenderForm() {
     const nextFa = Object.assign({}, (typeof spec.render.fullart === 'object' && spec.render.fullart) || {});
     nextFa.mode = 'none';
     spec.render.fullart = nextFa;
+    migrated = true;
     setRenderOverride(Object.assign({}, getRenderOverride(), { fullart: 'none' }));
   }
+  if (migrated) store.patch({ render: spec.render });
   box.append(
     field('罕贵度', select(rar, r.rarity || 'common',
       { onChange: (v) => setRender(Object.assign({}, getRenderOverride(), { rarity: v })) }),
@@ -334,7 +341,7 @@ function setRender(obj) {
     if (k in next) { nested[k] = next[k]; delete next[k]; }
   }
   next.fullart = nested;
-  store.spec.render = next;
+  store.patch({ render: next });
 }
 
 /* ══════════════ 状态 / 任务 ══════════════ */

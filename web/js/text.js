@@ -85,12 +85,14 @@ function needCard() {
 async function compose() {
   if (!needCard()) return;
   const r = await api.post('/api/psct/compose',
-    { card: store.spec.id, langs }, {}).catch(errPayload);
+    { spec: editable(), langs }, {}).catch(errPayload);
   if (!r.ok) { toast(r.error || '生成失败', { kind: 'err', hint: r.hint }); return; }
   const out = r.langs || {};
   const first = langs[0];
   const got = out[first] || {};
   $('#text-editor').value = got.text || '';
+  // 生成结果也是未保存草稿：纳入 dirty 状态，切卡/关页时不能无声丢失。
+  $('#text-editor').dispatchEvent(new Event('input', { bubbles: true }));
   if (!got.text) {
     toast('生成了空文本', { kind: 'warn',
       hint: '效果列表是空的。先在规格页加效果，或用「从卡文推断」把已有文本结构化。' });
@@ -100,8 +102,8 @@ async function compose() {
     ariaJob('alert', '生成卡文', `${first} 没有原生句式模板（内核已退回 ${got.used_lang}）。`);
   } else {
     toast('已生成 ' + Object.keys(out).length + ' 种语言的卡文', { kind: 'ok',
-      hint: '这只是草稿，点「写回规格」才会保存' });
-    ariaJob('pass', '生成卡文', `卡文已生成：${Object.keys(out).length} 种语言，仍待写回规格。`);
+      hint: '这只是草稿，点「保存」才会保存' });
+    ariaJob('pass', '生成卡文', `卡文已生成：${Object.keys(out).length} 种语言，仍待保存。`);
   }
   showComposeDetail(out);
 }
@@ -129,7 +131,7 @@ async function tidyText() {
   if (!text.trim()) { toast('卡文框是空的，没什么可整理', { kind: 'warn' }); return; }
   let r;
   try {
-    r = await api.post('/api/psct/tidy', { card: store.spec.id, text, lang: currentLang }, {});
+    r = await api.post('/api/psct/tidy', { spec: editable(), text, lang: currentLang }, {});
   } catch (e) { toast('整理失败：' + e.message, { kind: 'err', hint: e.hint }); return; }
   if (!r.ok) { toast(r.error || '整理失败', { kind: 'err', hint: r.hint }); return; }
   showTidy(r);
@@ -198,7 +200,7 @@ function showTidy(r) {
           }
           $('#text-editor').value = assemble();
           $('#text-editor').dispatchEvent(new Event('input', { bubbles: true }));
-          toast('整理结果已填入卡文框（还没保存，点「写回规格」才落盘）', { kind: 'ok' });
+          toast('整理结果已填入卡文框（还没保存，点「保存」才落盘）', { kind: 'ok' });
         } },
       { label: '只采纳我勾的这段', class: 'mini-btn alt', keepOpen: true, onClick: () => {
           $('#text-editor').value = assemble();
@@ -206,7 +208,7 @@ function showTidy(r) {
           toast('已按上表的取舍填入卡文框（未保存）', { kind: 'ok',
             hint: '表里点「保留我的原文 / 用整理后的」可以逐段切换' });
         } },
-      { label: '把整理结果同步进 IR', class: 'mini-btn danger', keepOpen: true,
+      { label: '替换效果定义', class: 'mini-btn danger', keepOpen: true,
         onClick: () => syncTidyToIR(assemble()) },
     ],
   });
@@ -219,7 +221,7 @@ function showTidy(r) {
 async function syncTidyToIR(text) {
   let r;
   try {
-    r = await api.post('/api/psct/infer', { card: store.spec.id, text, lang: currentLang }, {});
+    r = await api.post('/api/psct/infer', { spec: editable(), text, lang: currentLang }, {});
   } catch (e) { toast('反解失败：' + e.message, { kind: 'err', hint: e.hint }); return; }
   const effs = r.effects || [];
   const blank = effs.filter((x) => !x.kind).length;
@@ -227,7 +229,7 @@ async function syncTidyToIR(text) {
     title: '把这段文本反解成效果列表',
     body: h('div', {},
       h('div.notice.warn', {},
-        h('b', { text: '这一步会动 IR：' }),
+        h('b', { text: '这会替换效果定义：' }),
         `效果列表会被替换成反解出的 ${effs.length} 条（其中 ${blank} 条内核认不出种类，需要你在规格页补）。`,
         h('br'), '脚本与卡面会随之变化。不确定就先取消，只保留整理好的文本。'),
       h('table.grid', {}, h('thead', {}, h('tr', {},
@@ -280,7 +282,7 @@ async function aiDraft() {
         if (!concept) { toast('先写一句概念描述', { kind: 'warn' }); return; }
         go.disabled = true; go.textContent = '起草中…';
         const r = await api.post('/api/assistant/draft',
-          { concept, card: spec.id, lang: currentLang }, {}).catch(errPayload);
+          { concept, spec: editable(), lang: currentLang }, {}).catch(errPayload);
         go.disabled = false; go.textContent = '起草';
         if (!r.ok) { m.close(); showDraftFailure(r); return; }
         m.close();
@@ -334,7 +336,7 @@ function showDraftResult(r) {
             { [currentLang]: $('#text-editor').value });
           store.patch({});
         }
-        toast('已填入编辑器', { kind: 'ok', hint: '点「写回规格」才会保存；「校验」可复查' });
+        toast('已填入编辑器', { kind: 'ok', hint: '点「保存」才会保存；「校验」可复查' });
       } },
     ],
   });
@@ -364,7 +366,7 @@ async function writeBack() {
   try {
     await api.put(`/api/cards/${spec.id}`, spec);
     store.spec = spec; store.markSaved(); store.set('card', spec);
-    toast('卡文已写回规格', { kind: 'ok', hint: '下一步：卡面渲染会直接用它' });
+    toast('卡文已保存', { kind: 'ok', hint: '下一步：卡面渲染会直接用它' });
     window.dispatchEvent(new CustomEvent('cardforge:saved'));
   } catch (e) { toast('写回失败：' + e.message, { kind: 'err', hint: e.hint }); }
 }
@@ -372,7 +374,7 @@ async function writeBack() {
 /* ══════════════ Lua ══════════════ */
 async function emitLua() {
   if (!needCard()) return;
-  const r = await api.post('/api/lua/emit', { card: store.spec.id, tier: 1 }, {})
+  const r = await api.post('/api/lua/emit', { spec: editable(), tier: 1 }, {})
     .catch(errPayload);
   if (!r.ok) {
     $('#lua-view').textContent = `-- 无法生成脚本\n-- ${r.error}\n-- ${r.hint || ''}`;
@@ -420,12 +422,19 @@ async function lintLua({ silent = false } = {}) {
 
 async function writeLua() {
   if (!needCard()) return;
-  const r = await api.post('/api/lua/emit', { card: store.spec.id, write: true }, {})
+  const r = await api.post('/api/lua/emit', { spec: editable(), write: true }, {})
     .catch(errPayload);
   if (!r.ok) { toast('写入失败：' + (r.error || ''), { kind: 'err', hint: r.hint }); return; }
   store.spec.lua = r.lua;
   store.luaPreview = '';   // 已经有真脚本了，预览标记该清掉
+  store.markSaved();       // write=true 已在后端保存本次提交的全部规格
+  store.set('card', store.spec);
   $('#lua-view').textContent = r.lua;
+  window.dispatchEvent(new CustomEvent('cardforge:saved'));
+  if (r.script_error) {
+    toast('规格已保存，但脚本文件写入失败：' + r.script_error, { kind: 'err' });
+    return;
+  }
   toast('脚本已写入工作区', { kind: 'ok',
     hint: r.script_path ? r.script_path + ' · 下一步：导出包会带上它' : '' });
 }

@@ -24,8 +24,8 @@ let previewTimer = null;
 
 export function initSpec() {
   store.on('meta', () => { if (store.spec) renderForm(); });
-  store.on('card', (spec) => { renderForm(); schedulePreview(60); });
-  store.on('spec:patch', () => schedulePreview());
+  store.on('card', (spec) => { renderForm(); markDirty(); schedulePreview(60); });
+  store.on('spec:patch', () => { markDirty(); schedulePreview(); });
   // 系列名单变了（通常是刚在系列面板里建了一个）→ 重绘表单，
   // 让「所属系列」那行的提示从「还没有系列」当场变成「已有系列圣经」。
   window.addEventListener('cardforge:archetypes-changed', () => {
@@ -98,14 +98,12 @@ function renderForm() {
       }), { hint: isLink ? '连接怪兽不存守备力' : '未知填 ?' }),
     );
     if (isPend) {
-      $('#f-monster').append(field('灵摆刻度（左）', h('input', {
+      // CardSpec 与 cdb 都只保存一组刻度，左右必须相同。以前右侧输入框
+      // 永远空白且写入后端不认识的 pendulum_scale_right，看起来像能分别设置。
+      $('#f-monster').append(field('灵摆刻度（左右相同）', h('input', {
         type: 'number', min: 1, max: 13, value: spec.pendulum_scale ?? '',
         oninput: (e) => patch({ pendulum_scale: parseInt(e.target.value || '0', 10) || null })
-      })));
-      $('#f-monster').append(field('灵摆刻度（右）', h('input', {
-        type: 'number', min: 1, max: 13, value: '',
-        oninput: (e) => patch({ pendulum_scale_right: parseInt(e.target.value || '0', 10) || null })
-      })));
+      }), { hint: '官方灵摆卡左右刻度相同；可填 1–13，常见为 1–8' }));
     }
     if (spec.frame !== 'token') {
       $('#f-monster').append(field('特殊标签', checkboxGroup(
@@ -1200,7 +1198,8 @@ async function inferFromText() {
   const text = spec.text_i18n && (spec.text_i18n.zh_cn || Object.values(spec.text_i18n)[0]);
   if (!text) { toast('这张卡还没有卡文可以推断', { kind: 'warn',
     hint: '先在「卡文 · 脚本」页写好卡文，或填入 text_i18n.zh_cn' }); return; }
-  const r = await api.post('/api/psct/infer', { card: spec.id }).catch((e) => ({ ok: false, error: e.message, hint: e.hint }));
+  const r = await api.post('/api/psct/infer', { spec: strip(spec), text })
+    .catch((e) => ({ ok: false, error: e.message, hint: e.hint }));
   if (!r.ok) { toast('推断失败：' + (r.error || ''), { kind: 'err', hint: r.hint }); return; }
   const effs = r.effects || [];
   if (!effs.length) { toast('没能从卡文里认出效果', { kind: 'warn', hint: r.hint || '可以在效果区手工添加' }); return; }

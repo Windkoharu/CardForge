@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<!-- ══════════════ 顶栏：能力层级 + 质量门 + 当前卡 ══════════════ -->
+<!-- ══════════════ 顶栏：工具状态 + 四阶段流程 ══════════════ -->
 <header class="topbar" id="topbar">
   <div class="brand">
     <span class="brand-mark" aria-hidden="true"></span>
@@ -20,46 +20,49 @@
     </span>
   </div>
 
-  <nav class="stages" id="stages" aria-label="流程导航">
-    <button class="stage-tab is-active" data-stage="spec">
-      <span class="stage-no">1</span><span class="stage-zh">规格</span>
+  <div class="topbar-status">
+    <div class="gates" id="gates" aria-label="质量检查状态"></div>
+    <div class="levels" id="levels" title="四层能力：缺哪层降哪层，没有一层会阻断主流程"></div>
+    <span class="llm-chip" id="llm-chip" title="当前接入的大模型">检测中…</span>
+  </div>
+
+  <div class="topbar-actions" id="topbar-actions" aria-label="工坊工具">
+    <button class="ghost-btn" id="btn-settings" title="配置、切换并测试大模型">
+      <span class="btn-glyph" aria-hidden="true">⚙</span>模型
+    </button>
+    <button class="ghost-btn" id="btn-archetypes" title="管理系列设定与一致性检查">
+      <span class="btn-glyph" aria-hidden="true">⌘</span>系列
+    </button>
+    <button class="ghost-btn" id="btn-update" title="检查 GitHub 上的新版本">
+      <span class="btn-glyph" aria-hidden="true">⭳</span>更新
+    </button>
+    <button class="ghost-btn" id="btn-assistant" title="与星奏·艾莉娅对话">
+      <img class="btn-avatar" src="assets/aria/aria_avatar.png" alt="">艾莉娅
+    </button>
+  </div>
+
+  <nav class="stages" id="stages" aria-label="造卡流程" role="tablist">
+    <button class="stage-tab is-active" id="tab-spec" data-stage="spec" role="tab"
+      aria-selected="true" aria-controls="panel-spec">
+      <span class="stage-no">1</span><span class="stage-zh">设计规格</span>
       <span class="stage-hint">卡种 · 数值 · 效果</span>
     </button>
-    <button class="stage-tab" data-stage="text">
-      <span class="stage-no">2</span><span class="stage-zh">卡文 · 脚本</span>
-      <span class="stage-hint">PSCT · Lua</span>
+    <button class="stage-tab" id="tab-text" data-stage="text" role="tab"
+      aria-selected="false" aria-controls="panel-text" tabindex="-1">
+      <span class="stage-no">2</span><span class="stage-zh">卡文与脚本</span>
+      <span class="stage-hint">规范文本 · 可执行逻辑</span>
     </button>
-    <button class="stage-tab" data-stage="art">
-      <span class="stage-no">3</span><span class="stage-zh">卡图 · 卡面</span>
-      <span class="stage-hint">出图 · 罕贵 · 出框</span>
+    <button class="stage-tab" id="tab-art" data-stage="art" role="tab"
+      aria-selected="false" aria-controls="panel-art" tabindex="-1">
+      <span class="stage-no">3</span><span class="stage-zh">卡图与卡面</span>
+      <span class="stage-hint">插画 · 罕贵 · 出框</span>
     </button>
-    <button class="stage-tab" data-stage="pack">
-      <span class="stage-no">4</span><span class="stage-zh">上桌</span>
-      <span class="stage-hint">导出 · 自检 · 安装</span>
+    <button class="stage-tab" id="tab-pack" data-stage="pack" role="tab"
+      aria-selected="false" aria-controls="panel-pack" tabindex="-1">
+      <span class="stage-no">4</span><span class="stage-zh">导出上桌</span>
+      <span class="stage-hint">检查 · 打包 · 安装</span>
     </button>
   </nav>
-
-  <div class="gates" id="gates" aria-label="质量门状态"></div>
-
-  <div class="levels" id="levels" title="四层能力：缺哪层降哪层，没有一层会阻断主流程"></div>
-
-  <span class="llm-chip" id="llm-chip" title="当前接入的大模型">检测中…</span>
-
-  <button class="ghost-btn" id="btn-settings" title="大模型接入 —— 配模型、切模型、试连">
-    <span class="btn-glyph" aria-hidden="true">⚙</span>模型
-  </button>
-
-  <button class="ghost-btn" id="btn-archetypes" title="系列圣经 —— G4 的审计对象">
-    <span class="btn-glyph" aria-hidden="true">⌘</span>系列
-  </button>
-
-  <button class="ghost-btn" id="btn-update" title="检查 GitHub 上的新版本（走 api.github.com）">
-    <span class="btn-glyph" aria-hidden="true">⭳</span>更新
-  </button>
-
-  <button class="ghost-btn" id="btn-assistant" title="星奏·艾莉娅 —— 打个招呼">
-    <img class="btn-avatar" src="assets/aria/aria_avatar.png" alt="">艾莉娅
-  </button>
 </header>
 
 <!-- ══════════════ 主体：左卡片列表 / 中工作区 / 右抽屉 ══════════════ -->
@@ -79,28 +82,36 @@
 
   <section class="workspace" id="workspace">
 
+    <section class="workspace-error" id="workspace-error" role="alert" hidden>
+      <span class="error-mark" aria-hidden="true">!</span>
+      <h1>暂时读不到你的工作区</h1>
+      <p id="workspace-error-text"></p>
+      <p class="footnote">现有卡片没有被清空，也不会自动新建草稿。恢复本地服务后再试即可。</p>
+      <button class="primary-btn" id="btn-retry-cards">重新读取</button>
+    </section>
+
     <!-- ─────────── 欢迎态 · 工坊大门（列表为空时显示）─────────── -->
     <div class="studio-hero" id="studio-hero" hidden>
       <img class="hero-banner" src="assets/aria/aria_banner.png" alt="卡锻工坊的深夜工作室">
       <div class="hero-shade"></div>
       <div class="hero-copy">
-        <h1>卡锻工坊<small>CARDFORGE 2.0</small></h1>
-        <p>把「一句话设想」锻成<b>能上牌桌的卡</b>。<br>
-          四步流水线：规格 → 卡文·脚本 → 卡图·卡面 → 上桌，
-          每一步都有确定性质量门把守。</p>
+        <h1>把设想，锻成卡牌<small>CARDFORGE 2.0</small></h1>
+        <p>从卡种与效果开始，生成规范卡文和脚本，再完成卡图、卡面与游戏扩展包。<br>
+          每一步都能检查；生成不了的内容会明确告诉你。</p>
         <p class="hero-quote">「判断归铁律，修辞归我。」<br>
-          <span style="color:var(--ink-faint);font-size:11.5px;">—— 星奏·艾莉娅，工坊的星奏向导</span></p>
+          <span class="hero-quote-by">—— 星奏·艾莉娅，你的工坊向导</span></p>
         <div class="hero-actions">
-          <button class="primary-btn" id="hero-new">锻造第一张卡</button>
-          <button class="ghost-btn" id="hero-guide">让艾莉娅带我一圈</button>
+          <button class="primary-btn" id="hero-new">创建第一张卡</button>
+          <button class="ghost-btn" id="hero-guide">让艾莉娅带我走一遍</button>
         </div>
-        <p class="hero-note">右边就是她 —— 她只翻译质量门的结论，从不替你做判断。</p>
+        <p class="hero-note">艾莉娅会解释检查结果；是否通过，始终由规则与真实运行决定。</p>
       </div>
       <span class="hero-who">forge spirit · aria</span>
     </div>
 
     <!-- ─────────── 阶段 1 · 规格 ─────────── -->
-    <div class="stage-panel is-active" data-stage="spec">
+    <div class="stage-panel is-active" id="panel-spec" data-stage="spec"
+      role="tabpanel" aria-labelledby="tab-spec">
       <div class="panel-grid">
         <div class="col-main">
           <fieldset class="block">
@@ -140,7 +151,7 @@
             <p class="preview-tag" id="preview-tag">矢量预览</p>
           </div>
           <div class="side-actions">
-            <button class="primary-btn" id="btn-save">保存规格</button>
+            <button class="primary-btn" id="btn-save">保存卡片</button>
             <button class="ghost-btn" id="btn-preview-now">刷新预览</button>
           </div>
           <div class="notice" id="spec-notice"></div>
@@ -149,29 +160,29 @@
     </div>
 
     <!-- ─────────── 阶段 2 · 卡文 + 脚本 ─────────── -->
-    <div class="stage-panel" data-stage="text">
+    <div class="stage-panel" id="panel-text" data-stage="text" role="tabpanel"
+      aria-labelledby="tab-text" hidden>
       <div class="split">
         <section class="pane">
           <header class="pane-head">
-            <h3>PSCT 卡文</h3>
+            <div class="pane-title"><h3>规范卡文</h3><span>与当前效果保持同步</span></div>
             <div class="inline-tools">
               <span class="lbl"><span>语言</span></span>
               <div class="chips" id="text-lang"></div>
-              <button class="mini-btn" id="btn-ai-draft"
-                title="按概念描述让大模型起草卡文草稿；草稿只是提议，问题清单由内核校验器确定性给出">AI 起草</button>
-              <button class="mini-btn" id="btn-compose">生成</button>
+              <button class="mini-btn primary" id="btn-compose">生成卡文</button>
               <button class="mini-btn" id="btn-tidy-text"
-                title="把这段手写文本整理成标准 PSCT 描述：逐段对照、认不出的原样保留，只改文本不动效果列表">整理为标准文本</button>
-              <button class="mini-btn" id="btn-lint-text">校验</button>
-              <button class="mini-btn alt" id="btn-write-text">写回规格</button>
+                title="逐段对照并整理手写文本；无法识别的内容会原样保留，不修改效果定义">整理文本</button>
+              <button class="mini-btn" id="btn-lint-text">检查卡文</button>
+              <button class="mini-btn" id="btn-ai-draft"
+                title="让大模型提供草稿，再由本地规则检查；模型自评不会作为通过依据">AI 起草</button>
+              <button class="mini-btn alt" id="btn-write-text">保存卡文</button>
             </div>
           </header>
           <div class="pane-body">
-            <textarea id="text-editor" spellcheck="false"
-              placeholder="点「生成」由结构化效果产出规范卡文；也可以直接在这里手写。"></textarea>
+            <textarea id="text-editor" spellcheck="false" aria-label="卡文编辑器"
+              placeholder="点「生成卡文」根据当前效果生成文本，也可以直接在这里手写。"></textarea>
             <p class="footnote">
-              卡文是效果的<b>投影</b>：改效果定义再生成，比直接改文本更可靠。
-              手写内容会原样进卡面与 cdb，并同样接受校验。
+              建议在「设计规格」中修改效果后再生成。手写内容会用于卡面和游戏数据，保存前可先检查。
             </p>
           </div>
           <div class="issue-bar" id="text-issues"></div>
@@ -179,18 +190,18 @@
 
         <section class="pane">
           <header class="pane-head">
-            <h3>Lua 脚本</h3>
+            <div class="pane-title"><h3>效果脚本</h3><span>Lua · 供游戏引擎执行</span></div>
             <div class="inline-tools">
-              <button class="mini-btn" id="btn-emit">生成脚本</button>
+              <button class="mini-btn primary" id="btn-emit">生成脚本</button>
               <button class="mini-btn" id="btn-lint-lua">静态检查</button>
-              <button class="mini-btn alt" id="btn-write-lua">写入工作区</button>
+              <button class="mini-btn alt" id="btn-write-lua">保存脚本</button>
             </div>
           </header>
           <div class="pane-body">
             <pre id="lua-view" class="code-view" spellcheck="false">// 还没有脚本</pre>
             <p class="footnote">
-              脚本与卡文<b>同源</b>：都是效果 IR 的确定性投影，不做自然语言直译。
-              生成不了的效果会写成 <code>-- 需人工补写</code> 注释而不是瞎编 API。
+              脚本与卡文来自同一份效果定义，不是逐句翻译。无法自动生成的部分会标为
+              <code>-- 需人工补写</code>，不会编造引擎接口。
             </p>
           </div>
           <div class="issue-bar" id="lua-issues"></div>
@@ -199,7 +210,8 @@
     </div>
 
     <!-- ─────────── 阶段 3 · 卡图 + 卡面 ─────────── -->
-    <div class="stage-panel" data-stage="art">
+    <div class="stage-panel" id="panel-art" data-stage="art" role="tabpanel"
+      aria-labelledby="tab-art" hidden>
       <div class="split">
         <section class="pane">
           <header class="pane-head">
@@ -254,7 +266,8 @@
     </div>
 
     <!-- ─────────── 阶段 4 · 上桌 ─────────── -->
-    <div class="stage-panel" data-stage="pack">
+    <div class="stage-panel" id="panel-pack" data-stage="pack" role="tabpanel"
+      aria-labelledby="tab-pack" hidden>
       <div class="target-bar" id="target-bar">
         <span class="tb-label">上桌目标</span>
         <button class="tb-btn is-active" data-target="edopro">EDOPro（expansions 包）</button>

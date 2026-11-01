@@ -66,24 +66,70 @@ export function toast(message, { kind = '', hint = '', ms = 6000 } = {}) {
   setTimeout(kill, ms);
 }
 
-export function modal({ title = '', body = null, actions = [] }) {
+let activeModal = null;
+
+export function modal({ title = '', body = null, actions = [], onClose = null }) {
+  // 单实例弹窗：旧监听器与焦点必须在替换内容前清理，不能随打开次数累积。
+  if (activeModal) activeModal.close();
+  const previousFocus = document.activeElement;
   const back = $('#modal-backdrop');
+  const dialog = $('.modal', back);
   clear($('#modal-title')).appendChild(document.createTextNode(title));
+  dialog.setAttribute('aria-labelledby', 'modal-title');
+  dialog.tabIndex = -1;
   const bodyBox = clear($('#modal-body'));
   if (body) bodyBox.appendChild(body.nodeType ? body : h('div', { html: body }));
   const foot = clear($('#modal-foot'));
+  let closed = false;
+  const handle = { close, body: bodyBox };
+
+  function close() {
+    if (closed) return;
+    closed = true;
+    back.hidden = true;
+    back.onclick = null;
+    document.removeEventListener('keydown', onKey);
+    if (activeModal === handle) activeModal = null;
+    if (previousFocus && previousFocus.isConnected && typeof previousFocus.focus === 'function') {
+      previousFocus.focus();
+    }
+    if (onClose) onClose();
+  }
+
+  function focusables() {
+    return $$('button:not(:disabled), input:not(:disabled), select:not(:disabled), '
+      + 'textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])', dialog)
+      .filter((el) => !el.hidden && el.getAttribute('aria-hidden') !== 'true');
+  }
+
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key !== 'Tab') return;
+    const items = focusables();
+    if (!items.length) { e.preventDefault(); dialog.focus(); return; }
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+      e.preventDefault(); first.focus();
+    }
+  }
+
   for (const a of actions) {
     foot.appendChild(h(`button.${a.class || 'mini-btn'}`,
       { onclick: () => { if (a.onClick) a.onClick(); if (!a.keepOpen) close(); } }, a.label));
   }
   if (!actions.length) foot.appendChild(h('button.mini-btn', { onclick: close }, '关闭'));
-  back.hidden = false;
-  function close() { back.hidden = true; }
   back.onclick = (e) => { if (e.target === back) close(); };
-  document.addEventListener('keydown', function up(e) {
-    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', up); }
+  document.addEventListener('keydown', onKey);
+  activeModal = handle;
+  back.hidden = false;
+  requestAnimationFrame(() => {
+    if (closed) return;
+    const target = focusables()[0] || dialog;
+    target.focus();
   });
-  return { close, body: bodyBox };
+  return handle;
 }
 
 /* ══════════════ 表单控件生成 ══════════════ */

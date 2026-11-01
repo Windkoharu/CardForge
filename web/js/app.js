@@ -115,7 +115,17 @@ async function start() {
   bindUnloadGuard();
 
   bootStep('正在读取工作区…', 0.78);
-  const list = await refreshCards();
+  let list;
+  try {
+    list = await refreshCards();
+  } catch (e) {
+    // 读取失败与「一张卡也没有」是两种状态。保留错误页和重试入口，
+    // 不能用空列表 + 新卡草稿把工作区故障伪装成首次使用。
+    bootStep('工作区读取失败', 1);
+    bootDone();
+    showWorkspaceError(e);
+    return;
+  }
   const wanted = ui.cardId && list.some((c) => c.id === ui.cardId) ? ui.cardId
     : (list[0] && list[0].id);
   if (wanted) { showHero(false); await openCard(wanted); }
@@ -168,17 +178,38 @@ function renderLevels() {
 
 /* ══════════════ 阶段切换 ══════════════ */
 function bindNav() {
-  $('#stages').addEventListener('click', (e) => {
+  const nav = $('#stages');
+  nav.addEventListener('click', (e) => {
     const b = e.target.closest('.stage-tab');
     if (b) switchStage(b.dataset.stage);
+  });
+  nav.addEventListener('keydown', (e) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    const tabs = $$('.stage-tab', nav);
+    const cur = tabs.indexOf(document.activeElement);
+    if (cur < 0) return;
+    e.preventDefault();
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1
+      : (cur + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    switchStage(tabs[next].dataset.stage);
+    tabs[next].focus();
   });
 }
 
 export function switchStage(name) {
   ui.stage = name; saveUi();
   showHero(false);                       // 用户要干活了，欢迎态先退场
-  $$('.stage-tab').forEach((b) => b.classList.toggle('is-active', b.dataset.stage === name));
-  $$('.stage-panel').forEach((p) => p.classList.toggle('is-active', p.dataset.stage === name));
+  $$('.stage-tab').forEach((b) => {
+    const active = b.dataset.stage === name;
+    b.classList.toggle('is-active', active);
+    b.setAttribute('aria-selected', String(active));
+    b.tabIndex = active ? 0 : -1;
+  });
+  $$('.stage-panel').forEach((p) => {
+    const active = p.dataset.stage === name;
+    p.classList.toggle('is-active', active);
+    p.hidden = !active;
+  });
   window.dispatchEvent(new CustomEvent('cardforge:stage', { detail: { stage: name } }));
 }
 
@@ -186,11 +217,29 @@ export function switchStage(name) {
 function showHero(v) {
   const hero = $('#studio-hero');
   if (!hero) return;
+  const error = $('#workspace-error');
+  if (error) error.hidden = true;
   hero.hidden = !v;
-  if (v) $$('.stage-panel').forEach((p) => p.classList.remove('is-active'));
-  else {
-    const cur = (ui.stage || 'spec');
-    $$('.stage-panel').forEach((p) => p.classList.toggle('is-active', p.dataset.stage === cur));
+  const cur = ui.stage || 'spec';
+  $$('.stage-panel').forEach((p) => {
+    const active = !v && p.dataset.stage === cur;
+    p.classList.toggle('is-active', active);
+    p.hidden = !active;
+  });
+}
+
+function showWorkspaceError(e) {
+  showHero(false);
+  $$('.stage-panel').forEach((p) => { p.classList.remove('is-active'); p.hidden = true; });
+  const panel = $('#workspace-error');
+  if (!panel) { fatal(e); return; }
+  panel.hidden = false;
+  $('#workspace-error-text').textContent = String((e && e.message) || e)
+    + ((e && e.hint) ? ` → ${e.hint}` : '');
+  const retry = $('#btn-retry-cards');
+  if (retry && !retry.dataset.bound) {
+    retry.dataset.bound = '1';
+    retry.addEventListener('click', () => location.reload());
   }
 }
 
@@ -232,6 +281,12 @@ function bindRail() {
     const li = e.target.closest('li[data-id]');
     if (li) openCard(parseInt(li.dataset.id, 10));
   });
+  $('#card-list').addEventListener('keydown', (e) => {
+    const li = e.target.closest('li[data-id]');
+    if (!li || !['Enter', ' '].includes(e.key)) return;
+    e.preventDefault();
+    openCard(parseInt(li.dataset.id, 10));
+  });
   const updBtn = $('#btn-update');
   if (updBtn) updBtn.addEventListener('click', checkUpdate);
 }
@@ -268,17 +323,26 @@ async function checkUpdate() {
 export async function refreshCards() {
   try {
     const r = await api.get('/api/cards');
+    store.cardsError = '';
     store.set('cards', r.cards || []);
     renderList($('#card-search') ? $('#card-search').value : '');
     return r.cards || [];
   } catch (e) {
+    store.cardsError = String(e.message || e);
+    renderList($('#card-search') ? $('#card-search').value : '');
     toast('卡片列表读不出来：' + e.message, { kind: 'err', hint: e.hint });
-    return [];
+    throw e;
   }
 }
 
 function renderList(q = '') {
   const box = clear($('#card-list'));
+  if (store.cardsError) {
+    box.appendChild(h('li.empty.list-error', {},
+      h('span', { text: '卡片列表读取失败' }),
+      h('button.link-btn', { type: 'button', onclick: () => refreshCards().catch(() => {}) }, '重试')));
+    return;
+  }
   const items = (store.cards || []).filter((c) => {
     if (!q) return true;
     const s = q.toLowerCase();
@@ -290,7 +354,11 @@ function renderList(q = '') {
     return;
   }
   for (const c of items) {
-    box.appendChild(h(`li${c.id === store.cardId ? '.is-active' : ''}`, { dataset: { id: c.id } },
+    const active = c.id === store.cardId;
+    box.appendChild(h(`li${active ? '.is-active' : ''}`, {
+      dataset: { id: c.id }, role: 'option', tabindex: '0',
+      'aria-selected': String(active),
+    },
       h('span.cname', { text: c.name || '（无名）' }),
       h('span.cmeta', { text: `${c.id} · ${c.frame_label || c.frame}` +
         (c.archetype ? ` · ${c.archetype}` : '') +
@@ -307,9 +375,51 @@ function renderRailFoot() {
       ? '官方卡池已挂载' : '官方卡池未挂载（查重会跳过）' }));
 }
 
+/** 离开当前编辑对象前的唯一守卫：保存、放弃或留下，不能静默覆盖。 */
+function confirmCardChange() {
+  if (!store.isDirty()) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let decided = false;
+    const done = (allow) => {
+      if (decided) return;
+      decided = true;
+      resolve(allow);
+    };
+    const m = modal({
+      title: '当前卡片还有未保存的修改',
+      body: h('div', {},
+        h('p', { text: `「${(store.spec && (store.spec.display_name || store.spec.name)) || '未命名草稿'}」的修改尚未保存。` }),
+        h('p.footnote', { text: '保存后继续会保留修改；放弃修改会恢复上次保存的内容；继续编辑则不会切换。' })),
+      onClose: () => done(false),
+      actions: [
+        { label: '继续编辑', class: 'mini-btn', onClick: () => done(false) },
+        { label: '放弃修改', class: 'mini-btn danger', onClick: () => done(true) },
+        { label: '保存并继续', class: 'mini-btn primary', keepOpen: true, onClick: async () => {
+          try {
+            await saveSpec();
+            done(true);
+            m.close();
+          } catch { /* 保存错误已由 saveSpec 提示，对话框保留供重试。 */ }
+        } },
+      ],
+    });
+  });
+}
+
+let cardOpening = false;
 export async function openCard(id) {
+  if (cardOpening) return null;
+  cardOpening = true;
   try {
+    if (!(await confirmCardChange())) return null;
+    // 请求途中用户仍可能继续输入；若内容已变化，宁可放弃这次切换，
+    // 也不能让晚到的响应覆盖新输入。
+    const source = JSON.stringify(store.spec || null);
     const r = await api.get(`/api/cards/${id}`, { gates: 'G1,G2' });
+    if (source !== JSON.stringify(store.spec || null)) {
+      toast('检测到刚才的新输入，已取消切换以保留修改', { kind: 'warn' });
+      return null;
+    }
     store.cardId = id;
     store.cardExists = true;
     ui.cardId = id; saveUi();
@@ -331,6 +441,8 @@ export async function openCard(id) {
   } catch (e) {
     toast('打不开这张卡：' + e.message, { kind: 'err', hint: e.hint });
     return null;
+  } finally {
+    cardOpening = false;
   }
 }
 
@@ -349,26 +461,31 @@ export function newCardDraft() {
       art_fit: 'cover', art_scale: 1, art_offset_y: 0 },
   };
   store.cardId = 0; store.cardExists = false;
-  store.spec = spec; store.saved = null;
+  store.spec = spec;
+  // 空白草稿不是用户修改：先记录基线，首次输入才会标为未保存。
+  store.markSaved();
   store.set('card', spec);
   switchStage('spec');
   return spec;
 }
 
 async function createCard() {
-  const spec = newCardDraft();
+  if (!(await confirmCardChange())) return;
   const name = prompt('这张卡叫什么？（先给卡名，其他都能在表单里改）', '');
   if (name === null) return;
+  const spec = newCardDraft();
   spec.name = name.trim();
   if (!spec.name) { toast('没填卡名，已建一张空白草稿', { kind: 'warn' }); return; }
   store.emit('spec:patch', spec);
-  await saveSpec();
-  await refreshCards();
-  showHero(false);
+  try {
+    await saveSpec();
+    await refreshCards();
+    showHero(false);
+  } catch { /* 保存或列表刷新已经给出具体错误，草稿仍保留在编辑器里。 */ }
 }
 
 window.addEventListener('cardforge:saved', async () => {
-  await refreshCards();
+  try { await refreshCards(); } catch { /* 保存已成功；列表错误不能回滚这次保存。 */ }
   renderLevels();
 });
 
@@ -381,7 +498,8 @@ function bindDebug() {
         modal({ title: '环境自检', body: h('pre.code-view', { text: pretty(r) }) });
       } catch (e) { toast('取不到：' + e.message, { kind: 'err' }); }
     } }, '自检');
-  $('#topbar').insertBefore(b, $('#btn-assistant'));
+  const anchor = $('#btn-assistant');
+  (anchor.parentElement || $('#topbar')).insertBefore(b, anchor);
 }
 
 /* 模块脚本是 deferred 的，正常情况下 DOMContentLoaded 还没触发；
