@@ -39,6 +39,7 @@ structured spec ─→ PSCT card text + Lua script ─→ card art + frame/rarit
 
 Quick start: double-click `启动.bat`, or `python -m cardforge launch`.
 Full tutorial (Chinese): [docs/05-使用教学.md](docs/05-使用教学.md)
+照做版实例教学：[单卡入门 · 融合进阶 · 系列制作](docs/05-使用教学.md#46-三个实例教学照做版)
 
 ---
 
