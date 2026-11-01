@@ -132,11 +132,14 @@ def g2_script(spec: CardSpec, lua: str = "") -> GateReport:
     issues: list[Issue] = []
 
     if not body.strip():
-        if spec.is_monster and spec.frame not in ("normal", "token"):
+        # 与导出层 needs_script() 同口径：通常怪兽、通常灵摆、衍生物是白板；
+        # 其余怪兽以及全部魔法、陷阱都需要脚本。
+        if spec.frame not in ("normal", "normal_pendulum", "token"):
+            kind = "效果怪兽" if spec.is_monster else "魔法/陷阱卡"
             return _report("G2", [Issue(
                 gate="G2", code="G2_NO_SCRIPT", level="WARN",
-                message="效果怪兽没有脚本", hint="用 card script 生成，或把卡种改为通常怪兽")],
-                t0=t0)
+                message=f"{kind}没有脚本",
+                hint="生成 Lua 脚本；若是通常怪兽或通常灵摆，请改用对应卡种")], t0=t0)
         return _report("G2", [], t0=t0)
 
     # UTF-8 无 BOM —— 带 BOM 的 Lua 会直接失效，且事后不可补救

@@ -195,13 +195,15 @@ async function build() {
     packDir = r.pack_dir;
     showTree(r);
     const bad = (r.issues || []).filter((i) => i.level === 'ERROR').length;
-    toast(bad ? `已导出，但自检发现 ${bad} 个错误` : '导出包已生成',
-      { kind: bad ? 'warn' : 'ok', hint: r.next || '' });
+    const failed = r.ok === false || bad > 0;
+    toast(failed ? '已产出文件，但未通过 G5，不能安装' : '导出包已生成',
+      { kind: failed ? 'warn' : 'ok', hint: r.next || '' });
     loadPackages();
     window.dispatchEvent(new CustomEvent('cardforge:pack', { detail: r }));
     window.dispatchEvent(new CustomEvent('cardforge:job', { detail: {
-      state: bad ? 'alert' : 'pass', label: '导出 EDOPro 包',
-      facts: bad ? `导出完成但自检有 ${bad} 个错误。` : '导出包已生成，自检没有报错。' } }));
+      state: failed ? 'alert' : 'pass', label: '导出 EDOPro 包',
+      facts: failed ? '导出文件已产出，但 G5 有 ERROR；真安装会被阻止。'
+        : '导出包已生成，自检没有报错。' } }));
   } catch (e) {
     toast('导出失败：' + e.message, { kind: 'err', hint: e.hint });
     window.dispatchEvent(new CustomEvent('cardforge:job', { detail: {

@@ -646,6 +646,15 @@ def export_multilang(
         con = open_cdb(path, create=True)
         try:
             upsert_many(con, items, lang, ot=ot, category=category)
+            # 同名导出文件代表“这一批卡”，不是只增不减的合并池。
+            # 清掉上次导出遗留、这次已取消选择的卡，且两表一起删。
+            desired = {int(s.id) for s in items}
+            existing = {int(r[0]) for r in con.execute(
+                "SELECT id FROM datas UNION SELECT id FROM texts")}
+            stale = sorted(existing - desired)
+            with con:
+                con.executemany("DELETE FROM datas WHERE id=?", ((cid,) for cid in stale))
+                con.executemany("DELETE FROM texts WHERE id=?", ((cid,) for cid in stale))
             rows[key] = count_cards(con)
         finally:
             con.close()

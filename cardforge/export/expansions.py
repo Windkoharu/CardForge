@@ -362,10 +362,11 @@ def build(
                         with Image.open(fsrc) as im:
                             im.convert("RGB").save(fdst, "JPEG", quality=92)
                     else:
-                        shutil.copy2(fsrc, fdst)
+                        raise ValueError("PNG 转 JPG 需要 Pillow，不能仅改文件后缀")
                     n_field += 1
                     files.append(_rel(root, fdst))
                 except (OSError, ValueError) as e:
+                    fdst.unlink(missing_ok=True)
                     issues.append(_issue("G5_FIELD_COPY", "WARN",
                                          f"卡 {cid} 的场地背景复制失败：{e}",
                                          field=str(cid)))
@@ -391,14 +392,16 @@ def build(
                     with Image.open(src) as im:
                         im.convert("RGB").save(dst, "JPEG", quality=92)
                 else:
-                    shutil.copy2(src, dst)
+                    raise ValueError("PNG 转 JPG 需要 Pillow，不能仅改文件后缀")
                 n_pics += 1
                 files.append(_rel(root, dst))
             except (OSError, ValueError) as e:
+                dst.unlink(missing_ok=True)
                 pending_pics.append(cid)
                 issues.append(_issue("G5_PIC_COPY", "WARN",
                                      f"卡 {cid} 的卡图复制失败：{e}",
-                                     hint="确认文件未被占用、格式可读。", field=str(cid)))
+                                     hint="确认文件可读；PNG 转 JPG 需要安装 Pillow。",
+                                     field=str(cid)))
                 skipped.append({"kind": "pic", "id": cid, "name": spec.name,
                                 "reason": f"复制失败：{e}"})
 
@@ -551,10 +554,16 @@ def _find_pic(base: Path, card_id: int) -> Path | None:
 #  verify（G5）
 # ══════════════════════════════════════════════════════════════════════
 def pic_size_ok(path: str | os.PathLike[str]) -> tuple[bool, tuple[int, int] | str]:
-    """读图尺寸。返回 ``(是否 421×614, (w,h) 或 错误说明)``。
+    """校验 JPEG 并读图尺寸，返回 ``(是否合规, (w,h) 或错误说明)``。
 
-    Pillow 缺失时返回 ``(True, "Pillow 不可用，未检查尺寸")`` —— 降级为「不报错」。
+    JPEG 文件签名不依赖 Pillow，任何时候都检查；Pillow 缺失时只跳过尺寸检查。
     """
+    try:
+        with Path(path).open("rb") as f:
+            if f.read(2) != b"\xff\xd8":
+                return False, "文件内容不是 JPEG（不能仅把 PNG 后缀改成 .jpg）"
+    except OSError as e:
+        return False, f"读图失败：{e}"
     try:
         from PIL import Image
     except Exception:
@@ -581,6 +590,7 @@ def verify(pack_dir: str | os.PathLike[str], *, official: OfficialPool | None = 
     ``G5_CDB_OPEN``             ERROR   cdb 打不开
     ``G5_CDB_SCHEMA``           ERROR   ``datas``/``texts`` 表或列缺失
     ``G5_CDB_ROW_MISSING``      ERROR   卡在 cdb 里没有记录（datas 或 texts 缺行）
+    ``G5_CDB_ROW_EXTRA``        ERROR   cdb 里多出了不在 manifest 卡表中的记录
     ``G5_CDB_ID_DUP``           ERROR   同一 cdb 内卡号重复 / texts 与 datas 不对齐
     ``G5_ID_CONFLICT``          ERROR   卡号与**官方池**冲突
     ``G5_LANG_MISMATCH``        WARN    语言包的卡号集合与基础包不一致
@@ -714,6 +724,13 @@ def _verify_impl(pack_dir: str | os.PathLike[str], official: OfficialPool | None
             issues.append(_issue("G5_CDB_ROW_MISSING", "ERROR",
                                  f"卡 {cid} 在 {f.name} 里没有记录",
                                  hint="从 manifest 看它应该在这个包里。", field=str(cid)))
+        extra = sorted(got - expected)[:12]
+        if extra:
+            issues.append(_issue(
+                "G5_CDB_ROW_EXTRA", "ERROR",
+                f"{f.name} 里多出了不在导出清单中的卡：{extra}",
+                hint="通常是重复导出留下的旧卡；重新导出以同步本次卡表。",
+                field=f.name))
 
     # ── 卡号与官方池冲突 ─────────────────────────────────────────────
     if check_official:

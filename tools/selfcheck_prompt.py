@@ -88,7 +88,7 @@ def spec(frame: str = "fusion") -> CardSpec:
 
 def req(**over) -> ArtRequest:
     base = dict(subject=SUBJECT, style=STYLE, background=BG, seed=777,
-                profile="auto", card_id=210000021, archetype="圣痕")
+                profile="krea2", card_id=210000021, archetype="圣痕")
     base.update(over)
     return ArtRequest(**base)
 
@@ -251,7 +251,7 @@ tmp.mkdir(parents=True, exist_ok=True)
 def exported_prompts(preset: str, request: ArtRequest) -> tuple[list[str], dict, dict]:
     info: dict = {}
     path = RUN.export_workflow(preset, str(tmp / f"{preset}.json"),
-                               profile="auto", spec=spec(), request=request,
+                               profile="krea2", spec=spec(), request=request,
                                host="http://127.0.0.1:8188", info=info)
     d = json.loads(Path(path).read_text(encoding="utf-8"))
     texts: list[str] = []

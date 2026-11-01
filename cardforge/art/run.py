@@ -387,14 +387,17 @@ def generate(req: ArtRequest, card: CardSpec | None = None,
 
     report("probe")
     cli = client or ComfyClient(host=host, timeout=600)
-    if not cli.alive():
+    online = cli.alive()
+    if not online and not dry_run:
         return ArtResult(ok=False, error="ComfyUI 不在线",
                          hint=("启动 ComfyUI：D:\\AI\\ComfyUI-aki-v3.2\\python\\python.exe "
                                "D:\\AI\\ComfyUI-aki-v3.2\\ComfyUI\\main.py --auto-launch "
                                "--preview-method auto"),
                          took_ms=int((time.time() - t0) * 1000))
-    models = cli.models()
-    schemas = cli.object_info()
+    models = cli.models() if online else {}
+    schemas = cli.object_info() if online else {}
+    if not online:
+        notes.append("ComfyUI 离线：dry_run 使用占位模型，并跳过在线节点与模型校验")
     profile = resolve_profile(getattr(req, "profile", "auto"), models, host)
 
     # 尺寸 / 采样参数：0 = 按档案与卡种自动
@@ -422,8 +425,8 @@ def generate(req: ArtRequest, card: CardSpec | None = None,
     report("graph", profile=profile.key, width=width, height=height, steps=steps,
            cfg=cfg, seed=seed)
     try:
-        name, clip, vae = _pick_model(profile, models)
-        if not dry_run:
+        name, clip, vae = _pick_model(profile, models) if online else _offline_models(profile)
+        if online and not dry_run:
             _strict_models(cli, profile, name, clip, vae, getattr(req, "loras", []))
     except ComfyError as exc:
         if raise_on_error:
@@ -439,7 +442,7 @@ def generate(req: ArtRequest, card: CardSpec | None = None,
             width=width, height=height, seed=seed, steps=steps, cfg=cfg,
             sampler=sampler, scheduler=scheduler, loras=getattr(req, "loras", []),
             save_prefix=getattr(req, "save_prefix", "") or _save_prefix(req, card),
-            available=set(schemas.keys()), schemas=schemas,
+            available=set(schemas.keys()) if online else None, schemas=schemas or None,
             upscale=bool(getattr(req, "upscale", False)), upscale_model=up_model,
             remove_bg=bool(getattr(req, "remove_bg", False)),
             bg_invert=bool(getattr(req, "cutout_invert", True)),
@@ -450,7 +453,7 @@ def generate(req: ArtRequest, card: CardSpec | None = None,
         return ArtResult(ok=False, error=exc.message, hint=exc.hint,
                          meta={"kind": exc.kind, "detail": exc.detail},
                          took_ms=int((time.time() - t0) * 1000))
-    problems = G.validate(g.to_api(), schemas)
+    problems = G.validate(g.to_api(), schemas) if online else []
     if problems:
         return ArtResult(ok=False, error="工作流自检未通过：" + "；".join(problems),
                          hint="按提示修正参数或节点后再提交。",
@@ -596,11 +599,12 @@ def generate_layers(req: ArtRequest, card: CardSpec | None = None,
 
     t0 = time.time()
     cli = client or ComfyClient(host=host, timeout=600)
-    if not cli.alive():
+    online = cli.alive()
+    if not online and not dry_run:
         return ArtResult(ok=False, error="ComfyUI 不在线",
                          hint="启动 ComfyUI 后重试；分层出图需要跑两次采样。",
                          took_ms=int((time.time() - t0) * 1000))
-    models = cli.models()
+    models = cli.models() if online else {}
     profile = resolve_profile(getattr(req, "profile", "auto"), models, host)
     arch = _load_arch(req.archetype, card) if getattr(req, "archetype", "") else None
     pr = PR.build_layers(req, card, profile, arch)

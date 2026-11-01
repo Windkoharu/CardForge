@@ -325,8 +325,16 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
                     break
         dest = tmp / "pics" / f"{cid}.jpg"
         if src and Path(src).exists():
-            _to_jpeg(Path(src), dest, MDPRO3_SIZE)
-            written["pics"].append(f"pics/{cid}.jpg")
+            try:
+                _to_jpeg(Path(src), dest, MDPRO3_SIZE)
+            except (OSError, ValueError) as e:
+                issues.append(Issue(
+                    gate="MDPRO", code="MD_PIC_CONVERT", level="ERROR",
+                    message=f"卡 {cid} 的卡图转换失败：{e}",
+                    hint="换一张可读取的图片，并确认已安装 Pillow；不会生成改后缀的假 JPG。",
+                    field="art"))
+            else:
+                written["pics"].append(f"pics/{cid}.jpg")
         elif render_pics:
             ok = _render_to_jpeg(c, dest)
             if ok:
@@ -416,7 +424,8 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
                      "210000000 以上本来就避开了官方（本机官方 max 约 9999 万）"))
         break
     stats = {
-        "ok": True, "path": str(out), "rel": paths.rel(out), "bytes": size,
+        "ok": not any(i.level == "ERROR" for i in issues),
+        "path": str(out), "rel": paths.rel(out), "bytes": size,
         "name": name, "members": members, "n_cards": len(specs),
         "n_cdb_rows": n_rows, "n_scripts": len(written["script"]),
         "n_pics": len(written["pics"]), "n_rendered": n_rendered,
@@ -431,6 +440,7 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
 
 
 def _to_jpeg(src: Path, dest: Path, size: tuple[int, int]) -> None:
+    """真正转成 JPEG；失败时绝不把原始字节仅改后缀后交给客户端。"""
     try:
         from PIL import Image
         with Image.open(src) as im:
@@ -439,8 +449,9 @@ def _to_jpeg(src: Path, dest: Path, size: tuple[int, int]) -> None:
                 im = im.convert("RGB")
             im = im.resize(size, Image.LANCZOS)
             im.save(dest, "JPEG", quality=90, optimize=True)
-    except Exception:
-        shutil.copyfile(src, dest)
+    except Exception as e:
+        dest.unlink(missing_ok=True)
+        raise ValueError(f"无法把卡图 {src.name} 转成 JPEG：{e}") from e
 
 
 def _render_to_jpeg(spec: CardSpec, dest: Path) -> bool:

@@ -27,13 +27,17 @@ def register(app) -> None:
             for d in sorted(root.iterdir()):
                 if not d.is_dir() or d.name.startswith("."):
                     continue
-                cdb = list(d.glob("*.cdb"))
-                scripts = list((d / "script").glob("c*.lua")) if (d / "script").is_dir() else []
-                pics = list((d / "pics").glob("*")) if (d / "pics").is_dir() else []
+                # build() 的包根下面还有一层 expansions/；兼容旧的扁平目录。
+                exp = d / "expansions"
+                if not exp.is_dir():
+                    exp = d
+                cdb = list(exp.glob("*.cdb"))
+                scripts = list((exp / "script").glob("c*.lua")) if (exp / "script").is_dir() else []
+                pics = list((exp / "pics").glob("*")) if (exp / "pics").is_dir() else []
                 out.append({"name": d.name, "path": paths.rel(d),
                             "cdb": [p.name for p in cdb], "n_scripts": len(scripts),
                             "n_pics": len(pics),
-                            "strings_conf": (d / "strings.conf").exists()})
+                            "strings_conf": (exp / "strings.conf").exists()})
         return {"ok": True, "dir": paths.rel(root), "packages": out}
 
     @app.post("/api/export/build")
@@ -71,9 +75,14 @@ def register(app) -> None:
             if g5.get("ok"):
                 rep = g5["value"]
                 gates5 = rep.to_dict() if hasattr(rep, "to_dict") else rep
-        return {"ok": True, "pack_dir": paths.rel(out_dir), "stats": res,
+        failed = (not bool(res.get("ok", True))
+                  or any(i.get("level") == "ERROR" for i in issues)
+                  or gates5.get("status") == "fail")
+        return {"ok": not failed, "pack_dir": paths.rel(out_dir), "stats": res,
                 "issues": issues, "g5": gates5,
-                "next": "确认无误后 POST /api/export/install?dry_run=1 看会写哪些文件"}
+                "next": ("先修完 G5 的 ERROR；安装接口会再次强制复核，未通过的包不能真安装"
+                         if failed else
+                         "确认无误后 POST /api/export/install?dry_run=1 看会写哪些文件")}
 
     @app.get("/api/export/verify")
     def export_verify(req: Request) -> dict:
@@ -130,6 +139,13 @@ def register(app) -> None:
                                          "先 POST /api/export/build")
         target = req.str_arg("target") or None
         dry = req.bool_arg("dry_run", True)
+        verify_issues = _verify(pack)
+        blocking = [i for i in verify_issues if i.get("level") == "ERROR"]
+        if blocking and not dry:
+            raise errors.ValidationError(
+                "导出包未通过 G5，已阻止安装",
+                "先根据 detail.issues 修复并重新导出；预演仍可查看，但不会绕过真安装检查。",
+                detail={"issues": blocking})
         inst = K.require("cardforge.export.install", "安装模块")
         try:
             res = inst.install(pack, target, dry_run=dry,
@@ -142,10 +158,13 @@ def register(app) -> None:
                                         "先跑 dry_run 看清单；权限问题多半是"
                                         "EDOPro 装在 Program Files 需要管理员") from e
         res = _jsonable(res)
+        res["g5_issues"] = verify_issues
         if dry:
             res["hint"] = ("这是预演，**什么都没写**。确认 will_write 的清单没问题，"
                            "再去掉 dry_run 真装。原有 expansions 会被备份到 "
                            ".cardforge_backup/")
+            if blocking:
+                res["hint"] += " 当前包有 G5 ERROR，真安装会被阻止。"
         else:
             res["hint"] = ("装好了。重启 EDOPro 后在卡组编辑器里能看到；"
                            "看不到就检查卡号是否 >= 210000000")
