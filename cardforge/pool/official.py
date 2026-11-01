@@ -37,6 +37,7 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -90,10 +91,18 @@ class OfficialPool:
     def __init__(self, cdb_path: str | Path | None = None):
         self.path: Path | None = Path(cdb_path) if cdb_path else official_cdb_path()
         self.warnings: list[str] = []
-        self._con: sqlite3.Connection | None = None
+        #: **每个线程一条只读连接**。sqlite3 的连接默认禁止跨线程使用
+        #: （``check_same_thread=True``）；Web 服务是每请求一个线程，
+        #: 以前这里全局缓存一条连接，于是主线程打开后所有界面请求都撞上
+        #: ``ProgrammingError: SQLite objects created in a thread can only be
+        #: used in that same thread`` —— 而每个查询方法都把异常吞成 warning，
+        #: 结果就是「卡池明明装着 15019 张，界面却说查无此卡」。
+        self._tls = threading.local()
+        self._con: sqlite3.Connection | None = None      # 兼容旧写法：主线程那条
         self._fts: str | None = None
         self._fts_checked = False
         self._ids: set[int] | None = None
+        self._lock = threading.RLock()
         if self.path is None:
             self._warn(f"未找到官方卡池 .cdb（查找目录 {paths.rel(paths.OFFICIAL_CDB)}）")
         elif not Path(self.path).is_file():
@@ -110,33 +119,42 @@ class OfficialPool:
         return self._conn() is not None
 
     def _conn(self) -> sqlite3.Connection | None:
-        if self._con is not None:
-            return self._con
+        con = getattr(self._tls, "con", None)
+        if con is not None:
+            return con
         if self.path is None or not Path(self.path).is_file():
             return None
+        opened: sqlite3.Connection | None = None
         try:
-            con = sqlite3.connect(_ro_uri(Path(self.path)), uri=True)
-            con.row_factory = sqlite3.Row
-            con.execute("SELECT COUNT(*) FROM datas").fetchone()
-            self._con = con
+            opened = sqlite3.connect(_ro_uri(Path(self.path)), uri=True)
+            opened.row_factory = sqlite3.Row
+            opened.execute("SELECT COUNT(*) FROM datas").fetchone()
         except sqlite3.Error as e:
+            if opened is not None:
+                try:
+                    opened.close()
+                except sqlite3.Error:
+                    pass
+                opened = None
             try:  # URI 不被支持时的退路，再加 query_only 保证只读
-                con = sqlite3.connect(str(self.path))
-                con.row_factory = sqlite3.Row
-                con.execute("PRAGMA query_only=ON")
-                con.execute("SELECT COUNT(*) FROM datas").fetchone()
-                self._con = con
+                opened = sqlite3.connect(str(self.path))
+                opened.row_factory = sqlite3.Row
+                opened.execute("PRAGMA query_only=ON")
+                opened.execute("SELECT COUNT(*) FROM datas").fetchone()
                 self._warn("只读 URI 打开官方卡池失败，已退化为普通连接 + query_only=ON")
             except sqlite3.Error as e2:
                 self._warn(f"打开官方卡池失败：{e} / {e2}")
                 return None
-        return self._con
+        # 线程退出时这条 thread-local 连接随引用一起释放（CPython 按引用计数关闭）
+        self._tls.con = opened
+        with self._lock:
+            self._con = self._con or opened
+        return opened
 
     def _fts_table(self) -> str | None:
-        """探测 FTS5 虚拟表；只探一次，结果缓存。"""
+        """探测 FTS5 虚拟表；只探一次，结果缓存（探测要在**本线程**的连接上做）。"""
         if self._fts_checked:
             return self._fts
-        self._fts_checked = True
         con = self._conn()
         if con is None:
             return None
@@ -147,10 +165,12 @@ class OfficialPool:
         except sqlite3.Error as e:
             self._warn(f"探测 FTS5 失败：{e}")
             return None
-        if not rows:
-            self._warn("官方卡池没有 FTS5 虚拟表，全文检索退化为 LIKE（召回不变，速度略慢）")
-            return None
-        self._fts = str(rows[0]["name"])
+        with self._lock:
+            self._fts_checked = True
+            if not rows:
+                self._warn("官方卡池没有 FTS5 虚拟表，全文检索退化为 LIKE（召回不变，速度略慢）")
+                return None
+            self._fts = str(rows[0]["name"])
         return self._fts
 
     # ── 统计 ────────────────────────────────────────────────────────
@@ -406,13 +426,30 @@ class OfficialPool:
         }
 
     def close(self) -> None:
-        """关闭连接（幂等）。"""
-        if self._con is not None:
+        """关闭**本线程**的连接（幂等）。
+
+        连接是按线程各持一条的，所以这里只关当前线程那条；其他线程的那条
+        由各自 thread-local 释放时回收。``_fts`` / ``_ids`` 是纯缓存，一起清掉，
+        下次调用会在当前线程重新探。
+        """
+        con = getattr(self._tls, "con", None)
+        if con is not None:
             try:
-                self._con.close()
+                con.close()
             except sqlite3.Error:
                 pass
+            self._tls.con = None
+        with self._lock:
+            legacy = self._con
             self._con = None
+            self._fts_checked = False
+            self._fts = None
+            self._ids = None
+        if legacy is not None and legacy is not con:
+            try:
+                legacy.close()
+            except sqlite3.Error:
+                pass
 
     # 上下文管理器：with load() as pool: ...
     def __enter__(self) -> "OfficialPool":

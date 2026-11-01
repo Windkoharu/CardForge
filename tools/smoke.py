@@ -475,6 +475,45 @@ def _export():
 check("卡池与导出", _export)
 
 
+def _pool_threads():
+    """官方卡池必须能在**工作线程**里查得到 —— Web 服务每请求一个线程。
+
+    曾经这里全局缓存一条 sqlite 连接：主线程打开后，工作线程拿到的是
+    ``ProgrammingError: SQLite objects created in a thread can only be used in
+    that same thread``，而每个查询方法都把异常吞成 warning，
+    界面于是显示成「卡池里没有这张卡」「字段码解析不出来」。
+    """
+    try:
+        from cardforge.pool import official as off
+    except Exception as e:
+        return f"SKIP:官方卡池模块未就绪（{type(e).__name__}）"
+    pool = off.load()
+    if not pool.available or not pool.count():
+        return "SKIP:官方卡池未挂载（把 cards_zh.cdb 放进 vendor/data/）"
+    import threading
+    box: dict = {}
+
+    def work():
+        try:
+            box["count"] = pool.count()
+            hit = pool.search("青眼白龙", limit=3)
+            box["hit_id"] = int(hit[0]["id"]) if hit else 0
+        except Exception as e:                       # noqa: BLE001
+            box["err"] = f"{type(e).__name__}: {e}"
+
+    t = threading.Thread(target=work)
+    t.start()
+    t.join(20)
+    if box.get("err"):
+        return f"FAIL:工作线程查卡失败 {box['err']}"
+    if not box.get("count") or not box.get("hit_id"):
+        return f"FAIL:工作线程查不到卡（count={box.get('count')} hit={box.get('hit_id')}）"
+    return f"工作线程可查卡：{box['count']} 张，青眼白龙 → {box['hit_id']}"
+
+
+check("官方卡池跨线程可用", _pool_threads)
+
+
 def _duel():
     from cardforge.duel import engine as E
     st = E.detect(try_load=True)

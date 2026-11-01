@@ -1,6 +1,6 @@
 {
   "name": "圣痕",
-  "setcode": "0x0",
+  "setcode": "0x1001",
   "win_method": "BATTLE",
   "trumps": [
     "MAIN"

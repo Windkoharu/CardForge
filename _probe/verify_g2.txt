@@ -169,7 +169,7 @@
 [PASS] 条件只认怪兽效果
 [PASS] 代价过滤带种族
 [PASS] 破坏方式写进时点
-[PASS] 不取对象用「从自己墓地选…以外的」
+[PASS] 不取对象用「从自己墓地选…以外的」（以外的在数量前）
 [PASS] 「选」句式不写「以…为对象」
 [PASS] 墓地不取对象特召 syntax_ok
 [PASS] 墓地不取对象特召 0 ERROR
@@ -305,11 +305,46 @@
 [PASS] 「召唤·特殊召唤成功时」不被判成处理前置
 [PASS] 真把处理写进条件段仍然报 ERROR
 [PASS] 英文代价（send … to the GY;）不被判成处理前置
+[PASS] 具名检索（有卡号） syntax_ok
+[PASS] 具名检索（有卡号） 0 ERROR
+[PASS] 具名检索（有卡号） stringid_sync 空
+[PASS] 具名检索（有卡号） unknown 三桶全空
+[PASS] ①卡名筛选解析到卡号 → IsCode(卡号)
+[PASS] ①卡名检索的卡文不带「卡」字尾巴
+[PASS] ②没有卡号时 G1 必须拦（旧行为：静默检本卡自己）
+[PASS] ②没有卡号时 IR 自检也报（assistant/tools 走这条）
+[PASS] 本家其他卡检索（以外的） syntax_ok
+[PASS] 本家其他卡检索（以外的） 0 ERROR
+[PASS] 本家其他卡检索（以外的） stringid_sync 空
+[PASS] 本家其他卡检索（以外的） unknown 三桶全空
+[PASS] ③「以外的」写在数量之前（官方语序）
+[PASS] ③「以外的」进脚本：SelectMatchingCard 带 e:GetHandler()
+[PASS] ③「以外的」进脚本：IsExistingMatchingCard 也带
+[PASS] ③不再写官方 0 例的「（这张卡除外）」尾巴
+[PASS] ④字段留空自动补本家字段名
+[PASS] 留空兜底检索 syntax_ok
+[PASS] 留空兜底检索 0 ERROR
+[PASS] 留空兜底检索 stringid_sync 空
+[PASS] 留空兜底检索 unknown 三桶全空
+[PASS] ④留空补齐后卡文与脚本都还是本家字段
+[PASS] ④留空不再是 ERROR（界面那句「留空＝本家」必须是真的）
+[PASS] 外字段检索 syntax_ok
+[PASS] 外字段检索 0 ERROR
+[PASS] 外字段检索 stringid_sync 空
+[PASS] 外字段检索 unknown 三桶全空
+[PASS] 检索别的字段：字段码用填进去的那一个（不是本卡 setcode）
+[PASS] 外字段没填字段码 → G1 拦（旧行为：悄悄按本家全集检）
+[PASS] ⑤反解：「星奏的和音」是卡名，不是字段
+[PASS] ⑤反解回来的具名检索能投影成原句
+[PASS] ⑥往返一字不差：①：这张卡召唤成功时才能发动。从卡组…
+[PASS] ⑥往返一字不差：①：这张卡召唤成功时才能发动。从卡组…
+[PASS] ⑥往返一字不差：①：这张卡召唤·特殊召唤成功时，以「…
+[PASS] ⑦「…送去墓地才能发动。那个发动无效并破坏」不再被误判
 [PASS] gates.g2_script 无 ERROR
 [PASS] cli card script 不崩
      cli script: exit=0 out=2203B err=0B
 [PASS] cli card verify 不崩
-     cli verify: exit=0 out=80B err=0B
+     cli verify: exit=0 out=79B err=0B
 [PASS] cli card lint 不崩
      cli lint: exit=0 out=16B err=0B
 [PASS] 50 个畸形规格 0 未捕获异常

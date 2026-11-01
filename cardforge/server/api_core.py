@@ -109,7 +109,7 @@ def register(app) -> None:
 
     @app.get("/api/pool/name")
     def api_pool_name(req: Request) -> dict:
-        """卡名 → 卡号（素材编辑器「解析卡号」）。
+        """卡名 → 卡号（素材编辑器与效果对象的「解析卡号」共用）。
 
         先查官方池的**精确同名**，再查工作区里的 DIY 卡；都没命中时给出
         官方搜索的前 5 个候选，避免用户卡在「差一个字」。
@@ -117,19 +117,17 @@ def register(app) -> None:
         name = req.str_arg("name").strip()
         if not name:
             raise errors.SpecError("要解析的卡名不能为空", "输入完整卡名")
+        cid = K.resolve_card_code(name)
+        if cid:
+            pool = K.official()
+            src = "official"
+            if pool is not None:
+                try:
+                    src = "official" if pool.name_exists(name) else "workspace"
+                except Exception:
+                    src = "workspace"
+            return {"ok": True, "id": cid, "name": name, "source": src}
         pool = K.official()
-        if pool is not None:
-            try:
-                hit = pool.name_exists(name)
-            except Exception:
-                hit = None
-            if hit:
-                return {"ok": True, "id": int(hit["id"]), "name": hit.get("name", name),
-                        "source": "official"}
-        for c in K.cards_index():
-            if str(c.get("name") or "") == name:
-                return {"ok": True, "id": int(c.get("id") or 0),
-                        "name": name, "source": "workspace"}
         cands: list[dict] = []
         if pool is not None:
             try:

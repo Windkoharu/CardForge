@@ -247,14 +247,33 @@ def _filter_words_bare(target: Optional[EffectTarget], gen: _Gen,
     return ("カード" if lang == "ja" else "card" if lang == "en" else "卡"), "card"
 
 
+def _exclusion(gen: _Gen, tgt: Optional[EffectTarget]) -> tuple[str, str]:
+    """「以外的」该挂在前缀还是后缀（不启用时两个都是空串）。
+
+    官方语序是 **「「A」以外的1张「B」卡」** —— 排除写在**数量之前**，不是
+    「1张「A」以外的「B」卡」。所以要包在带数量的短语外面，而不是塞进宾语核心。
+    取对象句式（:func:`_target_phrase`）用同一个前缀，落在区域与数量之前：
+    「以「A」以外的自己墓地1只「B」怪兽为对象」——官方简中库 194 张，
+    而老式尾巴「…（这张卡除外）」**0 张**，所以两种写法不再并存。
+    """
+    if tgt is None or not _bool(getattr(tgt, "exclude_self", False), False):
+        return "", ""
+    nm = gen.quote(gen.name())
+    if gen.lang == "en":
+        return "", f" other than {nm}"
+    if gen.lang == "ja":
+        return f"{nm}を除く", ""
+    return f"{nm}以外的", ""
+
+
 def _filter_words(target: Optional[EffectTarget], gen: _Gen,
                   params: Optional[dict] = None) -> tuple[str, str]:
-    """宾语短语 + 单位；补上官方卡文里挂在宾语身上的两类限定。
+    """宾语短语核心 + 单位（不含数量，也**不含**「以外的」前缀）。
 
     * ``face_up`` → 「表侧表示的」前缀（「以对方场上1张表侧表示的卡为对象」）。
-    * ``select`` + ``exclude_self`` → 「「卡名」以外的」前缀：不取对象的"选"
-      句式里官方用卡名排除（旧式「（这张卡除外）」只出现在取对象的老卡上，
-      那边仍由 :func:`_target_phrase` 收尾，两种写法不叠加）。
+
+      「以外的」不在这里：它跨在数量外面，见 :func:`_exclusion` 与
+      :func:`_obj_phrase`。
     """
     core, unit = _filter_words_bare(target, gen, params)
     tgt = target or EffectTarget()
@@ -265,14 +284,6 @@ def _filter_words(target: Optional[EffectTarget], gen: _Gen,
     prefix = rules.FACEUP_WORDS.get(lang, "")
     if face_up and prefix and core:
         core = f"{prefix} {core}" if lang == "en" else f"{prefix}{core}"
-    if _bool(p.get("select"), False) and getattr(tgt, "exclude_self", False) and core:
-        nm = gen.quote(gen.name())
-        if lang == "en":
-            core = f"{core} other than {nm}"
-        elif lang == "ja":
-            core = f"{nm}を除く{core}"
-        else:
-            core = f"{nm}以外的{core}"
     return core, unit
 
 
@@ -308,11 +319,17 @@ def _obj_with_count(core: str, unit: str, count: int, cmax: int, gen: _Gen) -> s
 def _obj_phrase(eff: EffectSpec, gen: _Gen, *,
                 target: Optional[EffectTarget] = None,
                 params: Optional[dict] = None) -> str:
-    """带数量的宾语短语（``1只龙族怪兽`` / ``ドラゴン族モンスター１体`` / ``1 Dragon monster``）。"""
+    """带数量的宾语短语（``1只龙族怪兽`` / ``ドラゴン族モンスター１体`` / ``1 Dragon monster``）。
+
+    ``exclude_self`` 在这里包住**整个**数量短语 —— 官方是「「A」以外的1张「B」卡」，
+    不是「1张「A」以外的「B」卡」。
+    """
     tgt = target if target is not None else eff.target
     core, unit = _filter_words(tgt, gen, params)
     count, cmax = _count_of(tgt, params)
-    return _obj_with_count(core, unit, count or 1, cmax, gen)
+    phrase = _obj_with_count(core, unit, count or 1, cmax, gen)
+    pre, suf = _exclusion(gen, tgt)
+    return f"{pre}{phrase}{suf}" if phrase else phrase
 
 
 def _target_phrase(eff: EffectSpec, gen: _Gen) -> str:
@@ -321,6 +338,12 @@ def _target_phrase(eff: EffectSpec, gen: _Gen) -> str:
     ``params`` 必须一起传进来：字段 + 卡类型（``card_type``）是分开存的，
     漏传就会让「以…为对象」那半句写成「1张「X」卡」，
     而处理段是「那只怪兽」—— 同一句话里量词和名词自相矛盾。
+
+    ``exclude_self`` 走官方现代位置 —— 排除写在**区域与数量之前**：
+    「以「银河召唤师」以外的自己墓地1只「光子」怪兽为对象」。
+    官方简中库实测：这种写法 194 张，而老式尾巴「…（这张卡除外）」**0 张**
+    （库里命中的 897 处「这张卡除外」全是「把墓地的这张卡除外」这类代价），
+    所以这里不再往句尾追加那种官方从不写的括号。
     """
     tgt = eff.target
     lang = gen.lang
@@ -329,26 +352,24 @@ def _target_phrase(eff: EffectSpec, gen: _Gen) -> str:
     objn = _obj_with_count(core, unit, count or 1, cmax, gen)
     if tgt is None:
         return objn
+    pre, suf = _exclusion(gen, tgt)
     ctrl = str(tgt.controller or "self")
     zone = str(tgt.from_zone or "").upper()
     cw = rules.CONTROLLER_WORDS.get(ctrl, rules.CONTROLLER_WORDS["self"])
     if lang == "en":
+        objn = f"{objn}{suf}"
         who = "you" if ctrl == "self" else (
             "your opponent" if ctrl == "opponent" else "either player")
         if zone in ("", "FIELD"):
             if ctrl == "both":
-                out = f"{objn} either player controls"
+                return f"{objn} either player controls"
             elif ctrl == "opponent":
-                out = f"{objn} your opponent controls"
+                return f"{objn} your opponent controls"
             else:
-                out = f"{objn} you control"
-        else:
-            zw = rules.ZONE_WORDS.get(zone, {}).get("en", zone.lower())
-            poss = "your" if ctrl == "self" else "your opponent's"
-            out = f"{objn} in {poss} {zw}"
-        if tgt.exclude_self:
-            out += " (except this card)"
-        return out
+                return f"{objn} you control"
+        zw = rules.ZONE_WORDS.get(zone, {}).get("en", zone.lower())
+        poss = "your" if ctrl == "self" else "your opponent's"
+        return f"{objn} in {poss} {zw}"
     if lang == "ja":
         c = cw.get("ja", "自分")
         if zone in ("", "FIELD"):
@@ -356,9 +377,7 @@ def _target_phrase(eff: EffectSpec, gen: _Gen) -> str:
         else:
             zw = rules.ZONE_WORDS.get(zone, {}).get("ja", zone)
             out = f"{c}の{zw}の{objn}"
-        if tgt.exclude_self:
-            out += "（このカードを除く）"
-        return out
+        return f"{pre}{out}" if pre else out
     c = cw.get("zh_cn", "自己")
     # 官方简中取对象段是「以自己场上1只…／以自己墓地1只…」，区域和数量之间
     # **不加「的」**（实测：「以自己场上1只」761 例，「以自己场上的1只」0 例）。
@@ -367,9 +386,7 @@ def _target_phrase(eff: EffectSpec, gen: _Gen) -> str:
     else:
         zw = rules.ZONE_WORDS.get(zone, {}).get("zh_cn", zone)
         out = f"{c}{zw}{objn}"
-    if tgt.exclude_self:
-        out += "（这张卡除外）"
-    return out
+    return f"{pre}{out}" if pre else out
 
 
 # ══════════════════════════════════════════════════════════════════════

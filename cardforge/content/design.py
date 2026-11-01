@@ -152,6 +152,51 @@ def _has_drawback(spec: CardSpec, lang: str = "zh_cn") -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  G1 · 效果对象（筛选条件必须能落进脚本）
+# ══════════════════════════════════════════════════════════════════════
+def _audit_effect_targets(spec: CardSpec, add) -> None:
+    """每条效果的 ``target`` 都要能变成 Lua 过滤函数，否则卡文与脚本各说各话。
+
+    三类真实事故（都是"卡文看着对、脚本悄悄做错事"）：
+
+    * 按**卡名**过滤却没有卡号 → 脚本只能写 ``IsCode(本卡卡号)``，检的是自己；
+    * 按**字段**过滤却解析不出字段码 → 脚本放宽成「任何卡」，本家检索变检卡组；
+    * 筛选类型给了但**筛选值空**且本卡没有系列 → 同上，过滤整个消失。
+    """
+    from . import effects as EF          # 延迟导入：effects ↔ psct ↔ summon
+    for i, eff in enumerate(spec.effect_specs(), start=1):
+        t = eff.target
+        if t is None:
+            continue
+        fk = str(t.filter_kind or "any")
+        if fk not in EF.FILTER_KINDS:
+            continue
+        f = f"effects[{i - 1}].target"
+        val = str(t.filter_value or "").strip()
+        if not val and fk != "any":
+            add("G1_TARGET_FILTER_INVALID", "ERROR",
+                f"第 {i} 条效果按{fk}过滤却没填筛选值",
+                "本家字段可留空（自动用本卡系列）；其他筛选必须填值，"
+                "否则脚本里的过滤条件会整个消失", f + ".filter_value")
+        if fk == "name":
+            try:
+                code = int(t.code or 0)
+            except Exception:
+                code = 0
+            if not code:
+                add("G1_TARGET_CODE_MISSING", "ERROR",
+                    f"第 {i} 条效果按卡名「{val or '?'}」过滤，但还没有卡号",
+                    "点筛选值旁的「解析卡号」（官方卡池精确同名 → 本工作区 DIY 卡）；"
+                    "自制卡要等它自己有卡号后才会解析得到", f + ".code")
+        elif fk == "archetype":
+            if not EF.resolve_target_setcode(spec, t):
+                add("G1_TARGET_SETCODE_MISSING", "ERROR",
+                    f"第 {i} 条效果按字段「{val or '?'}」过滤，但解析不出字段码",
+                    "本家字段留空即可（自动用本卡 setcode）；引用别的字段"
+                    "（含本家子字段）必须填 setcode", f + ".setcode")
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  G1 · 召唤条件（额外卡组 / 仪式）
 # ══════════════════════════════════════════════════════════════════════
 def _audit_summon(spec: CardSpec, add) -> None:
@@ -493,6 +538,9 @@ def audit_card(spec: CardSpec, official=None, lang: str = "zh_cn",
                 "多效果卡建议使用「这个卡名」级别的 HOPT",
                 "「1回合1次」只限制这张卡（离场会重置），卡名 HOPT 更保险",
                 "effects")
+
+    # ── 3b. 效果对象的可执行性（卡文 → 脚本必须落得了地）──
+    _audit_effect_targets(spec, add)
 
     # ── 4. 额外卡组素材条件（泛用卡雷区）──
     _audit_summon(spec, add)

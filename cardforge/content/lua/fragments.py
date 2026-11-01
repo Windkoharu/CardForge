@@ -369,14 +369,27 @@ def _filter_expr(ctx: LuaCtx, tgt: Optional[EffectTarget], *,
         fk = str(tgt.filter_kind or "any")
         val = tgt.filter_value
         if fk == "archetype":
-            code = ctx.setcodes[0] if ctx.setcodes else ""
+            # 字段码由 effects.resolve_target_setcode 统一解析：本家字段自动用本卡
+            # setcode，引用**别的**字段必须在 IR 里填 setcode，否则检的是本家全集。
+            from ..effects import resolve_target_setcode
+            code = resolve_target_setcode(ctx.spec, tgt) or \
+                (ctx.setcodes[0] if ctx.setcodes else "")
             if code:
                 parts.append(f"c:IsSetCard({code})")
             else:
                 ctx.note("字段引用没有对应 setcode，过滤条件已放宽成「任何卡」")
         elif fk == "name":
-            ctx.note(f"卡名「{val}」→ 卡号需要全局卡号表，这里按本卡卡名登记，请人工核对")
-            parts.append("c:IsCode(id)")
+            try:
+                code = int(tgt.code or 0)
+            except Exception:
+                code = 0
+            if code:
+                parts.append(f"c:IsCode({code})")
+            else:
+                # 没有卡号时绝不能假装正确：IsCode(id) 检的是**本卡自己**。
+                ctx.note(f"卡名「{val}」还没有卡号（G1 的 G1_TARGET_CODE_MISSING），"
+                         f"脚本暂按本卡卡号登记 —— 这检的是本卡自己，不是那张卡")
+                parts.append("c:IsCode(id)")
         elif fk == "race":
             r = _race_lua(val)
             if r:
@@ -794,16 +807,20 @@ def frag_to_hand(eff: EffectSpec, spec: CardSpec, ctx: LuaCtx) -> str:
     mn, mx = _count(eff)
     loc = _location(zone)
     fil, ftail = _make_filter(ctx, eff, able="c:IsAbleToHand()",
-                             card_type=str(_param(eff, "card_type", "")))
+                              card_type=str(_param(eff, "card_type", "")))
+    # 卡文写「「本卡名」以外的…」时 IR 里是 target.exclude_self；检索不取对象，
+    # 排除只能靠 SelectMatchingCard 的 ex 参数（以前这里硬写 nil，脚本能把本卡
+    # 自己捞回来 —— 墓地回收类效果会因此变成无限循环素材）。
+    ex = _ex_arg(eff)
     v, lines = _begin(ctx, eff, category="CATEGORY_TOHAND+CATEGORY_SEARCH",
                        targeting=False)
     tg, op = ctx.name("tg"), ctx.name("op")
     ctx.add_fn(tg, "e,tp,eg,ep,ev,re,r,rp,chk",
-               f"if chk==0 then return Duel.IsExistingMatchingCard({fil},tp,{loc},0,{mn},nil) end",
+               f"if chk==0 then return Duel.IsExistingMatchingCard({fil},tp,{loc},0,{mn},{ex}{ftail}) end",
                f"Duel.SetOperationInfo(0,CATEGORY_TOHAND,nil,{mn},tp,{loc})")
     ctx.add_fn(op, "e,tp,eg,ep,ev,re,r,rp",
                "Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)",
-               f"local g=Duel.SelectMatchingCard(tp,{fil},tp,{loc},0,{mn},{mx},nil)",
+               f"local g=Duel.SelectMatchingCard(tp,{fil},tp,{loc},0,{mn},{mx},{ex}{ftail})",
                "if #g>0 then",
                f"{TAB}Duel.SendtoHand(g,nil,REASON_EFFECT)",
                f"{TAB}Duel.ConfirmCards(1-tp,g)",

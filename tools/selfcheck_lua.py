@@ -392,8 +392,11 @@ _sel = spec_one(210000632, "effect", [E(
     params={"destroyed_by": "battle_effect", "timing": "if", "select": True})])
 _txt = PSGEN.compose(_sel, "zh_cn")
 chk("破坏方式写进时点", "这张卡被战斗·效果破坏的场合才能发动" in _txt, _txt)
-chk("不取对象用「从自己墓地选…以外的」",
-    f"从自己墓地选1只「{_sel.name}」以外的战士族怪兽特殊召唤" in _txt, _txt)
+# 官方简中库（15019 张）实测排除短语的位置：「选「A」以外的1只…」42 张 /
+# 「选1只「A」以外的…」5 张，「把「A」以外的1只…」381 张 / 「把1只「A」以外的…」55 张。
+# 绝大多数把「以外的」写在**数量之前**，投影必须跟着官方走。
+chk("不取对象用「从自己墓地选…以外的」（以外的在数量前）",
+    f"从自己墓地选「{_sel.name}」以外的1只战士族怪兽特殊召唤" in _txt, _txt)
 chk("「选」句式不写「以…为对象」", "为对象" not in _txt, _txt)
 _lua = art("墓地不取对象特召", _sel)
 chk("SelectMatchingCard 排除本卡",
@@ -576,7 +579,7 @@ RT_TEXT = (
     "②：1回合1次，对方把怪兽的效果发动时，从卡组把1只战士族怪兽送去墓地才能发动。"
     "那个发动无效并破坏。\n"
     "③：这张卡被战斗·效果破坏的场合才能发动。"
-    "从自己墓地选1只「圣痕龙骑士 露米艾尔」以外的战士族怪兽特殊召唤。")
+    "从自己墓地选「圣痕龙骑士 露米艾尔」以外的1只战士族怪兽特殊召唤。")
 _rt = EF.infer_from_text(RT_TEXT, RT_NAME)
 chk("往返：3 条效果（不掺幽灵效果）", len(_rt) == 3, f"{[e.kind for e in _rt]}")
 if len(_rt) == 3:
@@ -689,6 +692,117 @@ _bad_en = CardSpec(id=210000643, name="EN card", frame="effect", attribute="光"
 chk("英文代价（send … to the GY;）不被判成处理前置",
     not any(i.code == "PSCT_RESOLUTION_BEFORE_SEMI"
             for i in PLINT.lint(_bad_en, "en")), "")
+
+# ══ 6d. 检索链路：本家某张卡 / 本家任意一张 / 「以外的」（四个真实 bug 的回归）══
+# 这组的判据全部来自官方简中卡池（vendor/data/cards_zh.cdb，15019 张）实测：
+#   「把「A」以外的1只「B」怪兽」381 张 vs 「把1只「A」以外的…」55 张
+#   「选「A」以外的1只…」42 张 vs 「选1只「A」以外的…」5 张
+#   「以「A」以外的自己墓地1只…」194 张 vs 「…（这张卡除外）」0 张
+# 曾经的四个洞：①卡名筛选在脚本里退化成 IsCode(本卡号)；②「以外的」只进卡文
+# 不进脚本；③反解把带「星/族/属性」的卡名判成本家字段；④字段留空时界面说
+# 「用所属系列」而校验判 ERROR、脚本直接放宽成「任何卡」。
+_NAME_SEARCH = spec_one(210000651, "effect", [E(
+    "search", "NORMAL_SUMMON_SUCCESS", "hopt_name",
+    tgt=EffectTarget(from_zone="DECK", to_zone="HAND", filter_kind="name",
+                     filter_value="星奏的和音", code=469865890, count=1))])
+_lua = art("具名检索（有卡号）", _NAME_SEARCH)
+chk("①卡名筛选解析到卡号 → IsCode(卡号)",
+    "c:IsCode(469865890)" in _lua, _lua[:600])
+chk("①卡名检索的卡文不带「卡」字尾巴",
+    "从卡组把1张「星奏的和音」加入手卡" in PSGEN.compose(_NAME_SEARCH, "zh_cn"),
+    PSGEN.compose(_NAME_SEARCH, "zh_cn"))
+_NO_CODE = spec_one(210000652, "effect", [E(
+    "search", "NORMAL_SUMMON_SUCCESS", "hopt_name",
+    tgt=EffectTarget(from_zone="DECK", to_zone="HAND", filter_kind="name",
+                     filter_value="星奏的和音", count=1))])
+chk("②没有卡号时 G1 必须拦（旧行为：静默检本卡自己）",
+    any(i.code == "G1_TARGET_CODE_MISSING" and i.level == "ERROR"
+        for i in DESIGN.audit_card(_NO_CODE, None, check_pool=False)),
+    str([(i.level, i.code) for i in DESIGN.audit_card(_NO_CODE, None, check_pool=False)]))
+chk("②没有卡号时 IR 自检也报（assistant/tools 走这条）",
+    any(i.code == "EFFECT_TARGET_CODE_MISSING" for i in EF.validate_effects(_NO_CODE)),
+    str([i.code for i in EF.validate_effects(_NO_CODE)]))
+_EXCL = spec_one(210000653, "effect", [E(
+    "search", "NORMAL_SUMMON_SUCCESS", "hopt_name",
+    tgt=EffectTarget(from_zone="DECK", to_zone="HAND", filter_kind="archetype",
+                     filter_value="星奏", setcode="0x1001", count=1,
+                     exclude_self=True))])
+_lua = art("本家其他卡检索（以外的）", _EXCL)
+_txt = PSGEN.compose(_EXCL, "zh_cn")
+chk("③「以外的」写在数量之前（官方语序）",
+    "把「T210000653」以外的1张「星奏」卡加入手卡" in _txt, _txt)
+chk("③「以外的」进脚本：SelectMatchingCard 带 e:GetHandler()",
+    "Duel.SelectMatchingCard(tp,s.fil1,tp,LOCATION_DECK,0,1,1,e:GetHandler())" in _lua,
+    _lua[-700:])
+chk("③「以外的」进脚本：IsExistingMatchingCard 也带",
+    "Duel.IsExistingMatchingCard(s.fil1,tp,LOCATION_DECK,0,1,e:GetHandler())" in _lua,
+    _lua[-900:])
+chk("③不再写官方 0 例的「（这张卡除外）」尾巴", "（这张卡除外）" not in _txt, _txt)
+_BLANK = spec_one(210000654, "effect", [E(
+    "search", "NORMAL_SUMMON_SUCCESS", "hopt_name",
+    tgt=EffectTarget(from_zone="DECK", to_zone="HAND", filter_kind="archetype",
+                     filter_value="", count=1))])
+_notes = EF.normalize_targets(_BLANK)
+chk("④字段留空自动补本家字段名",
+    any("星奏" in n for n in _notes), str(_notes))
+chk("④留空补齐后卡文与脚本都还是本家字段",
+    "1张「星奏」卡" in PSGEN.compose(_BLANK, "zh_cn")
+    and "c:IsSetCard(0x1001)" in art("留空兜底检索", _BLANK), "")
+chk("④留空不再是 ERROR（界面那句「留空＝本家」必须是真的）",
+    not any(i.code == "EFFECT_TARGET_FILTER_VALUE" and i.level == "ERROR"
+            for i in EF.validate_effects(_BLANK)),
+    str([f"{i.level}:{i.code}" for i in EF.validate_effects(_BLANK)]))
+_OTHER_FIELD = spec_one(210000655, "effect", [E(
+    "search", "NORMAL_SUMMON_SUCCESS", "hopt_name",
+    tgt=EffectTarget(from_zone="DECK", to_zone="HAND", filter_kind="archetype",
+                     filter_value="焰刃", setcode="0x2000", count=1))])
+chk("检索别的字段：字段码用填进去的那一个（不是本卡 setcode）",
+    "c:IsSetCard(0x2000)" in art("外字段检索", _OTHER_FIELD), "")
+_NO_SETCODE = spec_one(210000656, "effect", [E(
+    "search", "NORMAL_SUMMON_SUCCESS", "hopt_name",
+    tgt=EffectTarget(from_zone="DECK", to_zone="HAND", filter_kind="archetype",
+                     filter_value="焰刃", count=1))])
+chk("外字段没填字段码 → G1 拦（旧行为：悄悄按本家全集检）",
+    any(i.code == "G1_TARGET_SETCODE_MISSING" and i.level == "ERROR"
+        for i in DESIGN.audit_card(_NO_SETCODE, None, check_pool=False)),
+    str([(i.level, i.code) for i in
+         DESIGN.audit_card(_NO_SETCODE, None, check_pool=False)]))
+# 反解：卡名里带「星」不能被判成本家字段
+_infer_name = EF.infer_from_text(
+    "①：这张卡召唤成功时才能发动。从卡组把1张「星奏的和音」加入手卡。",
+    "星奏的序章", ["星奏"])
+chk("⑤反解：「星奏的和音」是卡名，不是字段",
+    len(_infer_name) == 1 and _infer_name[0].target is not None
+    and _infer_name[0].target.filter_kind == "name",
+    str([(e.kind, e.target.filter_kind if e.target else None) for e in _infer_name]))
+_rt_spec = spec_one(210000657, "effect", [e.to_dict() for e in _infer_name])
+chk("⑤反解回来的具名检索能投影成原句",
+    "从卡组把1张「星奏的和音」加入手卡" in PSGEN.compose(_rt_spec, "zh_cn"),
+    PSGEN.compose(_rt_spec, "zh_cn"))
+# 官方主流语序的「以外的」必须能整句往返（卡文 → IR → 卡文 一字不差）。
+# 卡名要固定：投影用 spec.name 生成「「本卡名」以外的」，用 spec_one 的默认名
+# 就对不上手写的样句了。
+for _rt_src in (
+    "①：这张卡召唤成功时才能发动。从卡组把「星奏的序章」以外的1张「星奏」卡加入手卡。",
+    "①：这张卡召唤成功时才能发动。从卡组把1只「星奏」怪兽加入手卡。",
+    "①：这张卡召唤·特殊召唤成功时，以「星奏的序章」以外的自己墓地1只「星奏」怪兽为对象"
+    "才能发动。从墓地把那只怪兽加入手卡。",
+):
+    _rt = EF.infer_from_text(_rt_src, "星奏的序章", ["星奏"])
+    _sp = spec_one(210000658, "effect", [e.to_dict() for e in _rt], name="星奏的序章")
+    chk(f"⑥往返一字不差：{_rt_src[:18]}…",
+        len(_rt) == 1 and PSGEN.compose(_sp, "zh_cn").strip() == _rt_src.strip(),
+        PSGEN.compose(_sp, "zh_cn"))
+# 反击类带代价是官方句式，不能被注册表判成「不接受代价」
+_NEG_COST = spec_one(210000659, "effect", [E(
+    "negate", "OPPONENT_ACTIVATE_MONSTER", "once_per_turn",
+    tgt=EffectTarget(from_zone="", filter_kind="any", count=0),
+    cost=EffectCost(kind="send_grave", zone="DECK", count=1,
+                    filter_kind="race", filter_value="战士族"))])
+chk("⑦「…送去墓地才能发动。那个发动无效并破坏」不再被误判",
+    not any(i.code == "EFFECT_COST_NOT_ALLOWED"
+            for i in EF.validate_effects(_NEG_COST)),
+    str([f"{i.level}:{i.code}" for i in EF.validate_effects(_NEG_COST)]))
 
 # ══ 7. 命令行 + G2 ══════════════════════════════════════════════════
 from cardforge.pipeline import gates

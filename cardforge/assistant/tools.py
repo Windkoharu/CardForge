@@ -433,7 +433,12 @@ def _t_effects_lookup(args: dict, ctx: dict) -> dict:
                              else (dict(vars(k)) if k else None)),
                     "error": "" if k else f"效果种类「{key}」不在注册表里。"}
         if text and callable(getattr(mod, "infer_from_text", None)):
-            effs = mod.infer_from_text(text) or []
+            cur = _as_spec(ctx.get("spec")) or _as_spec(args.get("spec"))
+            nm = str(args.get("name") or getattr(cur, "name", "") or "").strip()
+            flds = [f for f in (args.get("fields") or
+                                ([getattr(cur, "archetype", "")] if cur is not None else [])
+                                ) if str(f or "").strip()]
+            effs = mod.infer_from_text(text, nm, flds) or []
             return {"tool": "effects_lookup", "ok": True, "text": text,
                     "effects": [e.to_dict() if hasattr(e, "to_dict") else e for e in effs],
                     "note": "这是规则/关键词推断的候选，不是裁决；写入规格前请人工确认。"}
@@ -854,7 +859,11 @@ TOOLS: dict[str, dict] = {
                     handler=_t_lua_lint),
     "effects_lookup": _fn("effects_lookup", "查询效果 DSL 注册表；给 text 时做规则推断。",
                           {"key": {"type": "string", "description": "效果种类键"},
-                           "text": {"type": "string", "description": "从这段文字反推效果"}},
+                           "text": {"type": "string", "description": "从这段文字反推效果"},
+                           "name": {"type": "string", "description": "本卡卡名（用于「「卡名」以外的」→ 排除自身）"},
+                           "fields": {"type": "array", "items": {"type": "string"},
+                                      "description": "已知字段名（区分「「星奏」卡」是字段、"
+                                                   "「星奏的和音」是卡名）"}},
                           handler=_t_effects_lookup),
     "pool_search": _fn("pool_search", "在官方卡池（只读 .cdb）里查卡。",
                        {"query": {"type": "string"}, "limit": {"type": "integer"}},

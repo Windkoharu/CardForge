@@ -75,6 +75,13 @@ class EffectTarget:
     exclude_self: bool = False
     #: 只作用于**表侧表示**的卡（官方写法：「以对方场上1张表侧表示的卡为对象」）
     face_up: bool = False
+    #: ``filter_kind == "name"`` 时目标卡的**卡号**（Lua 的 ``IsCode`` 只认号）。
+    #: 没有它，「把1张「某某」加入手卡」只能退化成 ``IsCode(id)``（＝本卡自己）。
+    code: int = 0
+    #: ``filter_kind == "archetype"`` 时的字段码。留空且字段名＝本卡系列 →
+    #: 自动用本卡 ``setcode``；引用**别的**字段（或本家子字段）必须填，否则脚本
+    #: 会按本卡字段过滤，检出去一堆不该检的卡。
+    setcode: str = ""
 
     def to_dict(self) -> dict:
         return _clean(asdict(self))

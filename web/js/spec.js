@@ -892,6 +892,99 @@ async function resolveMaterialName(i, name, hintEl) {
   const m = modal({ title: '卡名没有精确匹配', body, actions: [{ label: '关闭' }] });
 }
 
+/**
+ * 对象筛选的附加格子。
+ *
+ * 卡文写「把1张「某某」加入手卡」时，Lua 的 ``IsCode`` 只认**卡号**；
+ * 以前对象这里没有那一格，脚本会退化成 ``IsCode(本卡卡号)`` —— 卡文说检那张卡，
+ * 脚本检的是自己。字段同理：引用别的字段（或本家子字段）必须有字段码，
+ * 否则脚本按本卡字段过滤，范围整个变大。两个缺口都在这里补上入口。
+ */
+function targetExtraFields(i, eff, spec) {
+  const t = eff.target || {};
+  const kind = String(t.filter_kind || 'any');
+  const out = [];
+  if (kind === 'name') {
+    const hint = h('span.hint', {
+      text: t.code ? `卡号 ${t.code}` : '还没有卡号：脚本只能检本卡自己，G1 会拦',
+    });
+    out.push(field('卡号', h('div.inline-tools', {},
+      h('input', {
+        type: 'number', value: t.code || '', placeholder: '如 469865890',
+        oninput: (e) => setEffTarget(i, { code: parseInt(e.target.value || '0', 10) }),
+      }),
+      // 卡名要从**当前界面**取，不能闭包捕获渲染时的 t：筛选值一改，setEffTarget
+      // 就把 target 换成新对象，闭包里那个还是旧名字（点了「解析卡号」查出上一张卡）。
+      h('button.mini-btn', {
+        type: 'button', onclick: () => {
+          const cur = ((store.spec.effects[i] || {}).target || {});
+          resolveTargetName(i, String(cur.filter_value || ''), hint);
+        },
+      }, '解析卡号'), hint),
+      { hint: '官方卡池精确同名优先，其次本工作区的 DIY 卡；卡名一改旧的号就作废' }));
+  }
+  if (kind === 'archetype') {
+    const own = String((spec && spec.archetype) || '').trim();
+    const val = String(t.filter_value || '').trim();
+    out.push(field('字段码', h('input', {
+      value: t.setcode || '', placeholder: '留空＝本卡 setcode',
+      oninput: (e) => setEffTarget(i, { setcode: e.target.value }),
+    }), {
+      hint: !val || (own && val === own)
+        ? '本家字段：留空会自动用本卡 setcode（留空的字段名保存时补成本家）'
+        : `「${val}」不是本卡系列，必须填字段码，否则脚本会按本家「${own || '?'}」过滤`,
+    }));
+  }
+  out.push(field('排除', h('div.chips', {}, h('label', {},
+    h('input', {
+      type: 'checkbox', checked: !!t.exclude_self,
+      onchange: (e) => setEffTarget(i, { exclude_self: e.target.checked }),
+    }), h('span', { text: '以外的（不含这张卡）' }))),
+    { hint: '官方写法「把「本卡名」以外的1张「字段」卡加入手卡」；检索/回收在脚本里用'
+      + ' SelectMatchingCard 的排除参数落地' }));
+  return out;
+}
+
+/** 效果对象的「解析卡号」：与素材那条走同一个后端接口，写回 target.code。 */
+async function resolveTargetName(i, name, hintEl) {
+  const q = String(name || '').trim();
+  if (!q) { toast('先填筛选值（完整卡名）', { kind: 'warn' }); return; }
+  const r = await api.get('/api/pool/name', { name: q })
+    .catch((e) => ({ ok: false, error: e.message, hint: e.hint }));
+  if (r.ok) {
+    setEffTarget(i, { filter_value: r.name || q, code: r.id });
+    if (hintEl) hintEl.textContent = `卡号 ${r.id}`;
+    // 解析完要重画：卡号那格的 value 是渲染时写进去的，不重画的话
+    // 界面还停在「（空）」，用户以为自己没点到（store.patch 只排预览）。
+    renderEffects();
+    toast(`已解析：${r.name || q} → ${r.id}`, { kind: 'ok',
+      hint: r.source === 'workspace' ? '来自本工作区' : '来自官方卡池' });
+    return;
+  }
+  const cands = r.candidates || [];
+  if (!cands.length) {
+    toast(r.error || '没找到这个卡名', { kind: 'err', hint: r.hint });
+    return;
+  }
+  const body = h('div', {},
+    h('p', { text: r.error || '没有精确同名卡' }),
+    h('p.footnote', { text: '官方卡池里相近的卡名：' }));
+  const list = h('div.chips');
+  for (const c of cands) {
+    list.appendChild(h('button.mini-btn', {
+      type: 'button', onclick: () => {
+        setEffTarget(i, { filter_value: c.name, code: c.id });
+        if (hintEl) hintEl.textContent = `卡号 ${c.id}`;
+        renderEffects();          // 与上面同理：重画一次，卡号那格才显示出来
+        m.close();
+        toast(`已选：${c.name}`, { kind: 'ok' });
+      },
+    }, `${c.name} · ${c.id}`));
+  }
+  body.appendChild(list);
+  const m = modal({ title: '卡名没有精确匹配', body, actions: [{ label: '关闭' }] });
+}
+
 let summonPreviewTimer = null;
 function scheduleSummonPreview(pre, ms = 450) {
   clearTimeout(summonPreviewTimer);
@@ -977,10 +1070,14 @@ function effectRow(eff, i, km, kinds, triggers, limits) {
       field('到哪去', select(ZONES, eff.target.to_zone || '',
         { onChange: (v) => setEffTarget(i, { to_zone: v }) })),
       field('筛选', select(FILTERS, eff.target.filter_kind || 'any',
-        { onChange: (v) => setEffTarget(i, { filter_kind: v }) })),
+        // 切筛选种类要重画这一段：卡号/字段码/排除三格是按种类出现的，
+        // 不重画的话用户切到「卡名」也看不到解析卡号那格（store.patch 只排预览）。
+        { onChange: (v) => { setEffTarget(i, { filter_kind: v, code: 0, setcode: '' });
+          renderEffects(); } })),
       field('筛选值', textInput(String(eff.target.filter_value ?? ''), {
-        onChange: (v) => setEffTarget(i, { filter_value: v })
-      }), { hint: '种族填「龙族」，等级填「4」，字段留空则用所属系列' }),
+        onChange: (v) => setEffTarget(i, { filter_value: v, code: 0 })
+      }), { hint: '种族填「龙族」，等级填「4」；字段留空＝本家（保存时自动补字段名与本卡字段码）' }),
+      ...targetExtraFields(i, eff, spec),
       field('数量', h('input', { type: 'number', min: 0, value: eff.target.count ?? 1,
         oninput: (e) => setEffTarget(i, { count: parseInt(e.target.value || '0', 10) }) })),
       field('属于谁', select([['self', '自己'], ['opponent', '对方'], ['both', '双方']],

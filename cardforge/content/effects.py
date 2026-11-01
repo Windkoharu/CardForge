@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from ..core import constants as C
 from ..core.models import (
@@ -34,8 +34,9 @@ from .psct import rules as PR
 
 __all__ = [
     "EffectKind", "EFFECT_KINDS", "kind", "describe_all",
-    "validate_effect", "infer_from_text", "PARAM_TYPES", "ZONE_KEYS",
+    "validate_effect", "infer_from_text", "infer_spec", "PARAM_TYPES", "ZONE_KEYS",
     "FILTER_KINDS", "CONTROLLER_KEYS", "COST_KINDS",
+    "normalize_targets", "attach_target_codes", "resolve_target_setcode",
 ]
 
 #: 模板里真正属于"句式"的语言键（``rules`` 的字典还混了 risky/continuous 等元数据）
@@ -227,8 +228,11 @@ _TABLE: dict[str, tuple] = {
     "shuffle_deck": (_ACT, _NO_PARAMS, True, True, "frag_return_deck", "CATEGORY_TODECK"),
     "set_from_deck": (_ACT, _NO_PARAMS, True, True, "frag_set", "CATEGORY_SET"),
     # ── 无效化 ──────────────────────────────────────────────────────
-    "negate": (_NEG, _NO_PARAMS, False, False, "frag_negate", "CATEGORY_NEGATE+CATEGORY_DESTROY"),
-    "negate_effect": (_NEG, _NO_PARAMS, False, False, "frag_negate", "CATEGORY_NEGATE"),
+    # 反击类**可以带代价**：官方简中库实测「…除外才能发动。那个发动无效」30 张、
+    # 「…丢弃才能发动。那个发动无效」11 张（死灵之盾②、超重武者装留 爆炎②、
+    # 究极体 秘异三变联体①）。以前这里标成不接受代价，把用户按官方句式写的卡判错。
+    "negate": (_NEG, _NO_PARAMS, False, True, "frag_negate", "CATEGORY_NEGATE+CATEGORY_DESTROY"),
+    "negate_effect": (_NEG, _NO_PARAMS, False, True, "frag_negate", "CATEGORY_NEGATE"),
     # 无效**场上某张卡**的效果（对象是卡，不是连锁上的那次发动）
     "negate_card": (_ACT, {"until_end_turn": _p("bool", "仅到回合结束", default=True)},
                     True, True, "frag_negate_card", "CATEGORY_NEGATE"),
@@ -387,12 +391,15 @@ def _coerce(value: Any, want: str) -> tuple[bool, Any]:
     return True, value
 
 
-def validate_effect(eff: EffectSpec) -> list[Issue]:
+def validate_effect(eff: EffectSpec, spec: Any = None) -> list[Issue]:
     """校验**一条**效果 IR，返回问题列表（合法时为空列表）。
 
     覆盖契约 §3.4 要求的检查项：kind 是否注册、时点是否被该 kind 允许、
     必填参数是否缺失、该 kind 是否允许代价、是否要求 target、
     limit / filter_kind / zone / controller 取值域、参数类型是否可规整。
+
+    ``spec`` 可选：给了本卡规格，「字段留空＝本家」才算合法（与卡文投影、
+    脚本生成同一口径），否则它会退化成「检任意卡」，必须拦下。
     """
     out: list[Issue] = []
     e = _as_effect(eff)
@@ -495,11 +502,43 @@ def validate_effect(eff: EffectSpec) -> list[Issue]:
             out.append(_issue("EFFECT_TARGET_COUNT", "ERROR",
                               f"{tag}的数量不是数字：{t.count!r}", "改成整数",
                               fld="effects.target.count"))
-        if str(t.filter_kind or "") in ("archetype", "name", "race", "attribute",
-                                        "level", "type") and t.filter_value in (None, ""):
-            out.append(_issue("EFFECT_TARGET_FILTER_VALUE", "ERROR",
-                              f"{tag}的过滤类型是 {t.filter_kind} 但没有 filter_value",
-                              "脚本无法据此生成过滤函数", fld="effects.target.filter_value"))
+        fk = str(t.filter_kind or "")
+        if fk in ("archetype", "name", "race", "attribute",
+                  "level", "type") and t.filter_value in (None, ""):
+            arch_fb = fk == "archetype" and spec is not None \
+                and str(getattr(spec, "archetype", "") or "").strip()
+            if arch_fb:
+                # 「留空＝本家」是界面写明的语义，投影/脚本都按这个兜底，
+                # 但 IR 里还是该显式写出来，免得换张卡复用这段就悄悄改了范围。
+                out.append(_issue("EFFECT_TARGET_FILTER_VALUE", "WARN",
+                                  f"{tag}按本家字段过滤却没写字段名，将按本卡系列"
+                                  f"「{getattr(spec, 'archetype', '')}」兜底",
+                                  "建议显式填字段名（复用这段 IR 时范围不会跟着变）",
+                                  fld="effects.target.filter_value"))
+            else:
+                out.append(_issue("EFFECT_TARGET_FILTER_VALUE", "ERROR",
+                                  f"{tag}的过滤类型是 {fk} 但没有 filter_value",
+                                  "脚本无法据此生成过滤函数",
+                                  fld="effects.target.filter_value"))
+        # 卡名 → 卡号：Lua 的 IsCode 只认号。没有号就只能退化成「检本卡自己」
+        if fk == "name":
+            try:
+                has_code = int(t.code or 0) > 0
+            except Exception:
+                has_code = False
+            if not has_code:
+                out.append(_issue("EFFECT_TARGET_CODE_MISSING", "ERROR",
+                                  f"{tag}按卡名「{t.filter_value or '?'}」过滤，但还没有卡号",
+                                  "点筛选值旁的「解析卡号」（官方卡池与工作区都会查）；"
+                                  "自制的 DIY 卡要等它自己有卡号后再解析",
+                                  fld="effects.target.code"))
+        # 字段 → 字段码：引用别的字段（或本家子字段）必须给码
+        if fk == "archetype" and spec is not None:
+            if not resolve_target_setcode(spec, t):
+                out.append(_issue("EFFECT_TARGET_SETCODE_MISSING", "ERROR",
+                                  f"{tag}按字段「{t.filter_value or '?'}」过滤，但解析不出字段码",
+                                  "本家字段可留空（自动用本卡 setcode）；其他字段请填 setcode",
+                                  fld="effects.target.setcode"))
 
     # ── cost ──
     c = e.cost
@@ -537,7 +576,7 @@ def validate_effects(spec: Any) -> list[Issue]:
     """校验整张卡的所有效果（便捷入口，供 G1/G2 复用）。"""
     out: list[Issue] = []
     for e in getattr(spec, "effect_specs", lambda: [])():
-        out.extend(validate_effect(e))
+        out.extend(validate_effect(e, spec))
     return out
 
 
@@ -923,6 +962,8 @@ _ATTR_WORDS: tuple[str, ...] = tuple(
 _ATTR_RE = re.compile("(?P<attr>" + "|".join(re.escape(w) for w in _ATTR_WORDS) + ")属性")
 _LEVEL_RE = re.compile(r"(?P<lv>\d+)\s*(?:星|等級|レベル)|Level (?P<lv2>\d+)", re.I)
 _NAME_RE = re.compile(r"「([^」]{1,24})」")
+#: 摘掉引号内容后的句子 —— 关键词扫描用它，避免卡名里的「星/族/属性」冒充句式线索
+_QUOTED_RE = re.compile(r"「[^」]{1,24}」")
 _TYPE_WORD_RE = re.compile(r"(?P<t>通常召唤|效果怪兽|怪兽|魔法|陷阱|卡)")
 
 
@@ -1014,7 +1055,8 @@ def _detect_zone(text: str) -> str:
     return ""
 
 
-def _detect_cost(head: str, spec: EffectSpec, name: str = "") -> tuple[Optional[EffectCost], str]:
+def _detect_cost(head: str, spec: EffectSpec, name: str = "",
+                 fields: Iterable[str] = ()) -> tuple[Optional[EffectCost], str]:
     """从发动段里剥出代价；返回 ``(cost 或 None, 剩下的条件文本)``。"""
     for pattern, key, _note in _COST_PATTERNS:
         m = re.search(pattern, head)
@@ -1039,7 +1081,7 @@ def _detect_cost(head: str, spec: EffectSpec, name: str = "") -> tuple[Optional[
             cost.lp = int(mv.group("v")) if mv else 0
         obj = str(gd.get("obj") or "")
         if obj:
-            tgt = _parse_object(m.group(0), name)
+            tgt = _parse_object(m.group(0), name, fields)
             if tgt is not None:
                 cost.filter_kind = tgt.filter_kind
                 cost.filter_value = tgt.filter_value
@@ -1063,11 +1105,18 @@ def _detect_cost(head: str, spec: EffectSpec, name: str = "") -> tuple[Optional[
     return None, head
 
 
-def _parse_object(segment: str, name: str = "") -> Optional[EffectTarget]:
+def _parse_object(segment: str, name: str = "",
+                  fields: Iterable[str] = ()) -> Optional[EffectTarget]:
     """把「1张「星奏」卡」「1只龙族怪兽」解析成 EffectTarget。
 
     ``name`` 是本卡卡名：官方现代写法「1只「本卡卡名」以外的战士族怪兽」
     排除的就是自己 → 归一成 ``exclude_self``，而不是把引号里的名字当过滤条件。
+
+    ``fields`` 是已知字段名集合（至少要有本卡系列）。引号里的东西到底是
+    **字段**还是**卡名**，官方只看两点：后面紧跟类型词（「星奏」怪兽）、
+    或者它本身就是个字段名。以前这里用「句子里出现 族/属性/星 就判字段」，
+    于是卡名「星奏的和音」里的「星」字把整条判成了本家字段 —— 卡文看着对，
+    脚本却退化成 `IsSetCard(本卡字段)`（检的是全字段，不是那张卡）。
     """
     if not segment:
         return None
@@ -1092,38 +1141,46 @@ def _parse_object(segment: str, name: str = "") -> Optional[EffectTarget]:
         if re.search(r"\d+\s*(?:张|枚|枚まで)", body):
             pass
     names = _NAME_RE.findall(body)
-    if re.search(r"族|属性|星|Level|レベル", body) and names:
-        # 「星奏」是字段名而不是卡名
+    # 关键词扫描一律先看**摘掉引号**的版本：卡名内部的字（星/族/属性）不是句式线索
+    masked = _QUOTED_RE.sub("□", body)
+    quoted0 = str(names[0] or "").strip() if names else ""
+    known = {str(f or "").strip() for f in (fields or ()) if str(f or "").strip()}
+    arch_m = _ARCH_ADJ_RE.search(body)
+    is_field = bool(quoted0) and (
+        quoted0 in known
+        or (arch_m is not None and str(arch_m.group(1)).strip() == quoted0))
+    if is_field:
         t.filter_kind = "archetype"
-        t.filter_value = names[0]
-    elif re.search(r"卡|カード|card", body, re.I) and names:
+        t.filter_value = quoted0
+    elif arch_m:
+        # 「「焰刃」卡」这类引号紧邻类型词：官方这是**字段**引用，
+        # 字段名不在已知系列里也照字段处理（字段码由 setcode 那层补）
         t.filter_kind = "archetype"
-        t.filter_value = names[0]
-    elif _ARCH_ADJ_RE.search(body):
-        # 「星奏」怪兽 / 「焰刃」卡 —— 引号紧邻类型词，官方这是**字段**引用
-        t.filter_kind = "archetype"
-        t.filter_value = _ARCH_ADJ_RE.search(body).group(1)
-    elif names:
+        t.filter_value = arch_m.group(1)
+    elif quoted0:
+        # 引号后面没有类型词、也不是已知字段 → 官方这就是**卡名**引用
+        # （「把1张「星奏的和音」加入手卡」）。以前用「句子里出现『卡』」判字段，
+        # 而「从卡组把手卡」这些区域词里全是「卡」，具名检索因此被误判。
         t.filter_kind = "name"
-        t.filter_value = names[0]
-    mr = _RACE_RE.search(body)
+        t.filter_value = quoted0
+    mr = _RACE_RE.search(masked)
     if mr:
         t.filter_kind, t.filter_value = "race", mr.group("race")
-    ma = _ATTR_RE.search(body)
+    ma = _ATTR_RE.search(masked)
     if ma:
         t.filter_kind, t.filter_value = "attribute", ma.group("attr")
-    ml = _LEVEL_RE.search(body)
+    ml = _LEVEL_RE.search(masked)
     if ml:
         t.filter_kind = "level"
         t.filter_value = int(ml.group("lv") or ml.group("lv2") or 0)
-    has_st = bool(re.search(r"魔法|陷阱|Spell/Trap|魔法・罠", body, re.I))
-    has_mon = bool(re.search(r"怪兽|モンスター|monster", body, re.I))
+    has_st = bool(re.search(r"魔法|陷阱|Spell/Trap|魔法・罠", masked, re.I))
+    has_mon = bool(re.search(r"怪兽|モンスター|monster", masked, re.I))
     if has_st and t.filter_kind in ("any", "monster"):
         # 只有「魔法·陷阱」没有字段/卡名时，类型本身就是过滤条件
         t.filter_kind, t.filter_value = "type", "spelltrap"
     elif has_mon and t.filter_kind == "any":
         t.filter_kind = "monster"
-    if re.search(r"对方|相手|opponent", body, re.I):
+    if re.search(r"对方|相手|opponent", masked, re.I):
         t.controller = "opponent"
     if _SELF_EXCLUDE_RE.search(body):
         t.exclude_self = True
@@ -1156,11 +1213,16 @@ def _detect_action(body: str) -> tuple[str, Optional[re.Match]]:
     return "", None
 
 
-def infer_from_text(text: str, name: str = "") -> list[EffectSpec]:
+def infer_from_text(text: str, name: str = "",
+                    fields: Iterable[str] = ()) -> list[EffectSpec]:
     """卡文 → 效果 IR（**纯规则/关键词推断，不依赖 LLM**）。
 
     ``name`` 是本卡卡名：官方现代写法「1只「本卡卡名」以外的战士族怪兽」
     排除的是自己，只有知道卡名才能把它归一成 ``exclude_self``。
+
+    ``fields`` 是已知字段名（给本卡系列就够用）：引号里的词到底是**字段**
+    （「星奏」卡）还是**卡名**（「星奏的和音」），光看句子判不准；给了名单
+    才不会把带「星/族/属性」字样的卡名误判成本家字段。
 
     能确定地还原：``kind``、``trigger``、``limit``、``cost``、``target``
     （区域 / 数量 / 过滤条件 / 控制者 / 表侧表示）、是否取对象、是否**不入连锁**
@@ -1199,7 +1261,7 @@ def infer_from_text(text: str, name: str = "") -> list[EffectSpec]:
         eff.limit = _detect_limit(head, para)
 
         # 2) 代价（先把代价从发动段剥掉，再做后续匹配）
-        cost, head2 = _detect_cost(head, eff, name)
+        cost, head2 = _detect_cost(head, eff, name, fields)
         eff.cost = cost
 
         # 3) kind：处理段优先，发动段兜底
@@ -1251,7 +1313,7 @@ def infer_from_text(text: str, name: str = "") -> list[EffectSpec]:
             if mt:
                 obj_seg = mt.group("obj")
         cand_seg = obj_seg if obj_seg else body
-        tgt = _parse_object(cand_seg, name) if cand_seg else None
+        tgt = _parse_object(cand_seg, name, fields) if cand_seg else None
         if tgt is not None:
             # 「以对方场上1张表侧表示的**卡**为对象」≠「自己场上1只**怪兽**」：
             # 前者是任意卡（FIELD），后者才收在怪兽区域（MZONE）。
@@ -1263,9 +1325,12 @@ def infer_from_text(text: str, name: str = "") -> list[EffectSpec]:
             if not obj_seg and "对方" in cand_seg:
                 tgt.controller = "opponent"
         eff.target = tgt
-        # 「从自己墓地**选**1只…特殊召唤」= 不取对象、处理时才选（官方用「选」，
-        # 老式写法才用「（这张卡除外）」。识别不出来就会写回成「以…为对象」。
-        if not targeted and re.search(r"选\d*[只张体枚]|を選んで|Select \d", body):
+        # 「从自己墓地**选**…特殊召唤」= 不取对象、处理时才选（官方用「选」）。
+        # 识别不出来就会把这句写回成「以…为对象」，等于凭空给卡加了一条取对象限制。
+        # 「选」与数量之间允许夹着排除短语：官方简库实测「选「A」以外的1只…」42 张、
+        # 「选1只「A」以外的…」5 张，前者才是主流写法。
+        if not targeted and re.search(
+                r"选(?:「[^」]{1,30}」以外的)?\d*[只张体枚]|を選んで|Select \d", body):
             eff.params["select"] = True
         # 「「星奏」魔法卡」= 字段 + 卡类型两条限制；filter_kind 只有一条槽位，
         # 类型限制另存进 params['card_type']（Lua 侧 → c:IsType(TYPE_SPELL+TYPE_TRAP)）
@@ -1350,7 +1415,102 @@ def infer_from_text(text: str, name: str = "") -> list[EffectSpec]:
     return out
 
 
-def infer_spec(text: str, *, index: int = 0) -> Optional[EffectSpec]:
+def infer_spec(text: str, *, index: int = 0, name: str = "",
+               fields: Iterable[str] = ()) -> Optional[EffectSpec]:
     """推断单条效果（便捷入口）。"""
-    lst = infer_from_text(text)
+    lst = infer_from_text(text, name, fields)
     return lst[index] if 0 <= index < len(lst) else None
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  对象筛选的补齐（「留空＝本家」这层语义要有人落地）
+# ══════════════════════════════════════════════════════════════════════
+def resolve_target_setcode(spec: Any, target: EffectTarget) -> str:
+    """效果对象引用的**字段码**（Lua 的 ``IsSetCard`` 只认码）。
+
+    与素材那一侧共用 :func:`cardforge.content.summon.resolve_setcode`，规则一致：
+    显式 ``target.setcode`` 优先 → 字段名＝本卡系列 → 用本卡 ``setcode``
+    → 字段名本身写成 ``0x1234`` 就直接用。解析不出来返回空串（调用方负责报错）。
+    """
+    from . import summon as S            # 延迟导入：避免 effects ↔ summon 成环
+    from ..core.models import MaterialPart
+    part = MaterialPart(kind="archetype", value=target.filter_value,
+                        setcode=getattr(target, "setcode", "") or "")
+    return S.resolve_setcode(spec, part)
+
+
+def _obj_get(obj: Any, key: str, default: Any = None) -> Any:
+    """dict 与 dataclass 两种形状都能读（``spec.effects`` 落盘是 dict）。"""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+def _obj_set(obj: Any, key: str, value: Any) -> None:
+    if isinstance(obj, dict):
+        obj[key] = value
+    else:
+        setattr(obj, key, value)
+
+
+def normalize_targets(spec: Any) -> list[str]:
+    """把效果对象里「可安全推断」的空字段补齐，返回补了什么（中文，供界面回执）。
+
+    只补**不猜**的两类：
+
+    * ``filter_kind == "archetype"`` 且没写字段名 → 本卡系列（卡文投影一直这么兜底，
+      现在脚本与校验也按同一口径，界面那句「字段留空＝本家」才是真话）；
+    * ``filter_kind == "archetype"`` 且字段名＝本卡系列、没填字段码 → 本卡 ``setcode``。
+
+    ⚠ 改的是 ``spec.effects`` 里的**原始条目**：``effect_specs()`` 每次调用都会把
+    dict 转成新的 EffectSpec 对象，改那个临时对象等于没改（保存时又按原 dict 写回）。
+    卡名（``name``）的卡号**不在这里补**：那要查官方卡池/工作区索引，
+    由服务端 :func:`attach_target_codes` 做，补不上就报错让人工填。
+    """
+    filled: list[str] = []
+    arch = str(getattr(spec, "archetype", "") or "").strip()
+    own = str(getattr(spec, "setcode", "") or "").strip()
+    for i, eff in enumerate(getattr(spec, "effects", None) or [], start=1):
+        for label, key in (("对象", "target"), ("代价", "cost")):
+            obj = _obj_get(eff, key)
+            if not obj or str(_obj_get(obj, "filter_kind") or "") != "archetype":
+                continue
+            if _obj_get(obj, "filter_value") in (None, "") and arch:
+                _obj_set(obj, "filter_value", arch)
+                filled.append(f"第 {i} 条效果的{label}字段名补为本家「{arch}」")
+            if label == "对象" and not str(_obj_get(obj, "setcode") or "").strip() \
+                    and str(_obj_get(obj, "filter_value") or "").strip() == arch and own:
+                _obj_set(obj, "setcode", own)
+                filled.append(f"第 {i} 条效果的{label}字段码补为本卡 {own}")
+    return filled
+
+
+def attach_target_codes(spec: Any, lookup) -> list[str]:
+    """按卡名解析**卡号**写进对象（``target.code``）。
+
+    ``lookup``: ``callable(name) -> int | None``，由服务端注入（先查官方卡池精确
+    同名，再查工作区 DIY 卡）。解析不到的保持 0，交给 G1 报 ``G1_TARGET_CODE_MISSING``。
+    """
+    filled: list[str] = []
+    if not callable(lookup):
+        return filled
+    for i, eff in enumerate(getattr(spec, "effects", None) or [], start=1):
+        t = _obj_get(eff, "target")
+        if not t or str(_obj_get(t, "filter_kind") or "") != "name":
+            continue
+        try:
+            if int(_obj_get(t, "code") or 0):
+                continue
+        except Exception:
+            pass
+        nm = str(_obj_get(t, "filter_value") or "").strip()
+        if not nm:
+            continue
+        try:
+            code = lookup(nm)
+        except Exception:
+            code = None
+        if code:
+            _obj_set(t, "code", int(code))
+            filled.append(f"第 {i} 条效果的卡名「{nm}」解析为卡号 {code}")
+    return filled

@@ -23,7 +23,8 @@ from ..core.models import CardSpec, EffectSpec
 from ..pool import repo
 
 __all__ = ["try_import", "require", "official", "spec_from_payload", "load_spec",
-           "save_spec", "card_view", "cards_index", "soft_call", "ART_TYPES"]
+           "save_spec", "card_view", "cards_index", "soft_call", "ART_TYPES",
+           "resolve_card_code", "fill_effect_targets"]
 
 #: 前端可以请求的产物类型（文件接口的白名单根）
 ART_TYPES: dict[str, Path] = {}
@@ -157,6 +158,57 @@ def _coerce(d: dict) -> dict:
     return out
 
 
+def resolve_card_code(name: str) -> int:
+    """卡名 → 卡号：**官方卡池精确同名**优先，其次本工作区的 DIY 卡；查不到返回 0。
+
+    为什么在 kernel 而不是 api_core：效果对象那侧的「卡名筛选」也要这个号
+    （``IsCode`` 只认号），而它散在保存、预览、反解三条路上，收在一处才不会出现
+    「界面解析得到、保存后脚本又没有」。
+    """
+    nm = str(name or "").strip()
+    if not nm:
+        return 0
+    pool = official()
+    if pool is not None:
+        try:
+            hit = pool.name_exists(nm)
+        except Exception:
+            hit = None
+        if hit:
+            try:
+                return int(hit.get("id") or 0)
+            except Exception:
+                return 0
+    for c in cards_index():
+        if str(c.get("name") or "").strip() == nm:
+            try:
+                return int(c.get("id") or 0)
+            except Exception:
+                return 0
+    return 0
+
+
+def fill_effect_targets(spec: CardSpec) -> list[str]:
+    """把效果对象里「能确定推断」的空字段补齐（留空＝本家、卡名→卡号）。
+
+    幂等、只补不猜；返回补了什么的中文说明，界面把它当回执显示，
+    用户才不会以为「留空」被无声丢掉。
+    """
+    EF = try_import("cardforge.content.effects")
+    if EF is None or spec is None:
+        return []
+    out: list[str] = []
+    try:
+        out += list(EF.normalize_targets(spec) or [])
+        out += list(EF.attach_target_codes(spec, resolve_card_code) or [])
+    except Exception as e:                               # noqa: BLE001
+        # 补齐失败不能拖垮保存：卡文与脚本各自还有兜底与报错。
+        # 但也不能无声吞掉 —— 当成一条回执带回界面，用户知道这次没补上。
+        out.append(f"效果对象自动补齐失败（{type(e).__name__}: {e}），"
+                   f"卡文与脚本仍按兜底规则处理")
+    return out
+
+
 def spec_from_payload(payload: Any, *, card_id: Optional[int] = None) -> CardSpec:
     """JSON → CardSpec。未知字段忽略（``from_dict`` 已经做了），坏字段给中文错误。"""
     if isinstance(payload, CardSpec):
@@ -192,6 +244,9 @@ def spec_from_payload(payload: Any, *, card_id: Optional[int] = None) -> CardSpe
         spec.render.rarity = "common"
     if spec.render.lang_text not in LANGS:
         spec.render.lang_text = DEFAULT_LANG
+    # 效果对象的「留空＝本家」「卡名→卡号」在这里落地：卡文投影、脚本生成、
+    # 质量门看的是同一份补齐后的 IR，三者不会再各说各话。
+    fill_effect_targets(spec)
     return spec
 
 
@@ -200,6 +255,9 @@ def load_spec(card_id: int, archetype: str = "") -> CardSpec:
     if spec is None:
         raise errors.CardForgeError(f"工作区里没有卡号 {card_id} 的卡",
                                     "先在「新建」里建一张，或用 card new 命令")
+    # 老文件里没有 target.code / target.setcode 这两格（后来才加的契约字段）。
+    # 读出来就补齐，界面看到的才和脚本、质量门算的是同一份。
+    fill_effect_targets(spec)
     return spec
 
 

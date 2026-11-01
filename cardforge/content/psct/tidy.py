@@ -31,7 +31,7 @@ from __future__ import annotations
 import copy
 import re
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from ...core.enums import LANGS
 from ...core.models import CardSpec
@@ -253,11 +253,12 @@ def _ir_sig(eff: Any) -> tuple:
             repr(t), repr(c), repr(sorted(params.items())))
 
 
-def _infer_one(text: str, name: str = "") -> list:
+def _infer_one(text: str, name: str = "",
+               fields: Iterable[str] = ()) -> list:
     """卡文 → IR（延迟导入避免成环：effects ↔ psct ↔ summon）。"""
     from .. import effects as E
     try:
-        return list(E.infer_from_text(text, name) or [])
+        return list(E.infer_from_text(text, name, fields) or [])
     except Exception:                                    # noqa: BLE001
         return []
 
@@ -394,6 +395,11 @@ def tidy(text: str, spec: Optional[CardSpec] = None,
     st = rules.style(lang)
     card_name = str(name or getattr(spec, "name", "") or
                     (spec.name_in(lang) if spec is not None else "") or "").strip()
+    # 已知字段名：反解要靠它区分「「星奏」卡」（字段）与「「星奏的和音」」（卡名）。
+    # 只给本卡系列就够用 —— 卡名里带「星/族/属性」时被误判成字段，
+    # 重写会把整条效果的语义改掉，三道保真守卫也拦不住这种「名字没变、范围变了」。
+    card_fields = [str(getattr(spec, "archetype", "") or "").strip()] \
+        if spec is not None else []
     notes: list[str] = []
 
     # ── 1. 召唤手续段先摘出来（它是 spec.summon 的产物，一个字都不改）──
@@ -437,7 +443,7 @@ def tidy(text: str, spec: Optional[CardSpec] = None,
                                   "卡名级使用次数声明由每条效果的「使用次数限制」汇总生成，"
                                   "不在这里重写。"))
             continue
-        effs = _infer_one(para, card_name)
+        effs = _infer_one(para, card_name, card_fields)
         eff = effs[0] if len(effs) == 1 else None
         recognized = bool(eff is not None and (eff.kind or ""))
         if not recognized:
@@ -467,7 +473,7 @@ def tidy(text: str, spec: Optional[CardSpec] = None,
                                   "已经是标准写法，无需改动。"))
             continue
         # 守卫 A：再反解一次，IR 指纹必须逐字相等
-        back = _infer_one(new, card_name)
+        back = _infer_one(new, card_name, card_fields)
         sig_before = _ir_sig(eff)
         sig_after = _ir_sig(back[0]) if len(back) == 1 else ("(拆成多条)",)
         # 守卫 B：数值与卡名逐字保真

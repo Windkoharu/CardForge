@@ -172,7 +172,11 @@ def register(app) -> None:
             raise errors.SpecError("没有可推断的卡文",
                                    "先在规格页填效果文本，或带上 text=<卡文>")
         try:
-            inferred = fn(text) or []
+            # 卡名与已知字段名一定要喂给反解：
+            # 「「本卡名」以外的…」要归成 exclude_self，
+            # 「星奏的和音」这类含「星」字的卡名才不会被判成本家字段。
+            inferred = fn(text, spec.name or "",
+                          [a for a in (spec.archetype,) if a]) or []
         except Exception as e:
             raise errors.LintError(f"推断失败：{e}",
                                    "这段文本可能不是标准 PSCT 句式") from e
