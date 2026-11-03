@@ -26,7 +26,7 @@ _DEFAULT_TIMEOUT = 5.0
 _UA = "CardForge-update-check"
 
 _V_RE = re.compile(
-    r"^\s*v?(\d+(?:\.\d+)*)\s*(?:[.-](dev|alpha|beta|rc)\.?(\d+)?)?\s*$", re.I)
+    r"^\s*v?(\d+(?:\.\d+)*)\s*(?:[.-]?(dev|alpha|beta|rc)\.?(\d+)?)?\s*$", re.I)
 
 
 def local_version() -> str:
@@ -36,16 +36,15 @@ def local_version() -> str:
 
 
 def _vkey(v: str):
-    """``"2.1.0.dev1"`` → 可比较元组 ``((2,1,0), ("dev",1))``；解析失败 ``None``。"""
+    """``"2.1.0.dev1"`` → 可比较元组；预发布阶段按语义而非字母排序。"""
     m = _V_RE.match(v or "")
     if not m:
         return None
     nums = tuple(int(x) for x in m.group(1).split("."))
-    if m.group(2):
-        pre = (m.group(2).lower(), int(m.group(3) or 0))
-    else:
-        pre = ("final", 0)
-    return (nums, pre)
+    stage = (m.group(2) or "final").lower()
+    # dev < alpha < beta < rc < final；直接比较 "final" 与 "rc" 会颠倒新旧。
+    rank = {"dev": 0, "alpha": 1, "beta": 2, "rc": 3, "final": 4}[stage]
+    return (nums, (rank, int(m.group(3) or 0) if m.group(2) else 0))
 
 
 def _local_git_sha() -> "str | None":
@@ -54,7 +53,7 @@ def _local_git_sha() -> "str | None":
         root = Path(__file__).resolve().parents[2]
         out = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=str(root),
-            capture_output=True, text=True, encoding="utf-8", check=True)
+            capture_output=True, text=True, encoding="utf-8", check=True, timeout=5)
         return out.stdout.strip() or None
     except Exception:
         return None

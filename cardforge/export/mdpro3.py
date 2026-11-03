@@ -54,7 +54,9 @@ import os
 import re
 import shutil
 import sqlite3
+import uuid
 import zipfile
+from contextlib import closing
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
@@ -182,12 +184,11 @@ def client_info(root: str | os.PathLike[str]) -> dict:
         (p for p in sorted(loc.glob("*/cards.cdb"))), None) if loc.is_dir() else None
     if pick:
         try:
-            con = sqlite3.connect(f"file:{pick.as_posix()}?mode=ro", uri=True)
-            out["n_official"] = int(con.execute("select count(*) from datas").fetchone()[0])
-            out["max_id"] = int(con.execute("select max(id) from datas").fetchone()[0] or 0)
-            out["id_in_use"] = int(con.execute(
-                "select count(*) from datas where id>=?", (210000000,)).fetchone()[0])
-            con.close()
+            with closing(sqlite3.connect(f"file:{pick.as_posix()}?mode=ro", uri=True)) as con:
+                out["n_official"] = int(con.execute("select count(*) from datas").fetchone()[0])
+                out["max_id"] = int(con.execute("select max(id) from datas").fetchone()[0] or 0)
+                out["id_in_use"] = int(con.execute(
+                    "select count(*) from datas where id>=?", (210000000,)).fetchone()[0])
         except sqlite3.Error as e:
             out["warnings"].append(f"读卡池失败：{e}")
     sz = r / "Data" / "script.zip"
@@ -332,9 +333,7 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
                                     message=f"卡 {c.id} 的可运行度判定失败：{e}",
                                     field="lua"))
         fn = f"c{int(c.id)}.lua"
-        _write_text(tmp.joinpath("script", fn).parent and tmp / "script" / fn
-                    and Path(tmp / "script" / fn), lua) if False else \
-            Path(tmp / "script" / fn).write_text(lua, encoding="utf-8")
+        _write_file(tmp / "script" / fn, lua)
         written["script"].append(f"script/{fn}")
 
     # ── 3. pics/ ──────────────────────────────────────────────────
@@ -430,14 +429,14 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
 
     size = out.stat().st_size
     # ── 8. 与本机客户端官方池撞号检查（探得到客户端才做）──────────
-    for info in detect():
+    clients = detect()
+    for info in clients:
         cdb_p = Path(info["path"]) / "Data" / "locales" / "zh-CN" / "cards.cdb"
         if not cdb_p.exists():
             continue
         try:
-            con = sqlite3.connect(f"file:{cdb_p.as_posix()}?mode=ro", uri=True)
-            got = {int(r[0]) for r in con.execute("select id from datas")}
-            con.close()
+            with closing(sqlite3.connect(f"file:{cdb_p.as_posix()}?mode=ro", uri=True)) as con:
+                got = {int(r[0]) for r in con.execute("select id from datas")}
         except sqlite3.Error:
             continue
         hit = sorted({int(c.id) for c in specs} & got)
@@ -458,7 +457,7 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
         "n_overframe": n_overframe,
         "n_deck": len(written["deck"]), "langs": [LANG_CODES.get(x, x) for x in langs],
         "cards_without_script": skipped_no_script,
-        "clients_found": [d["path"] for d in detect()],
+        "clients_found": [d["path"] for d in clients],
         "issues": [i.to_dict() for i in issues],
         "hint": import_hint(out),
     }
@@ -483,8 +482,8 @@ def _to_jpeg(src: Path, dest: Path, size: tuple[int, int]) -> None:
 def _render_to_jpeg(spec: CardSpec, dest: Path) -> bool:
     try:
         from ..render import compositor
-        img = compositor.render_card(spec, None, size=MDPRO3_SIZE)
-        img.convert("RGB").save(dest, "JPEG", quality=90, optimize=True)
+        with compositor.render_card(spec, None, size=MDPRO3_SIZE) as img:
+            img.convert("RGB").save(dest, "JPEG", quality=90, optimize=True)
         return True
     except Exception:
         return False
@@ -619,9 +618,11 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
             # cdb 能不能被打开 + 卡号/脚本/图三者是否对得上
             if cdbs:
                 data = z.read(cdbs[0])
-                if data[:3] == b"SQLite format 3"[:3] or True:
-                    tmp = Path(paths.CACHE) / f"_mdchk_{p.stem}.cdb"
+                if data[:16] == b"SQLite format 3\x00":
+                    paths.CACHE.mkdir(parents=True, exist_ok=True)
+                    tmp = Path(paths.CACHE) / f"_mdchk_{p.stem}_{uuid.uuid4().hex}.cdb"
                     tmp.write_bytes(data)
+                    con = None
                     try:
                         con = sqlite3.connect(tmp)
                         ids = {int(r[0]) for r in con.execute("select id from datas")}
@@ -629,6 +630,7 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
                                  for r in con.execute("select id, type from datas")}
                         txt = {int(r[0]) for r in con.execute("select id from texts")}
                         con.close()
+                        con = None
                         if not ids:
                             iss("MD_EMPTY_CDB", "ERROR", "cdb 里 datas 表是空的",
                                 "客户端会认为这个包没有卡")
@@ -704,7 +706,12 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
                         iss("MD_CDB_BAD", "ERROR", f"cdb 打不开：{e}",
                             "重新导出一次；cdb 必须是标准 SQLite 库")
                     finally:
+                        if con is not None:
+                            con.close()
                         tmp.unlink(missing_ok=True)
+                else:
+                    iss("MD_CDB_BAD", "ERROR", f"{cdbs[0]} 不是 SQLite 数据库",
+                        "重新导出一次；cdb 必须是标准 SQLite 库")
             if not confs:
                 iss("MD_NO_STRINGS", "INFO", "包里没带 strings.conf",
                     "有本家字段（setcode）时建议带上，否则游戏里字段名显示成十六进制")
@@ -764,9 +771,10 @@ def _deep_checks(p: Path, *, issu, client: Optional[Path]) -> None:
         our_cols: dict[str, set[str]] = {}
         ids: set[int] = set()
         if cdbs:
-            tmp = Path(paths.CACHE) / f"_mddeep_{p.stem}.cdb"
+            tmp = Path(paths.CACHE) / f"_mddeep_{p.stem}_{uuid.uuid4().hex}.cdb"
             tmp.parent.mkdir(parents=True, exist_ok=True)
             tmp.write_bytes(z.read(cdbs[0]))
+            con = None
             try:
                 con = sqlite3.connect(tmp)
                 for table in ("datas", "texts"):
@@ -780,7 +788,10 @@ def _deep_checks(p: Path, *, issu, client: Optional[Path]) -> None:
                 except sqlite3.Error:
                     ids = set()
                 con.close()
+                con = None
             finally:
+                if con is not None:
+                    con.close()
                 tmp.unlink(missing_ok=True)
             checked.append("cdb 可读")
 
@@ -792,6 +803,7 @@ def _deep_checks(p: Path, *, issu, client: Optional[Path]) -> None:
             ref_cdb = zh if zh.exists() else next(
                 (q for q in sorted(loc.glob("*/cards.cdb"))), None) if loc.is_dir() else None
         if ref_cdb is not None:
+            con = None
             try:
                 con = sqlite3.connect(f"file:{ref_cdb.as_posix()}?mode=ro", uri=True)
                 for table in ("datas", "texts"):
@@ -817,8 +829,11 @@ def _deep_checks(p: Path, *, issu, client: Optional[Path]) -> None:
                              "「导入成功、卡也能看到，但效果不通」。改号重导出",
                              field="cdb")
                 con.close()
+                con = None
                 checked.append(f"schema 对照（{ref_cdb.parent.name}）与撞号检查")
             except sqlite3.Error as e:
+                if con is not None:
+                    con.close()
                 issu("MD_REFCDB_BAD", "INFO",
                      f"读客户端官方池失败：{e}", "深检跳过对账部分")
         elif client is not None:

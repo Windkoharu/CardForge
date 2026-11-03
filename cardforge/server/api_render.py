@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import io
+import math
 from pathlib import Path
 from typing import Any, Optional
 
@@ -48,13 +49,15 @@ def register(app) -> None:
         """``?card=<id>&width=480`` —— 给 ``<img src>`` 直接用。"""
         data, ctype = _preview(req)
         return Response(data, content_type=ctype, headers={
-            "Cache-Control": "no-store", "X-CardForge-Preview": "raster"})
+            "Cache-Control": "no-store",
+            "X-CardForge-Preview": "vector" if "svg" in ctype else "raster"})
 
     @app.post("/api/render/preview")
     def preview_post(req: Request) -> Response:
         data, ctype = _preview(req)
         return Response(data, content_type=ctype, headers={
-            "Cache-Control": "no-store", "X-CardForge-Preview": "raster"})
+            "Cache-Control": "no-store",
+            "X-CardForge-Preview": "vector" if "svg" in ctype else "raster"})
 
     @app.get("/api/render/svg")
     def preview_svg(req: Request) -> Response:
@@ -117,7 +120,12 @@ def register(app) -> None:
             raise errors.SpecError(f"不支持的图片格式：{fmt}",
                                    "可用 jpg / png / webp")
         fmt = "jpg" if fmt == "jpeg" else fmt
-        scale = float(req.arg("scale", 1) or 1)
+        try:
+            scale = float(req.arg("scale", 1) or 1)
+        except (TypeError, ValueError) as e:
+            raise errors.SpecError("scale 必须是数字", "可用范围 0.25–8.0") from e
+        if not math.isfinite(scale):
+            raise errors.SpecError("scale 不能是 NaN 或无穷大", "可用范围 0.25–8.0")
         scale = max(0.25, min(scale, 8.0))
         stamp = req.bool_arg("stamp", False)
 
@@ -129,16 +137,21 @@ def register(app) -> None:
                     base = G.OUTPUT_SIZES.get(size, G.OUTPUT_SIZES[G.DEFAULT_OUTPUT])
                     out_size = (int(round(base[0] * scale)), int(round(base[1] * scale)))
                 img = comp.render_card(spec, art, size=(out_size or size), layers=layers)
-                buf = io.BytesIO()
-                if fmt == "jpg":
-                    img.save(buf, "JPEG", quality=int(req.int_arg("quality", 95) or 95),
-                             subsampling=1, optimize=True)
-                elif fmt == "webp":
-                    img.save(buf, "WEBP", quality=int(req.int_arg("quality", 95) or 95),
-                             method=5)
-                else:
-                    img.save(buf, "PNG", optimize=True)
-                return buf.getvalue()
+                try:
+                    buf = io.BytesIO()
+                    if fmt == "jpg":
+                        img.save(buf, "JPEG", quality=int(req.int_arg("quality", 95) or 95),
+                                 subsampling=1, optimize=True)
+                    elif fmt == "webp":
+                        img.save(buf, "WEBP", quality=int(req.int_arg("quality", 95) or 95),
+                                 method=5)
+                    else:
+                        img.save(buf, "PNG", optimize=True)
+                    return buf.getvalue()
+                finally:
+                    close = getattr(img, "close", None)
+                    if callable(close):
+                        close()
             except Exception as e:
                 raise errors.CardForgeError(
                     f"卡面渲染失败：{e}",
@@ -195,6 +208,10 @@ def register(app) -> None:
                 written[str(name)] = paths.rel(p)
             except Exception as e:
                 written[str(name)] = f"(保存失败 {e})"
+            finally:
+                close = getattr(img, "close", None)
+                if callable(close):
+                    close()
         return {"ok": True, "stages": written, "dir": paths.rel(out_dir)}
 
     @app.post("/api/render/upload-art")
@@ -419,9 +436,9 @@ def _load_art(spec: CardSpec):
         return None
     try:
         from PIL import Image
-        img = Image.open(p)
-        img.load()
-        return img.convert("RGB")
+        with Image.open(p) as img:
+            img.load()
+            return img.convert("RGB")
     except Exception:
         return None
 
@@ -440,14 +457,20 @@ def _load_layers(spec: CardSpec) -> dict:
     except Exception:
         return {}
     out = {}
-    for role in ("background", "subject"):
-        im = got.get(role)
-        if im is not None:
-            try:
-                out[role] = im.convert("RGBA")
-            except Exception:
-                pass
-    return out
+    try:
+        for role in ("background", "subject"):
+            im = got.get(role)
+            if im is not None:
+                try:
+                    out[role] = im.convert("RGBA")
+                except Exception:
+                    pass
+        return out
+    finally:
+        for im in got.values():
+            close = getattr(im, "close", None)
+            if callable(close):
+                close()
 
 
 def _art_uri(spec: CardSpec) -> Optional[str]:
@@ -488,8 +511,17 @@ def _sync_pic(spec: CardSpec, files: list[str]) -> str:
         return ""
     dst = paths.pic_path(spec.id)
     try:
+        if src.suffix.lower() in (".jpg", ".jpeg"):
+            data = src.read_bytes()
+        else:
+            # EDOPro 的 pics/<id>.jpg 必须是真 JPEG，不能把 PNG 字节只改后缀。
+            from PIL import Image
+            with Image.open(src) as im:
+                buf = io.BytesIO()
+                im.convert("RGB").save(buf, "JPEG", quality=92)
+                data = buf.getvalue()
         dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_bytes(src.read_bytes())
+        dst.write_bytes(data)
         return paths.rel(dst)
     except Exception:
         return ""

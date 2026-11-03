@@ -231,12 +231,13 @@ def register(app) -> None:
                     continue
             if inside and alt.exists():
                 p = alt
-        if not p.exists():
+        if not p.is_file():
             raise FileNotFoundError(paths.rel(p))
+        from urllib.parse import quote
         from .http import content_type_of
         data = p.read_bytes()
         inline = req.bool_arg("inline", True)
-        disp = "inline" if inline else f"attachment; filename*=UTF-8''{Path(p.name).name}"
+        disp = "inline" if inline else f"attachment; filename*=UTF-8''{quote(p.name)}"
         return Response(data, content_type=content_type_of(p), headers={
             "Content-Disposition": disp,
             "Cache-Control": "max-age=20",

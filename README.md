@@ -6,7 +6,7 @@
 > Fully local, zero build, zero intrusion: structured spec → PSCT card text + Lua
 > script → card art (local ComfyUI) → print-grade card image → export to EDOPro / MDPro3.
 
-[![version](https://img.shields.io/badge/version-2.0.0.dev1-D4A017)]()
+[![version](https://img.shields.io/badge/version-2.1.0.dev1-D4A017)]()
 [![python](https://img.shields.io/badge/python-3.10%2B-3776AB)](https://www.python.org/)
 [![platform](https://img.shields.io/badge/platform-Windows%20·%20macOS%20·%20Linux-555)]()
 [![deps](https://img.shields.io/badge/core-deps%20free-brightgreen)]()
@@ -316,19 +316,22 @@ python3 tools/build_exe.py
 
 ## 状态
 
-版本 `2.0.0.dev1` —— **需求清单里的九块已全部落地**，含图形界面。
+版本 `2.1.0.dev1` —— **需求清单里的九块已全部落地**，含图形界面。
 逐模块完成度与**实测证据**见 `docs/03-实现状态.md`（含"仍未闭环的诚实清单"——目前为空，
 全部遗留已闭环）。
 
-四套自测随时可重跑：
+核心自测与真实浏览器验收可随时重跑：
 
 ```powershell
-python tools/smoke.py               # 冒烟 19 项（含召唤条件、接触召唤上桌、界面静态守卫）
-python tools/selfcheck_lua.py       # Lua 生成器 335 项断言
-python tools/selfcheck_prompt.py    # 卡图提示词保真 106 项断言（含 12 套模板；用户写的词一个字都不许悄悄消失）
-python tools/selfcheck_tidy.py      # 卡文整理器 77 项断言（零 AI 整理成标准描述，且不许改坏语义）
+python tools/smoke.py               # 冒烟 21 项（含召唤条件、真 ocgcore、界面静态守卫）
+python tools/selfcheck_lua.py       # Lua 生成器 409 项断言
+python tools/selfcheck_prompt.py    # 卡图提示词保真 110 项断言（含 12 套模板与真实路由）
+python tools/selfcheck_tidy.py      # 卡文整理器 78 项断言（零 AI 整理，且不许改坏语义）
 python tools/selfcheck_assistant.py # 艾莉娅 81 项断言（含 AI 起草的「LLM 只提议」不变式）
-python tools/e2e_check.py           # 端到端 26 项：规格→卡文→脚本→实跑→渲染→导出→安装预演
+python tools/selfcheck_regressions.py # 缺陷回归 19 项（资产库、HTTP、资源释放、无 Pillow 降级）
+python tools/selfcheck_overframe.py # 出框渲染 50 项断言
+python tools/e2e_check.py           # 隔离工作区端到端 26 项；--keep 保留产物
+npm run check:ui                    # 真实浏览器 15 项 + 桌面/窄屏截图
 ```
 
 > 艾莉娅的立绘与表情差分是**本地出图**的（krea2 + BiRefNet 抠底），

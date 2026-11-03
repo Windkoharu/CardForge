@@ -26,7 +26,6 @@ import json
 import re
 import sqlite3
 import sys
-import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -271,12 +270,17 @@ chk("英文自指宾语是 this card", "this card" in et.lower(), et[:50])
 # ══════════════════════════════════════════════════════════════════════
 head("8. POST /api/psct/tidy 的返回结构")
 try:
-    req = urllib.request.Request("http://127.0.0.1:8790/api/psct/tidy",
-                                 data=json.dumps({"card": 210000021, "lang": "zh_cn",
-                                                  "text": messy}).encode(),
-                                 headers={"Content-Type": "application/json"},
-                                 method="POST")
-    r = json.loads(urllib.request.urlopen(req, timeout=60).read().decode())
+    # 直接驱动真实 handler：测试不再依赖外部服务或本机代理配置。
+    from cardforge.server.app import App
+    from cardforge.server import api_card
+    from cardforge.server.http import Request
+    app = App()
+    api_card.register(app)
+    body = json.dumps({"card": 210000021, "lang": "zh_cn", "text": messy}).encode("utf-8")
+    resp = app.handle(Request("POST", "/api/psct/tidy", body=body,
+                              headers={"content-type": "application/json"}))
+    r = json.loads(resp.body.decode("utf-8"))
+    chk("端点可访问", resp.status == 200)
     chk("端点 ok", r.get("ok") is True)
     for k in ("text", "paragraphs", "surface_edits", "terms", "lint_before",
               "lint_after", "safe_to_apply", "blockers", "fidelity", "confidence"):

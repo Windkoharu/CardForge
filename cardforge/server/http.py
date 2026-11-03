@@ -246,26 +246,29 @@ class Request:
 
 
 def read_body(rfile, headers: dict, *, limit: int = 64 * 1024 * 1024) -> bytes:
-    """按 Content-Length 读请求体；无 body 时返回空 bytes。"""
-    if (headers.get("expect") or "").lower().startswith("100-continue"):
-        try:
-            rfile.send_response(300)  # type: ignore[attr-defined]
-            rfile.end_headers()       # type: ignore[attr-defined]
-        except Exception:
-            pass
+    """按 Content-Length 读请求体；无 body 时返回空 bytes。
+
+    非法长度与提前 EOF 必须显式失败，否则会把截断请求当成空 JSON 继续执行。
+    ``Expect: 100-continue`` 由 BaseHTTPRequestHandler 在进入路由前处理。
+    """
     raw = headers.get("content-length")
     if not raw:
         return b""
     try:
         n = int(raw)
-    except Exception:
-        return b""
-    if n <= 0:
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Content-Length 不是整数：{raw!r}") from e
+    if n < 0:
+        raise ValueError(f"Content-Length 不能为负数：{n}")
+    if n == 0:
         return b""
     if n > limit:
         raise errors.SpecError(f"请求体过大（{n} 字节，上限 {limit}）",
                                "卡图请走上传接口，不要塞进 JSON body")
-    return rfile.read(n)
+    body = rfile.read(n)
+    if len(body) != n:
+        raise ValueError(f"请求体提前结束：声明 {n} 字节，实际 {len(body)} 字节")
+    return body
 
 
 def parse_query(qs: str) -> dict:

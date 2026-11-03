@@ -382,7 +382,8 @@ def lint_lua(lua: str, spec: Optional[CardSpec] = None) -> list[Issue]:
 def check_encoding(path: str) -> list[Issue]:
     """检查磁盘上的 .lua 文件编码是否为 UTF-8 无 BOM。"""
     try:
-        raw = open(path, "rb").read()
+        with open(path, "rb") as fh:
+            raw = fh.read()
     except Exception as e:
         return [_issue("G2_READ_FAIL", "ERROR", f"脚本读取失败：{e}", "")]
     out: list[Issue] = []

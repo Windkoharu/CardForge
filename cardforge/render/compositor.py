@@ -24,15 +24,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
-from PIL import Image, ImageDraw, ImageFilter
+try:  # 光栅依赖延迟到 render_card/render_stages；SVG 预览在 L0 也必须可导入
+    from PIL import Image, ImageDraw, ImageFilter
+    from . import fullart as FA
+    from . import frameprobe as FP
+    from . import rarities as R
+except ImportError:  # pragma: no cover - 由无 Pillow 独立进程回归覆盖
+    Image = ImageDraw = ImageFilter = None  # type: ignore[assignment]
+    FA = FP = R = None  # type: ignore[assignment]
 
 from ..core import errors
 from ..core.models import CardSpec, RenderOptions
-from . import fullart as FA
-from . import frameprobe as FP
 from . import geometry as G
 from . import layers as L
-from . import rarities as R
 from . import bezel as BZ
 from .palettes import darken, lighten, name_is_white, palette
 
@@ -64,12 +68,19 @@ def _try_import():
     return out
 
 
+def _require_raster() -> None:
+    """只有真正光栅化时才要求 Pillow；SVG 与能力探测保持 L0 可用。"""
+    if Image is None or FA is None or FP is None or R is None:
+        raise errors.EnvError("卡面光栅渲染需要 Pillow",
+                              "运行 python -m pip install Pillow 后重试；SVG 预览不受影响")
+
+
 def capabilities() -> dict:
     """渲染能力与降级原因（doctor / UI 用）。"""
     mods = _try_import()
     caps = {
         "L1_render": False, "pillow": False, "official_frames": False,
-        "fonts": False, "text_engine": False, "numpy": R.HAS_NUMPY,
+        "fonts": False, "text_engine": False, "numpy": bool(getattr(R, "HAS_NUMPY", False)),
         "frames": [], "missing_assets": [], "levels": {},
     }
     try:
@@ -150,6 +161,7 @@ class RenderReport:
 # ══════════════════════════════════════════════════════════════════════
 def procedural_base(spec: CardSpec, f: G.Frame, pal) -> Image.Image:
     """程序化框体（素材缺失时的回退）。不是"色块"，带斜面、内阴影、光泽与插画窗。"""
+    _require_raster()
     from .palettes import lerp
     w, h = f.width, f.height
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -236,6 +248,7 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
     alpha）。只有 ``fullart.mode == "subject_bleed"``（主体出框）时才用得上：
     背景严格裁进卡图窗，主体放大压出窗沿。没给分层会自动回落到 ``art``。
     """
+    _require_raster()
     import time
     t0 = time.perf_counter()
     rep = RenderReport()
@@ -437,6 +450,7 @@ def render_card(spec: CardSpec, art: Optional[Image.Image] = None, *,
 def render_stages(spec: CardSpec, art: Optional[Image.Image] = None,
                   size: str | tuple[int, int] = "share") -> dict:
     """逐层输出，便于排障与做"过程可视化"。"""
+    _require_raster()
     mods = _try_import()
     stages: dict[str, Image.Image] = {}
     f = G.make_frame(*WORK_SIZE)
@@ -530,18 +544,21 @@ def export_card(spec: CardSpec, art: Optional[Image.Image], out_dir,
     written = []
     for s in sizes:
         img = render_card(spec, art, size=s, layers=layers)
-        if name:
-            fn = f"{name}_{s}.{fmt}"
-        else:
-            fn = f"{spec.id}.{fmt}" if s in ("edopro", "compat") else f"{spec.id}_{s}.{fmt}"
-        p = out_dir / fn
-        if fmt.lower() in ("jpg", "jpeg"):
-            img.save(p, "JPEG", quality=quality, subsampling=1, optimize=True)
-        elif fmt.lower() == "webp":
-            img.save(p, "WEBP", quality=quality, method=5)
-        else:
-            img.save(p, "PNG", optimize=True)
-        written.append(str(p))
+        try:
+            if name:
+                fn = f"{name}_{s}.{fmt}"
+            else:
+                fn = f"{spec.id}.{fmt}" if s in ("edopro", "compat") else f"{spec.id}_{s}.{fmt}"
+            p = out_dir / fn
+            if fmt.lower() in ("jpg", "jpeg"):
+                img.save(p, "JPEG", quality=quality, subsampling=1, optimize=True)
+            elif fmt.lower() == "webp":
+                img.save(p, "WEBP", quality=quality, method=5)
+            else:
+                img.save(p, "PNG", optimize=True)
+            written.append(str(p))
+        finally:
+            img.close()
     return written
 
 
@@ -551,9 +568,12 @@ def preview_png(spec: CardSpec, art: Optional[Image.Image] = None,
     import io
     h = max(1, int(round(width * G.REF[1] / G.REF[0])))
     img = render_card(spec, art, size=(width, h), **kw)
-    buf = io.BytesIO()
-    img.save(buf, "JPEG", quality=88, subsampling=1)
-    return buf.getvalue()
+    try:
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=88, subsampling=1)
+        return buf.getvalue()
+    finally:
+        img.close()
 
 
 def render_svg(spec: CardSpec, art_uri: Optional[str] = None, *,

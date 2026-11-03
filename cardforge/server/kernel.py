@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import re
@@ -382,7 +383,9 @@ def _gate_cached(spec: CardSpec, gate: str) -> Optional[dict]:
     try:
         digest = json.dumps(spec.to_dict(), ensure_ascii=False, sort_keys=True,
                             default=str)
-        key = f"{spec.id}:{gate}:{hash(digest) & 0xFFFFFFFF:08x}"
+        # Python 的 32 位 hash 可能碰撞，且跨进程不稳定；缓存键不能拿它冒充规格指纹。
+        fingerprint = hashlib.sha256(digest.encode("utf-8")).hexdigest()[:24]
+        key = f"{spec.id}:{gate}:{fingerprint}"
     except Exception:
         return None
     if key in _GATE_CACHE:

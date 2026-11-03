@@ -8,17 +8,24 @@
 覆盖：造卡 → 平衡审计(G1) → PSCT 卡文 → 卡文校验 → Lua 生成 → Lua 静态检查
 → 实跑对局(G3) → 卡面渲染 → 导出包 → 导出自检(G5) → 安装预演。
 
-结果写 ``workspace/.cache/e2e.txt``（Windows 控制台是 GBK，中文直接 print 会炸）。
+结果写隔离工作区的 ``.cache/e2e.txt``（Windows 控制台是 GBK，中文直接 print 会炸）。
 """
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import shutil
 import sys
+import tempfile
 import time
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CACHE_ROOT = ROOT / "workspace" / ".cache"
+CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+TEST_WORKSPACE = pathlib.Path(tempfile.mkdtemp(prefix="e2e-workspace-", dir=CACHE_ROOT))
+os.environ["CARDFORGE_WORKSPACE"] = str(TEST_WORKSPACE)
+sys.path.insert(0, str(ROOT))
 
 from cardforge.content import effects as EF                      # noqa: E402
 from cardforge.content import psct                               # noqa: E402
@@ -33,9 +40,9 @@ from cardforge.pool import repo                                  # noqa: E402
 from cardforge.render import compositor                          # noqa: E402
 from cardforge.core import paths                                 # noqa: E402
 
-OUT = pathlib.Path("workspace/.cache/e2e.txt")
+OUT = paths.CACHE / "e2e.txt"
 CID = 210000999
-PACK = pathlib.Path("workspace/out/e2e_pack")
+PACK = paths.OUT / "e2e_pack"
 
 L: list[str] = []
 PASS = FAIL = WARN = 0

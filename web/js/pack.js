@@ -82,13 +82,19 @@ async function detectMd() {
     }
     box.className = 'notice ok';
     for (const c of r.clients) {
-      box.insertAdjacentHTML('beforeend',
-        `<b>找到客户端</b> <code>${c.path}</code><br>` +
+      // 路径和警告可能来自用户目录/损坏配置，一律按文本渲染，不能拼进 HTML。
+      const row = h('div', {},
+        h('b', { text: '找到客户端' }), ' ', h('code', { text: String(c.path || '') }), h('br'),
         `官方卡 ${c.n_official} · 脚本 ${c.n_scripts} · 卡图 ${c.n_pics} · ` +
-        `语言包 ${c.langs.length} 个 · 整卡图尺寸 ${JSON.stringify(c.saved_size)}` +
-        (c.id_in_use ? `<br><span style="color:var(--fail)">注意：官方池里已有 ` +
-          `${c.id_in_use} 张卡在 2.1 亿号段，导出会逐个核</span>` : '') +
-        (c.warnings || []).map(w => `<br><span style="color:var(--warn)">→ ${w}</span>`).join(''));
+        `语言包 ${(c.langs || []).length} 个 · 整卡图尺寸 ${JSON.stringify(c.saved_size)}`);
+      if (c.id_in_use) {
+        row.append(h('br'), h('span', { style: { color: 'var(--fail)' },
+          text: `注意：官方池里已有 ${c.id_in_use} 张卡在 2.1 亿号段，导出会逐个核` }));
+      }
+      for (const w of (c.warnings || [])) {
+        row.append(h('br'), h('span', { style: { color: 'var(--warn)' }, text: `→ ${w}` }));
+      }
+      box.appendChild(row);
     }
   } catch (e) {
     box.className = 'notice bad';

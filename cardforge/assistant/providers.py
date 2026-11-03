@@ -109,7 +109,7 @@ def _request_json(url: str, payload: Optional[dict] = None, *,
     except ValueError as e:
         raise LLMUnavailable(f"LLM 端点返回的不是合法 JSON：{url}",
                             hint="确认这是 OpenAI 兼容端点（路径通常以 /v1 结尾）。",
-                            detail={"url": "url", "error": str(e)}) from e
+                            detail={"url": url, "error": str(e)}) from e
 
 
 def _try_probe(url: str, *, timeout: float = PROBE_TIMEOUT_SEC) -> Optional[dict]:

@@ -154,10 +154,14 @@ def open_cdb(path: str | os.PathLike[str], create: bool = True) -> sqlite3.Conne
     if create:
         p.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(str(p))
-    con.row_factory = sqlite3.Row
-    if create:
-        ensure_schema(con)
-    return con
+    try:
+        con.row_factory = sqlite3.Row
+        if create:
+            ensure_schema(con)
+        return con
+    except Exception:
+        con.close()
+        raise
 
 
 def open_cdb_ro(path: str | os.PathLike[str]) -> sqlite3.Connection:
@@ -178,10 +182,13 @@ def open_cdb_ro(path: str | os.PathLike[str]) -> sqlite3.Connection:
     if "?" in raw or "#" in raw:
         from urllib.parse import quote
         raw = quote(raw, safe="/:")
+    con = None
     try:
         con = sqlite3.connect(f"file:{raw}?mode=ro", uri=True)
         con.execute("SELECT 1 FROM sqlite_master LIMIT 1").fetchone()
     except sqlite3.Error:
+        if con is not None:
+            con.close()
         con = sqlite3.connect(str(p))
         con.execute("PRAGMA query_only=ON")
     con.row_factory = sqlite3.Row

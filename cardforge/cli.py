@@ -505,7 +505,8 @@ def cmd_render(args) -> int:
     if args.art:
         try:
             from PIL import Image
-            art = Image.open(args.art)
+            with Image.open(args.art) as im:
+                art = im.copy()
         except Exception as e:
             o.warn(f"插画读取失败，改用无图渲染：{e}")
 
@@ -518,6 +519,10 @@ def cmd_render(args) -> int:
             for role in ("background", "subject"):
                 if got.get(role) is not None:
                     layers[role] = got[role].convert("RGBA")
+            for im in got.values():
+                close = getattr(im, "close", None)
+                if callable(close):
+                    close()
             if "background" not in layers:
                 o.warn("主体出框档要分层卡图，但这张卡没有分层版本"
                        "（用「分层出图」重新生成）→ 回落到普通卡图")
@@ -543,6 +548,7 @@ def cmd_render(args) -> int:
           f"出框 {FULL_ART_MODES[spec.render.fullart.mode].zh_cn} · "
           f"语言 {LANGS.get(spec.render.lang_text, LANGS['zh_cn']).zh_cn}")
     o.emit({"written": written, "size": list(img.size), "spec": spec.to_dict()})
+    img.close()
     return 0
 
 

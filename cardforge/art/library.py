@@ -20,10 +20,13 @@
 """
 from __future__ import annotations
 
+import io
 import json
 import math
 import re
 import shutil
+import tempfile
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,6 +43,7 @@ __all__ = [
 VERSION_RE = re.compile(r"^v(\d+)\.(png|jpg|jpeg|webp)$", re.IGNORECASE)
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
 CURRENT_FILE = "current.json"
+_SAVE_LOCK = threading.RLock()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -76,8 +80,20 @@ def _now() -> str:
 
 
 def _write_json(path: Path, obj: dict) -> str:
+    """同目录临时文件 + 原子替换，避免并发读取看到半份 JSON。"""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", dir=path.parent,
+                prefix=f".{path.name}.", suffix=".tmp", delete=False) as fh:
+            tmp = Path(fh.name)
+            json.dump(obj, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+        tmp.replace(path)
+    finally:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
     return str(path.resolve())
 
 
@@ -103,8 +119,8 @@ def _next_version(d: Path) -> int:
     return mx + 1
 
 
-def save(card_id: int, img_or_bytes, meta: dict, archetype: str = "",
-         layers: dict | None = None) -> dict:
+def _save_unlocked(card_id: int, img_or_bytes, meta: dict, archetype: str = "",
+                   layers: dict | None = None) -> dict:
     """存一版卡图，写 ``v{n}.png`` + ``v{n}.meta.json``，并把 ``current`` 指向它。
 
     :param card_id: 卡 id（``CardSpec.id``）。
@@ -122,7 +138,12 @@ def save(card_id: int, img_or_bytes, meta: dict, archetype: str = "",
     png = d / f"v{version}.png"
 
     if isinstance(img_or_bytes, (bytes, bytearray)):
-        png.write_bytes(bytes(img_or_bytes))
+        raw = bytes(img_or_bytes)
+        if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+            png.write_bytes(raw)
+        else:
+            # 上传接口接收 JPEG/WebP 字节；只改后缀会让 data URI 与后续导出格式不符。
+            _convert_to_png(io.BytesIO(raw), png)
     elif isinstance(img_or_bytes, (str, Path)):
         src = Path(img_or_bytes)
         if not src.exists():
@@ -148,7 +169,8 @@ def save(card_id: int, img_or_bytes, meta: dict, archetype: str = "",
         p = Path(str(src))
         if not p.exists():
             continue
-        dst = d / f"v{version}_{str(role).strip().lower()}{'.png' if p.suffix.lower() == '.png' else p.suffix.lower()}"
+        role_name = re.sub(r"[^a-z0-9_-]+", "_", str(role).strip().lower()) or "layer"
+        dst = d / f"v{version}_{role_name}.png"
         if p.suffix.lower() == ".png":
             shutil.copyfile(p, dst)
         else:
@@ -172,6 +194,13 @@ def save(card_id: int, img_or_bytes, meta: dict, archetype: str = "",
     return {"ok": True, "version": version, "image": str(png.resolve()),
             "meta": str(mp.resolve()), "dir": str(d.resolve()), "current": cur,
             "layers": {k: str((d / v).resolve()) for k, v in layer_files.items()}}
+
+
+def save(card_id: int, img_or_bytes, meta: dict, archetype: str = "",
+         layers: dict | None = None) -> dict:
+    """串行分配版本并入库；并发请求不会争用同一个 ``v{n}`` 覆盖历史。"""
+    with _SAVE_LOCK:
+        return _save_unlocked(card_id, img_or_bytes, meta, archetype, layers)
 
 
 def layers_of(card_id: int, version: int | None = None,
@@ -210,9 +239,9 @@ def load_for_render(card_id: int, archetype: str = "",
 
     def _open(p):
         try:
-            im = Image.open(str(p))
-            im.load()
-            return im
+            with Image.open(str(p)) as src:
+                src.load()
+                return src.copy()
         except Exception:
             return None
 
@@ -228,7 +257,7 @@ def load_for_render(card_id: int, archetype: str = "",
     return out
 
 
-def _convert_to_png(src: Path, dst: Path) -> None:
+def _convert_to_png(src, dst: Path) -> None:
     from PIL import Image
     with Image.open(src) as im:
         im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") else "RGB").save(dst, "PNG")
@@ -254,7 +283,10 @@ def versions(card_id: int, archetype: str = "") -> list[dict]:
     d = dir_for(card_id, archetype)
     if not d.exists():
         return []
-    cur = (current(card_id, archetype) or {}).get("version")
+    # 直接读指针，不能调用 current()：后者在指针缺失时会回调 versions() 求回退，
+    # 互相递归会导致 RecursionError。
+    pointer = _read_json(d / CURRENT_FILE, {}) or {}
+    cur = pointer.get("version") if isinstance(pointer, dict) else None
     out: list[dict] = []
     for p in sorted(d.iterdir()):
         m = VERSION_RE.match(p.name)
@@ -456,14 +488,18 @@ def prune(card_id: int, keep: int = 3, archetype: str = "") -> dict:
     vs = versions(card_id, archetype)
     keep = max(1, int(keep))
     cur_v = (current(card_id, archetype) or {}).get("version")
-    victims = [v for v in vs[:-keep]] if len(vs) > keep else []
-    if cur_v and all(v["version"] != cur_v for v in vs[-keep:]):
-        # 当前版本不在保留窗口里 → 少删一个，保证 current 还在
-        victims = victims[:-1] if victims else victims
+    protected = {int(v["version"]) for v in vs[-keep:]}
+    if cur_v:
+        protected.add(int(cur_v))
+    victims = [v for v in vs if int(v["version"]) not in protected]
     removed: list[int] = []
     for v in victims:
         for p in (Path(v["image"]), Path(v["meta"]) if v["meta"] else None):
             if p and p.exists():
                 p.unlink()
+        # 分层件与主图同生命周期，不能只删主图而留下无法引用的孤儿层。
+        for p in dir_for(card_id, archetype).glob(f"v{int(v['version'])}_*"):
+            if p.is_file():
+                p.unlink()
         removed.append(v["version"])
-    return {"ok": True, "removed": removed, "kept": [v["version"] for v in vs[-keep:]]}
+    return {"ok": True, "removed": removed, "kept": sorted(protected)}

@@ -32,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -81,10 +82,20 @@ def _digest(data: Any) -> str:
 
 
 def _write_json(path: Path, data: Any) -> None:
-    """UTF-8 无 BOM + ``ensure_ascii=False`` + ``indent=2`` + ``\\n``。"""
+    """UTF-8 无 BOM + 原子替换；读者不会看到写入一半的 JSON。"""
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = json.dumps(data, ensure_ascii=False, indent=2)
-    path.write_text(text + "\n", encoding="utf-8", newline="\n")
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", newline="\n", dir=path.parent,
+                prefix=f".{path.name}.", suffix=".tmp", delete=False) as fh:
+            tmp = Path(fh.name)
+            json.dump(data, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+        tmp.replace(path)
+    finally:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
 
 
 def _read_json(path: Path) -> dict | None:

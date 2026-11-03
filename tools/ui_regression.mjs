@@ -71,8 +71,8 @@ class CDP {
 }
 
 const port = await freePort();
-const profile = path.join(out, 'chromium-profile');
-fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 150 });
+// 每轮独立 profile：不递归删除旧浏览器数据，也避免多轮验收互相污染。
+const profile = fs.mkdtempSync(path.join(out, 'chromium-profile-'));
 const browser = spawn(edge, [
   '--headless=new', '--disable-gpu', '--no-first-run', '--disable-extensions',
   '--hide-scrollbars', `--remote-debugging-port=${port}`,

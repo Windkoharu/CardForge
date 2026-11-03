@@ -7,13 +7,15 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TEST_WORKSPACE = ROOT / "workspace" / ".cache" / "ui-workspace"
-shutil.rmtree(TEST_WORKSPACE, ignore_errors=True)
+CACHE_ROOT = ROOT / "workspace" / ".cache"
+CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+TEST_WORKSPACE = Path(tempfile.mkdtemp(prefix="ui-workspace-", dir=CACHE_ROOT))
 os.environ["CARDFORGE_WORKSPACE"] = str(TEST_WORKSPACE)
 sys.path.insert(0, str(ROOT))
 from cardforge.core import paths as core_paths  # noqa: E402
@@ -54,8 +56,7 @@ def capture_screenshots(edge: Path, url: str, out: Path) -> int:
     ]
     for name, stage, size in plan:
         target = out / f"{name}.png"
-        profile = out / f"profile-{name}"
-        shutil.rmtree(profile, ignore_errors=True)
+        profile = Path(tempfile.mkdtemp(prefix=f"profile-{name}-", dir=out))
         target.unlink(missing_ok=True)
         args = [
             str(edge), "--headless=new", "--disable-gpu", "--hide-scrollbars",
@@ -63,11 +64,8 @@ def capture_screenshots(edge: Path, url: str, out: Path) -> int:
             "--virtual-time-budget=12000", f"--user-data-dir={profile}",
             f"--screenshot={target}", f"{url}/?stage={stage}&card={card_id}",
         ]
-        try:
-            result = subprocess.run(args, capture_output=True, text=True,
-                                    encoding="utf-8", errors="replace", timeout=90)
-        finally:
-            shutil.rmtree(profile, ignore_errors=True)
+        result = subprocess.run(args, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=90)
         if result.returncode or not target.is_file():
             print(f"FAIL 截图 {name}: {result.stderr[-1200:]}")
             return 1

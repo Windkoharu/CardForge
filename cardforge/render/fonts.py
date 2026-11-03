@@ -217,6 +217,7 @@ _RE_FONT_INDEX = re.compile(r"#(\d+)$")
 # ══════════════════════════════════════════════════════════════════════
 
 _lock = threading.RLock()
+_RESOLVE_CACHE_CAP = 2048       # 文本每次编辑都会形成新键，必须有上限
 _resolve_cache: dict[tuple[str, str, str | None], dict] = {}   # role+lang+text → 解析结果
 _coverage_cache: dict[tuple[str, int, int], tuple] = {}        # path+index+mtime → (cmap_keys,)
 _font_index_cache: dict[tuple[str, int], int] = {}             # path+mtime → ttc 索引
@@ -674,6 +675,8 @@ def resolve(role: str, lang: str = "zh_cn", text: str | None = None) -> str | No
     if hit is None:
         hit = _pick(r, lg, text or "")
         with _lock:
+            if len(_resolve_cache) >= _RESOLVE_CACHE_CAP:
+                _resolve_cache.clear()
             _resolve_cache[key] = hit
     return hit["path"]
 

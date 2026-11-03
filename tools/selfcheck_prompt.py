@@ -376,9 +376,15 @@ chk("自存模板能删", TP.delete_user(b["key"], root=tmp_root).get("ok") is T
 chk("坏文件不炸（返回空表）",
     TP.load_user(ROOT / "workspace" / ".cache" / "definitely-missing-dir") == [])
 try:
-    import urllib.request, json as _json
-    r = _json.loads(urllib.request.urlopen(
-        "http://127.0.0.1:8790/api/art/templates?card=210000021", timeout=30).read().decode())
+    # 直接驱动真实路由，不要求测试前手动起 8790，也避免系统代理影响本机请求。
+    from cardforge.server.app import App
+    from cardforge.server import api_art
+    from cardforge.server.http import Request
+    app = App()
+    api_art.register(app)
+    resp = app.handle(Request("GET", "/api/art/templates", query={"card": "210000021"}))
+    r = json.loads(resp.body.decode("utf-8"))
+    chk("模板端点可访问", resp.status == 200 and r.get("ok") is True)
     chk("端点返回 12+ 套", r.get("count", 0) >= 12, str(r.get("count")))
     chk("端点带 bilingual 与语言说明", "bilingual" in r and "language_note" in r)
     chk("端点带推荐顺序", bool(r.get("recommended")))

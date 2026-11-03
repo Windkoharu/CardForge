@@ -41,6 +41,17 @@ __all__ = ["App", "Route", "create_app", "run", "CFG", "DEFAULT_CFG"]
 _ALLOWED_HOSTS = {"127.0.0.1", "localhost", "::1"}
 _ALLOWED_ORIGINS_RE = re.compile(r"^https?://(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$", re.I)
 
+
+def _host_name(value: str) -> str:
+    """从 Host/Referer 的 authority 中取小写主机名，兼容带端口的 IPv6。"""
+    raw = str(value or "").strip()
+    if raw.startswith("["):
+        end = raw.find("]")
+        return raw[1:end].lower() if end > 0 else ""
+    # 未加方括号的 IPv6 没有合法端口语义，整段按主机名处理。
+    return (raw.rsplit(":", 1)[0] if raw.count(":") == 1 else raw).lower()
+
+
 DEFAULT_CFG: dict[str, Any] = {
     "host": "127.0.0.1",
     "port": 8790,
@@ -163,7 +174,7 @@ class App:
 
     # ── 分发 ────────────────────────────────────────────────────
     def handle(self, req: Request) -> Response:
-        allowed = {r.method for r in self.routes if match_route(r.pattern, req.path)}
+        allowed = {r.method for r in self.routes if match_route(r.pattern, req.path) is not None}
         for r in self.routes:
             if r.method != req.method:
                 continue
@@ -177,8 +188,11 @@ class App:
                     return _to_response(early)
             return _to_response(r.fn(req))
         if allowed:
-            return error_response(errors.CardForgeError(
-                f"{req.path} 不支持 {req.method}", f"支持的方法：{'、'.join(sorted(allowed))}"))
+            methods = sorted(allowed | ({"HEAD"} if "GET" in allowed else set()))
+            return Response.json(
+                {"ok": False, "error": f"{req.path} 不支持 {req.method}",
+                 "kind": "bad_method", "hint": f"支持的方法：{'、'.join(methods)}"},
+                status=405, Allow=", ".join(methods))
         return Response.json({"ok": False, "error": f"没有这个接口：{req.path}",
                               "kind": "not_found",
                               "hint": "见 docs/02 §10 的路由清单，或刷新页面重来"},
@@ -475,7 +489,7 @@ def _make_handler(app: App):
             return {k.lower(): v for k, v in self.headers.items()}
 
         def _origin_allowed(self, headers: dict) -> tuple[bool, str]:
-            host = (headers.get("host") or "").split(":")[0].strip("[]")
+            host = _host_name(headers.get("host") or "")
             if host not in _ALLOWED_HOSTS and not self.server.allow_external:  # type: ignore[attr-defined]
                 return False, f"Host 头是 {host}，只允许本机地址"
             origin = headers.get("origin") or ""
@@ -484,7 +498,7 @@ def _make_handler(app: App):
             referer = headers.get("referer") or ""
             if referer:
                 m = re.match(r"^https?://([^/]+)", referer)
-                if m and m.group(1).split(":")[0].strip("[]") not in _ALLOWED_HOSTS:
+                if m and _host_name(m.group(1)) not in _ALLOWED_HOSTS:
                     return False, f"页面来源 {m.group(1)} 不是本机"
             return True, ""
 
@@ -494,7 +508,8 @@ def _make_handler(app: App):
             if resp.stream is not None:
                 self.send_response(resp.status)
                 self.send_header("Content-Type", resp.content_type)
-                self.send_header("Cache-Control", "no-cache")
+                if not any(k.lower() == "cache-control" for k in resp.headers):
+                    self.send_header("Cache-Control", "no-cache")
                 for k, v in resp.headers.items():
                     self.send_header(k, v)
                 self.send_header("Transfer-Encoding", "chunked")
@@ -538,7 +553,9 @@ def _make_handler(app: App):
                 if path.startswith("/api/"):
                     body = b"" if method in ("GET", "HEAD", "DELETE") else read_body(
                         self.rfile, headers, limit=int(app.cfg.get("max_body", 0) or 0))
-                    req = Request(method, path, query=parse_query(parsed.query),
+                    # HTTP HEAD 复用 GET 路由，由 _send(head_only=True) 去掉响应体。
+                    req = Request("GET" if method == "HEAD" else method, path,
+                                  query=parse_query(parsed.query),
                                   body=body, headers=headers, app=app)
                     resp = app.handle(req)
                 elif method in ("GET", "HEAD"):
@@ -613,6 +630,13 @@ class _Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
         super().__init__(addr, handler)
         self.allow_external = str(addr[0]) not in _ALLOWED_HOSTS
         self.cardforge_app = None
+
+    def handle_error(self, request, client_address) -> None:
+        # 浏览器取消预览/关闭 SSE 时，响应头也可能尚未写完；这属于正常断连。
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            return
+        super().handle_error(request, client_address)
 
 
 def _open_browser(url: str) -> None:

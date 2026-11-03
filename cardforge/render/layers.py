@@ -12,7 +12,10 @@ from __future__ import annotations
 import math
 from typing import Callable, Optional
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+try:  # SVG 预览只用本模块的纯文本助手，不应被 Pillow 缺失拖垮
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+except ImportError:  # pragma: no cover - 由无 Pillow 独立进程回归覆盖
+    Image = ImageDraw = ImageFilter = ImageFont = None  # type: ignore[assignment]
 
 from ..core import constants as C
 from ..core.enums import FRAMES, MONSTER_TAGS, SPELL_KINDS, TRAP_KINDS, label_of
@@ -21,7 +24,8 @@ from . import geometry as G
 from . import text as T
 from .palettes import Palette, darken, lighten, name_is_white
 
-FontOf = Callable[[int], Optional[ImageFont.FreeTypeFont]]
+FontOf = (Callable[[int], Optional[ImageFont.FreeTypeFont]]
+          if ImageFont is not None else Callable[[int], object])
 
 #: 行距相对字号的最小比例。官方卡文约 1.16；模板自带的 0.98–1.02 会让 CJK 行间压字。
 MIN_LINE_RATIO = 1.16
