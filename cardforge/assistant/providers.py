@@ -19,6 +19,10 @@ Provider 顺序（``prefer="auto"``）：
 ``openai_compat``（环境变量优先）→ **存档配置**（``llm_config`` 的 active，
 即界面里保存的模型）→ 本机常见兼容端口 → ``ollama`` → ``none``。
 ``prefer="config"`` 则只看存档配置（不可达即降级，不回落本机端口）。
+
+紧急闸：环境变量 ``CARDFORGE_LLM``（如 ``none`` / ``offline``）设置后**压过一切
+prefer 与端点探测**，直达 :class:`NullProvider`。自测 / CI / 「机器上恰好跑着
+推理服务」的开发机需要确定性地走规则通路时用它。
 """
 from __future__ import annotations
 
@@ -627,6 +631,16 @@ def _env(name: str, default: str = "") -> str:
     return str(os.environ.get(name) or default or "").strip()
 
 
+def _forced_prefer() -> str:
+    """``CARDFORGE_LLM`` 紧急闸（空 = 不干预）。"""
+    return _env("CARDFORGE_LLM").lower()
+
+
+def _effective_prefer(prefer: str) -> str:
+    """调用方 prefer 与紧急闸的合并结果；闸一旦设置就压过一切。"""
+    return _forced_prefer() or (prefer or "auto").strip().lower()
+
+
 def _env_compat() -> Optional[OpenAICompatProvider]:
     """环境变量优先：``OPENAI_BASE_URL`` / ``OPENAI_API_KEY`` / ``OPENAI_MODEL``
     （另接受 ``OPENAI_API_BASE``、``CARDFORGE_LLM_*``）。"""
@@ -643,11 +657,13 @@ def _env_compat() -> Optional[OpenAICompatProvider]:
 
 def _build(prefer: str) -> tuple[LLMProvider, dict]:
     """按 ``prefer`` 组装 provider。找不到就返回 :class:`NullProvider`。"""
-    prefer = (prefer or "auto").strip().lower()
+    prefer = _effective_prefer(prefer)
     null = NullProvider(responder=(_STATE.get("null") or NullProvider())._responder)
 
     if prefer in ("none", "null", "off", "offline"):
-        return null, {"reason": "显式要求离线（prefer=none）"}
+        forced = bool(_forced_prefer())
+        return null, {"reason": "显式要求离线（prefer=none）"
+                                + ("（CARDFORGE_LLM 紧急闸）" if forced else "")}
 
     if prefer in ("config", "saved", "file"):
         p, info = _config_provider()
@@ -729,6 +745,9 @@ def detect_provider(prefer: str = "auto", *, refresh: bool = False) -> LLMProvid
     """
     with _LOCK:
         base = (prefer or "auto").lower()
+        forced = _forced_prefer()
+        # ⚠ ``CARDFORGE_LLM`` 必须进缓存键：闸在进程中途打开/关掉时，
+        # 否则旧的缓存 provider 还要活到 NEGATIVE_TTL 或重启才生效。
         # 缓存键带上 llm_config 的 (版本, mtime) —— 否则「刚在界面里换了模型」
         # 要等 NEGATIVE_TTL 或重启进程才生效（保存一次 rev+1，缓存立即失效）；
         # mtime 那一半管**跨进程**：用户在别的终端用 CLI 改了配置文件，
@@ -738,9 +757,9 @@ def detect_provider(prefer: str = "auto", *, refresh: bool = False) -> LLMProvid
         # misroute 到 auto 链（缺陷 #35，#8 引入）。
         try:
             from . import llm_config as _lc
-            key = f"{base}#cfg{_lc.stamp()}"
+            key = f"{base}{'#' + forced if forced else ''}#cfg{_lc.stamp()}"
         except Exception:
-            key = base
+            key = base if not forced else f"{base}#{forced}"
         cached = _STATE.get("provider")
         negative = isinstance(cached, NullProvider)
         fresh = (time.time() - float(_STATE.get("stamp") or 0.0)) < NEGATIVE_TTL_SEC

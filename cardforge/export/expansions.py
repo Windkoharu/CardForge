@@ -625,6 +625,10 @@ def verify(pack_dir: str | os.PathLike[str], *, official: OfficialPool | None = 
            check_official: bool = True) -> list[Issue]:
     """**G5 导出自检** —— 只读产物、独立重算，返回 ``list[Issue]``（不抛异常）。
 
+    多个包可以共存于同一个 ``expansions/``（EDOPro 的用法）：cdb 按
+    「基础包 + 其语言包」分组，manifest 卡表期望只作用于它自己那个包，
+    其余组做组内自洽检查（缺陷 #47）。
+
     检查清单：
 
     ==========================  ======  ==========================================
@@ -748,39 +752,63 @@ def _verify_impl(pack_dir: str | os.PathLike[str], official: OfficialPool | None
         finally:
             con.close()
 
-    # 基础包 = 名字里没有 "-" 的那个；其余按语言包对待
-    plain = [f for f in cdb_files if "-" not in f.stem]
-    base = plain[0] if plain else cdb_files[0]
-    base_ids = ids_by_cdb.get(base.name, set())
-    for f in cdb_files:
-        if f is base:
-            continue
-        got = ids_by_cdb.get(f.name, set())
-        if got != base_ids:
-            miss = sorted(base_ids - got)[:8]
-            extra = sorted(got - base_ids)[:8]
-            issues.append(_issue(
-                "G5_LANG_MISMATCH", "WARN",
-                f"语言包 {f.name} 与基础包 {base.name} 卡号集合不一致"
-                f"（少 {miss}{' …' if len(base_ids - got) > 8 else ''}；"
-                f"多 {extra}{' …' if len(got - base_ids) > 8 else ''}）",
-                hint="语言包只覆盖部分卡时，未覆盖的卡在该语言下会显示为空白。",
-                field=f.name))
+    # ── 按包分组：一个 expansions/ 可以并存多个包（EDOPro 就是全量加载）────
+    # 基础包 = 名字里没有 "-" 的；语言包 = 基础包名 + "-xxx"。
+    # 此前把整个目录当「一个包」：第二个包的卡会被第一个包的 manifest 判成
+    # 「清单外多余卡」，第一个包的卡又在另一个包的 cdb 里被报「没有记录」
+    # （缺陷 #47：先导出星奏、再导出霆铸，G5 直接假失败 39 项阻塞）。
+    # 卡表期望与语言一致性只在**组内**比较；manifest 覆盖不到的组，
+    # 以自身 cdb 行集合为卡表真相（语言自洽即可）。
+    bases = [f for f in cdb_files if "-" not in f.stem]
+    groups: list[dict] = []
+    if bases:
+        for b in bases:
+            members = [f for f in cdb_files
+                       if f is not b and f.stem.startswith(b.stem + "-")]
+            groups.append({"base": b, "files": [b] + members})
+        assigned = {f.name for g in groups for f in g["files"]}
+        for f in cdb_files:          # 没有基础包认领的孤儿文件单独成组
+            if f.name not in assigned:
+                groups.append({"base": f, "files": [f]})
+    else:                            # 一个基础包都没有：退化为首文件领组（旧行为）
+        groups = [{"base": cdb_files[0], "files": list(cdb_files)}]
 
-    expected = {int(i) for i in (manifest or {}).get("card_ids", []) or []} or set(base_ids)
-    for f in cdb_files:
-        got = ids_by_cdb.get(f.name, set())
-        for cid in sorted(expected - got)[:12]:
-            issues.append(_issue("G5_CDB_ROW_MISSING", "ERROR",
-                                 f"卡 {cid} 在 {f.name} 里没有记录",
-                                 hint="从 manifest 看它应该在这个包里。", field=str(cid)))
-        extra = sorted(got - expected)[:12]
-        if extra:
-            issues.append(_issue(
-                "G5_CDB_ROW_EXTRA", "ERROR",
-                f"{f.name} 里多出了不在导出清单中的卡：{extra}",
-                hint="通常是重复导出留下的旧卡；重新导出以同步本次卡表。",
-                field=f.name))
+    manifest_ids = {int(i) for i in (manifest or {}).get("card_ids", []) or []}
+    mf_name = str((manifest or {}).get("name") or "")
+
+    for g in groups:
+        base: Path = g["base"]
+        base_ids = ids_by_cdb.get(base.name, set())
+        for f in g["files"][1:]:
+            got = ids_by_cdb.get(f.name, set())
+            if got != base_ids:
+                miss = sorted(base_ids - got)[:8]
+                extra = sorted(got - base_ids)[:8]
+                issues.append(_issue(
+                    "G5_LANG_MISMATCH", "WARN",
+                    f"语言包 {f.name} 与基础包 {base.name} 卡号集合不一致"
+                    f"（少 {miss}{' …' if len(base_ids - got) > 8 else ''}；"
+                    f"多 {extra}{' …' if len(got - base_ids) > 8 else ''}）",
+                    hint="语言包只覆盖部分卡时，未覆盖的卡在该语言下会显示为空白。",
+                    field=f.name))
+        # manifest 只描述它自己的那次导出；单组目录沿用旧行为（改名包也认）。
+        if manifest is not None and (base.stem == mf_name or len(groups) == 1):
+            expected = manifest_ids or set(base_ids)
+        else:
+            expected = set(base_ids)
+        for f in g["files"]:
+            got = ids_by_cdb.get(f.name, set())
+            for cid in sorted(expected - got)[:12]:
+                issues.append(_issue("G5_CDB_ROW_MISSING", "ERROR",
+                                     f"卡 {cid} 在 {f.name} 里没有记录",
+                                     hint="从 manifest 看它应该在这个包里。", field=str(cid)))
+            extra = sorted(got - expected)[:12]
+            if extra:
+                issues.append(_issue(
+                    "G5_CDB_ROW_EXTRA", "ERROR",
+                    f"{f.name} 里多出了不在导出清单中的卡：{extra}",
+                    hint="通常是重复导出留下的旧卡；重新导出以同步本次卡表。",
+                    field=f.name))
 
     # ── 卡号与官方池冲突 ─────────────────────────────────────────────
     if check_official:

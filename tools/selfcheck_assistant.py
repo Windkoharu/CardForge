@@ -23,6 +23,9 @@
    没有 LLM 时诚实降级，不编草稿、不拿模板冒充 AI 产物。
 
 报告落盘：``workspace/.cache/selfcheck-assistant.txt``（UTF-8，控制台只打 ASCII 摘要）。
+
+自测从 [2] 起拉 ``CARDFORGE_LLM=none`` 紧急闸 —— 本机恰好开着 LM Studio /
+Ollama / vLLM / LocalAI 时，「无 LLM 规则通路」的断言不许变成概率事件。
 """
 from __future__ import annotations
 
@@ -38,6 +41,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from cardforge.core import console as _console                        # noqa: E402
+_console.setup()   # REPORT= 路径含中文：非 GBK 管道下 print 也不许炸
 
 from cardforge.core import paths                                 # noqa: E402
 from cardforge.assistant import chat, knowledge, persona       # noqa: E402
@@ -180,6 +186,21 @@ _none_p = providers.detect_provider("none")
 _none_d = str(providers.provider_info().get("detail", {}))
 check("1.10 prefer=none 直达离线（不误探网络）",
       _none_p.name == "none" and "显式要求离线" in _none_d, _none_d[:60])
+
+# ══════════════════════════════════════════════════════════════════════
+#  从 [2] 起拉闸：CARDFORGE_LLM=none 强制走规则通路
+# ══════════════════════════════════════════════════════════════════════
+# 「无 LLM 也给出结论」这类断言不许依赖本机有没有恰好开着推理服务：
+# 1234/8000/8080 上只要有一个活着的 OpenAI 兼容端点，auto 探测就会抓住它，
+# 措辞改走模型，「计数：」「配比参考」这些内核事实随之漂移，自测跟着抖。
+# 拉闸后本进程与所有子进程（继承环境）都确定性地走 NullProvider 规则通路。
+os.environ["CARDFORGE_LLM"] = "none"
+providers.reset_probe_cache()
+_gate_p = providers.detect_provider("auto")
+say("")
+say(f"[2-0] CARDFORGE_LLM=none 紧急闸 → provider={_gate_p.name} "
+    f"{json.dumps(providers.provider_info()['detail'], ensure_ascii=False)}")
+check("2.0 紧急闸生效：拉闸后 auto 也直达规则通路", _gate_p.name == "none", _gate_p.name)
 
 # ══════════════════════════════════════════════════════════════════════
 #  2. CLI 真跑

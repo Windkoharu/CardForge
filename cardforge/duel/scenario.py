@@ -60,6 +60,8 @@ class Scenario:
     action: dict = _f(default_factory=dict)    # 传给 bot 的倾向提示
     expect: dict = _f(default_factory=dict)    # 断言：见 _check()
     note: str = ""
+    #: 只在被测卡含这些效果种类时运行；空 = 全部卡。用于避免把回手断言套给纯特召卡。
+    kinds: tuple[str, ...] = ()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -177,6 +179,13 @@ def run_batch(scenarios: list[Scenario], specs: list[CardSpec]) -> list[dict]:
     out: list[dict] = []
     for sc in scenarios or []:
         try:
+            if spec is not None and sc.kinds:
+                present = {str(e.kind or "") for e in spec.effect_specs()}
+                if not present.intersection(sc.kinds):
+                    out.append({"name": sc.name, "ok": True, "status": "skipped",
+                                "observed": False, "log": [],
+                                "detail": "被测卡没有该场景针对的效果种类，跳过而不计失败"})
+                    continue
             out.append(run(sc, spec))
         except Exception as e:
             out.append({"name": getattr(sc, "name", "?"), "ok": False,
@@ -366,6 +375,7 @@ SCENARIOS: list[Scenario] = [
              "留下目的地位置。这里只断言「至少发生一次进手卡的移动」，"
              "断不到就是没起效。",
         expect={"min_turns": 3, "at_least": {"to_hand": 1}},
+        kinds=("search", "search_grave", "recover", "search_banished"),
     ),
     Scenario(
         name="魔陷发动与结算",

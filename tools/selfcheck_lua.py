@@ -41,6 +41,8 @@ import argparse, json, re, subprocess, sys, tempfile, traceback
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from cardforge.core import console as _console  # noqa: E402
+_console.setup()   # 收尾 print 在 GBK 管道下也要稳
 from cardforge.content import effects as EF
 from cardforge.content.lua import apicatalog as API, emit, fragments as FR, lint
 from cardforge.core import paths

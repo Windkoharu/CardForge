@@ -31,6 +31,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from cardforge.core import console as _console                       # noqa: E402
+_console.setup()   # check() 直接 print 中文
+
 from cardforge.cli import _demo_spec                    # noqa: E402
 from cardforge.core import paths                        # noqa: E402
 from cardforge.core.enums import FRAMES, FULL_ART_MODES  # noqa: E402

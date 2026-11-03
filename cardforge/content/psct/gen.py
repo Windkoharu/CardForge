@@ -766,7 +766,9 @@ def _template_ctx(eff: EffectSpec, gen: _Gen, params: dict, kind: str) -> dict:
     # 官方简中实测 568 张写「这张卡的攻击力上升…」，写「1张卡的攻击力上升…」的有 0 张 ——
     # 而 target 缺省时兜底出来的恰恰是后者，等于凭空造一个不存在的官方句式。
     if _bool(p.get("self_obj"), False) and getattr(eff, "target", None) is None:
-        ctx["obj"] = {"ja": "このカード", "en": "this card"}.get(lang, "这张卡")
+        self_word = {"ja": "このカード", "en": "this card"}.get(lang, "这张卡")
+        ctx["obj"] = self_word
+        ctx["objc"] = self_word
     return ctx
 
 

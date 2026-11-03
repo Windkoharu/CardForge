@@ -2,7 +2,9 @@
 
 用法::
 
-    PYTHONIOENCODING=utf-8 python tools/selfcheck_prompt.py
+    python tools/selfcheck_prompt.py
+
+（自带控制台编码自适应；显式设了 PYTHONIOENCODING 也不会被覆盖。）
 
 为什么单独有一套：出图链路里最容易骗人的就是「提示词看起来按我说的做了」。
 历史缺陷（本轮修掉的三类，全部有回归锁）：
@@ -41,6 +43,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from cardforge.core import console as _console                       # noqa: E402
+_console.setup()   # 控制台/pipes 是 GBK 时中文与 ⏎ 都不许把自测打死
 
 from cardforge.art import prompt as PR                                       # noqa: E402
 from cardforge.art import profiles as PF                                     # noqa: E402

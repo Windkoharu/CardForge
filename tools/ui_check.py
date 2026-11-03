@@ -18,6 +18,8 @@ CACHE_ROOT.mkdir(parents=True, exist_ok=True)
 TEST_WORKSPACE = Path(tempfile.mkdtemp(prefix="ui-workspace-", dir=CACHE_ROOT))
 os.environ["CARDFORGE_WORKSPACE"] = str(TEST_WORKSPACE)
 sys.path.insert(0, str(ROOT))
+from cardforge.core import console as _console  # noqa: E402
+_console.setup()   # 中文断言与路径直接 print：GBK 管道下不许崩
 from cardforge.core import paths as core_paths  # noqa: E402
 from cardforge.server.app import create_app, serve_once  # noqa: E402
 

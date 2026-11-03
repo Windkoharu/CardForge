@@ -27,6 +27,9 @@ TEST_WORKSPACE = pathlib.Path(tempfile.mkdtemp(prefix="e2e-workspace-", dir=CACH
 os.environ["CARDFORGE_WORKSPACE"] = str(TEST_WORKSPACE)
 sys.path.insert(0, str(ROOT))
 
+from cardforge.core import console as _console                       # noqa: E402
+_console.setup()   # 收尾 print 的路径含中文：GBK 管道下也不许炸
+
 from cardforge.content import effects as EF                      # noqa: E402
 from cardforge.content import psct                               # noqa: E402
 from cardforge.content.lua import apicatalog as API              # noqa: E402

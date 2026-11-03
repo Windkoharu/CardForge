@@ -327,12 +327,17 @@ python tools/smoke.py               # 冒烟 21 项（含召唤条件、真 ocgc
 python tools/selfcheck_lua.py       # Lua 生成器 409 项断言
 python tools/selfcheck_prompt.py    # 卡图提示词保真 110 项断言（含 12 套模板与真实路由）
 python tools/selfcheck_tidy.py      # 卡文整理器 78 项断言（零 AI 整理，且不许改坏语义）
-python tools/selfcheck_assistant.py # 艾莉娅 81 项断言（含 AI 起草的「LLM 只提议」不变式）
-python tools/selfcheck_regressions.py # 缺陷回归 19 项（资产库、HTTP、资源释放、无 Pillow 降级）
+python tools/selfcheck_assistant.py # 艾莉娅 82 项断言（含 AI 起草的「LLM 只提议」不变式）
+python tools/selfcheck_regressions.py # 缺陷回归 23 项（资产库、HTTP、资源释放、无 Pillow 降级、LLM 紧急闸、G5 多包共存）
 python tools/selfcheck_overframe.py # 出框渲染 50 项断言
+python tools/selfcheck_thunderforge.py # 竞技系列「霆铸」14 卡全链验收（G1 competitive/G2/G4/配表；--g3 加真对局）
 python tools/e2e_check.py           # 隔离工作区端到端 26 项；--keep 保留产物
 npm run check:ui                    # 真实浏览器 15 项 + 桌面/窄屏截图
 ```
+
+> 自测要**确定性**：`selfcheck_assistant` 从第 [2] 项起自动拉 `CARDFORGE_LLM=none`
+> 紧急闸 —— 本机恰好开着 LM Studio / Ollama / vLLM / LocalAI 时，「无 LLM 规则通路」
+> 的断言也不许变成概率事件。所有脚本自带控制台编码自适应，重定向 / 管道到 GBK 都不崩。
 
 > 艾莉娅的立绘与表情差分是**本地出图**的（krea2 + BiRefNet 抠底），
 > 想重出：`python tools/gen_aria.py --preset all`（需 ComfyUI 在线；生成凭据见
@@ -381,3 +386,4 @@ G1 平衡审计 pass、G2 脚本静态检查 pass、**G3 真开了一局 38 回�
 | `CARDFORGE_OCGCORE` | 直接指定 ocgcore 原生库路径 |
 | `CARDFORGE_PYTHON` | 直接指定启动用的 `python.exe`（便携版 / conda 常用） |
 | `CARDFORGE_NO_PIP` | `1` = 启动时不要提示自动安装 Pillow |
+| `CARDFORGE_LLM` | `none` = LLM 紧急闸：压过一切探测与 prefer，直达无 LLM 规则通路（自测 / CI 用） |

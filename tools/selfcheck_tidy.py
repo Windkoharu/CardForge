@@ -32,6 +32,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from cardforge.core import console as _console                       # noqa: E402
+_console.setup()   # 中文与 ─ 直接进控制台：GBK 管道下不许把自测打死
+
 from cardforge.content import effects as EF                          # noqa: E402
 from cardforge.content.psct import gen, lint, rules, tidy as TD      # noqa: E402
 from cardforge.core.models import CardSpec, EffectSpec, EffectTarget  # noqa: E402

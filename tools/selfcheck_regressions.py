@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import sqlite3
 import subprocess
 import sys
@@ -23,7 +24,9 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 
 from cardforge.art import library, run as art_run
 from cardforge.core import errors, update
-from cardforge.core.models import ArtRequest, CardSpec
+from cardforge.core.models import ArtRequest, CardSpec, EffectSpec
+from cardforge.duel import scenario
+from cardforge.content.psct import gen as psct_gen
 from cardforge.export import expansions, mdpro3
 from cardforge.pipeline import gates
 from cardforge.pool import cdb
@@ -118,6 +121,37 @@ def test_g5_extra_card() -> None:
     issues = expansions.verify(pack, check_official=False)
     extra = [i for i in issues if i.code == "G5_CDB_ROW_EXTRA"]
     assert extra and all(i.level == "ERROR" for i in extra), [i.to_dict() for i in issues]
+
+
+def test_g5_multi_pack_isolation() -> None:
+    """缺陷 #47：多包共存于同一 expansions/ 时 G5 假失败。
+
+    先导出 PackA、再往同一目录导出 PackB（EDOPro 支持的合法布局），
+    G5 曾把整目录当一个包：PackA 的卡被 PackB 的 manifest 报
+    「清单外多余卡」、PackB 的卡又在 PackA 的 cdb 里被报「没有记录」，
+    整个目录被 39 项假 ERROR 拦死。修复后按「基础包+语言包」分组，
+    卡表期望只管 manifest 自己那个包；但清单内的 EXTRA 仍必须能抓。
+    """
+    a1, a2 = card(210100031), card(210100032)
+    b1, b2 = card(210100033), card(210100034)
+    pack = TMP / "multipack"
+    expansions.build([a1, a2], pack, name="PackA", langs=("zh_cn", "ja"),
+                     copy_pics=False)
+    res_b = expansions.build([b1, b2], pack, name="PackB", copy_pics=False)
+    errs = [i for i in expansions.verify(pack, check_official=False)
+            if i.level == "ERROR"]
+    assert not errs, [i.to_dict() for i in errs]
+    # manifest 仍管自己的包：往 PackB 基础包塞外来卡，EXTRA 必须照抓
+    base_b = Path(res_b["expansions_dir"]) / "PackB.cdb"
+    con = cdb.open_cdb(base_b)
+    try:
+        cdb.upsert_card(con, card(210100035))
+    finally:
+        con.close()
+    extra = [i for i in expansions.verify(pack, check_official=False)
+             if i.code == "G5_CDB_ROW_EXTRA"]
+    assert extra and all(i.field == "PackB.cdb" for i in extra), \
+        [i.to_dict() for i in extra]
 
 
 def test_g2_empty_script() -> None:
@@ -451,9 +485,68 @@ assert resp.headers.get("X-CardForge-Preview") == "vector"
     assert res.returncode == 0, res.stderr[-2000:]
 
 
+def test_self_object_and_scenario_scope() -> None:
+    spec = card(210100110)
+    eff = EffectSpec(kind="cannot_be_targeted", trigger="CONTINUOUS",
+                     limit="none", params={"self_obj": True})
+    text = psct_gen.effect_to_text(eff, spec, "zh_cn", index=2)
+    assert "这张卡不能成为效果的对象" in text and "②：卡不能" not in text, text
+
+    scoped = scenario.Scenario(name="回手专用", kinds=("search", "recover"))
+    with mock.patch.object(scenario, "run", return_value={
+            "ok": True, "status": "pass", "observed": True, "detail": "ok", "log": []}) as run:
+        skipped = scenario.run_batch([scoped], [spec])
+        assert run.call_count == 0 and skipped[0]["status"] == "skipped", skipped
+        spec.effects = [EffectSpec(kind="search", trigger="IGNITION")]
+        scenario.run_batch([scoped], [spec])
+        assert run.call_count == 1, run.call_count
+
+
+def test_llm_kill_switch() -> None:
+    """CARDFORGE_LLM 紧急闸：设了就压过一切 prefer 直达规则通路。
+
+    缺陷：本机 8080 恰好开着 OpenAI 兼容服务时，auto 探测会抓住它，
+    「无 LLM 规则通路」的自测与用户预期一起变成概率事件。
+    """
+    from cardforge.assistant import providers as PV
+    old = os.environ.get("CARDFORGE_LLM")
+    try:
+        for prefer in ("auto", "lmstudio", "config"):
+            os.environ["CARDFORGE_LLM"] = "none"
+            p = PV.detect_provider(prefer, refresh=True)
+            assert p.name == "none", (prefer, p.name)
+        assert "紧急闸" in str(PV.provider_info()["detail"].get("reason", "")), \
+            PV.provider_info()
+        os.environ.pop("CARDFORGE_LLM", None)
+        assert PV.detect_provider("none", refresh=True).name == "none"  # 裸 prefer 照旧
+    finally:
+        os.environ.pop("CARDFORGE_LLM", None)
+        if old is not None:
+            os.environ["CARDFORGE_LLM"] = old
+        PV.reset_probe_cache()
+
+
+def test_tool_scripts_survive_gbk_pipes() -> None:
+    """每个入口级 tools 脚本都必须自带 stdout 编码自适应。
+
+    缺陷：tools 的 docstring 承诺「控制台只打 ASCII 摘要」，实际直接 print
+    中文 —— 管道到 GBK 时 ``UnicodeEncodeError`` 把自测打死（selfcheck_prompt
+    的 ⏎ 实测触发）。守卫两种写法都在本仓库验证过：console.setup() 或
+    io.TextIOWrapper 包 stdout。
+    """
+    for fname in ("smoke.py", "selfcheck_regressions.py", "selfcheck_prompt.py",
+                  "selfcheck_tidy.py", "selfcheck_assistant.py", "selfcheck_overframe.py",
+                  "selfcheck_thunderforge.py", "selfcheck_lua.py",
+                  "e2e_check.py", "ui_check.py"):
+        src = (ROOT / "tools" / fname).read_text(encoding="utf-8")
+        assert ("console.setup()" in src) or ("io.TextIOWrapper" in src), \
+            f"tools/{fname} 缺 stdout 编码守卫"
+
+
 for name, fn in (
     ("重复导出同步删除旧卡", test_reexport_sync),
     ("G5 检出清单外多余卡", test_g5_extra_card),
+    ("G5 多包共存按组隔离", test_g5_multi_pack_isolation),
     ("G2 空脚本按卡种判定", test_g2_empty_script),
     ("MDPro3 撞号时返回失败", test_mdpro_collision_status),
     ("导出 API 传播 G5 失败状态", test_api_build_failure_status),
@@ -471,6 +564,9 @@ for name, fn in (
     ("MDPro3 拒绝非 SQLite 数据库", test_mdpro_bad_cdb),
     ("字体解析缓存有上限", test_font_cache_cap),
     ("无 Pillow 时 SVG 预览仍可用", test_vector_preview_without_pillow),
+    ("自指卡文与场景适用范围", test_self_object_and_scenario_scope),
+    ("LLM 紧急闸 CARDFORGE_LLM", test_llm_kill_switch),
+    ("tools 脚本管道编码守卫", test_tool_scripts_survive_gbk_pipes),
 ):
     check(name, fn)
 
