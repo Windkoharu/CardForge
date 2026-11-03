@@ -1,0 +1,112 @@
+{
+  "name": "霆铸竞技",
+  "main": [
+    {
+      "card_id": 210100101,
+      "count": 3,
+      "role": "starter"
+    },
+    {
+      "card_id": 210100102,
+      "count": 3,
+      "role": "starter"
+    },
+    {
+      "card_id": 210100103,
+      "count": 3,
+      "role": "support"
+    },
+    {
+      "card_id": 210100104,
+      "count": 3,
+      "role": "support"
+    },
+    {
+      "card_id": 210100105,
+      "count": 3,
+      "role": "support"
+    },
+    {
+      "card_id": 210100106,
+      "count": 3,
+      "role": "starter"
+    },
+    {
+      "card_id": 210100107,
+      "count": 3,
+      "role": "support"
+    },
+    {
+      "card_id": 210100108,
+      "count": 3,
+      "role": "support"
+    },
+    {
+      "card_id": 210100109,
+      "count": 3,
+      "role": "support"
+    },
+    {
+      "card_id": 210100114,
+      "count": 3,
+      "role": "starter"
+    },
+    {
+      "card_id": 14558127,
+      "count": 2,
+      "role": "handtrap"
+    },
+    {
+      "card_id": 97268402,
+      "count": 1,
+      "role": "handtrap"
+    },
+    {
+      "card_id": 23434538,
+      "count": 2,
+      "role": "handtrap"
+    },
+    {
+      "card_id": 24224830,
+      "count": 1,
+      "role": "handtrap"
+    },
+    {
+      "card_id": 10045474,
+      "count": 2,
+      "role": "handtrap"
+    },
+    {
+      "card_id": 14532163,
+      "count": 2,
+      "role": "handtrap"
+    }
+  ],
+  "extra": [
+    {
+      "card_id": 210100110,
+      "count": 3,
+      "role": "trump"
+    },
+    {
+      "card_id": 210100111,
+      "count": 3,
+      "role": "trump"
+    },
+    {
+      "card_id": 210100112,
+      "count": 3,
+      "role": "trump"
+    },
+    {
+      "card_id": 210100113,
+      "count": 3,
+      "role": "trump"
+    }
+  ],
+  "archetype": "霆铸",
+  "target": "competitive",
+  "notes": "本家 30 + 通用 10；四初动 12 张；额外四类各 3 张。",
+  "schema_version": 3,
+  "side": []
+}

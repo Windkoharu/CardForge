@@ -1,0 +1,84 @@
+{
+  "id": 210100109,
+  "name": "霆铸炉·余烬再生",
+  "frame": "trap",
+  "attribute": "光",
+  "race": "雷族",
+  "level": 0,
+  "atk": 0,
+  "dfd": 0,
+  "trap_kind": "normal",
+  "archetype": "霆铸",
+  "setcode": "0x1003",
+  "text_i18n": {
+    "zh_cn": "①：魔法·陷阱·怪兽的效果发动时才能发动。从自己墓地选「霆铸炉·余烬再生」以外的1只「霆铸」怪兽特殊召唤。\n「霆铸炉·余烬再生」1回合只能发动1张。"
+  },
+  "effects": [
+    {
+      "kind": "ssummon_grave",
+      "trigger": "ON_ACTIVATE",
+      "target": {
+        "from_zone": "GRAVE",
+        "filter_kind": "archetype",
+        "filter_value": "霆铸",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": true,
+        "face_up": false,
+        "code": 0,
+        "setcode": "0x1003"
+      },
+      "limit": "hopt_name_activate",
+      "params": {
+        "card_type": "monster",
+        "select": true,
+        "_index": 0
+      },
+      "source": "manual"
+    }
+  ],
+  "render": {
+    "rarity": "rare",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0.0,
+      "bleed_bottom": 0.0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0.0,
+      "subject_scale": 0.0,
+      "subject_offset_y": 0.0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0.0,
+    "art_scale": 1.0,
+    "art_ring": 0.0,
+    "bezel": 1.0,
+    "font_scale_name": 1.0,
+    "font_scale_text": 1.0,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 霆铸炉·余烬再生\n     CardForge 2.0 生成 · 卡种=陷阱（frame=trap） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--1. 从墓地把…特殊召唤\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_SPECIAL_SUMMON)\n\te1:SetType(EFFECT_TYPE_QUICK_F)\n\te1:SetRange(LOCATION_SZONE)\n\te1:SetCode(EVENT_CHAINING)\n\te1:SetCountLimit(1,{id,1},EFFECT_COUNT_CODE_OATH)\n\te1:SetCondition(s.con1)\n\te1:SetTarget(s.tg1)\n\te1:SetOperation(s.op1)\n\tc:RegisterEffect(e1)\nend\ns.listed_series={0x1003}\n\nfunction s.fil1(c,e,tp)\n\treturn c:IsSetCard(0x1003) and c:IsType(TYPE_MONSTER) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)\nend\n\nfunction s.tg1(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and Duel.IsExistingMatchingCard(s.fil1,tp,LOCATION_GRAVE,0,1,e:GetHandler(),e,tp) end\n\tDuel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_GRAVE)\nend\n\nfunction s.op1(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil1,tp,LOCATION_GRAVE,0,1,1,e:GetHandler(),e,tp)\n\tif #g>0 then\n\t\tDuel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)\n\tend\nend\n\nfunction s.con1(e,tp,eg,ep,ev,re,r,rp)\n\treturn ep~=tp\nend\n",
+  "strings": [
+    "魔法·陷阱·怪兽的效果发动时才能发动。从自己墓地选「霆铸炉·余烬再生」以外的1只「霆铸」怪兽特殊召唤。"
+  ],
+  "created": "2026-11-04T01:51:03",
+  "updated": "2026-11-04T01:51:03.432503",
+  "schema_version": 3,
+  "race_bits": 4096,
+  "attr_bits": 16,
+  "type_bits": 4,
+  "link_bits": 0,
+  "def_value": 0
+}

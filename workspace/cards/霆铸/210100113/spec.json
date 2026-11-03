@@ -1,0 +1,109 @@
+{
+  "id": 210100113,
+  "name": "霆铸重轨 阿特拉",
+  "frame": "link",
+  "attribute": "光",
+  "race": "雷族",
+  "level": 3,
+  "atk": 2400,
+  "dfd": 0,
+  "link_markers": [
+    "左下",
+    "下",
+    "右下"
+  ],
+  "archetype": "霆铸",
+  "setcode": "0x1003",
+  "text_i18n": {
+    "zh_cn": "「霆铸」怪兽2只以上\n①：这张卡特殊召唤成功时才能发动。从自己墓地选「霆铸重轨 阿特拉」以外的1只「霆铸」怪兽特殊召唤。\n②：这张卡不能成为效果的对象。\n这个卡名的①的效果1回合只能使用1次。"
+  },
+  "effects": [
+    {
+      "kind": "ssummon_grave",
+      "trigger": "SPECIAL_SUMMON_SUCCESS",
+      "target": {
+        "from_zone": "GRAVE",
+        "filter_kind": "archetype",
+        "filter_value": "霆铸",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": true,
+        "face_up": false,
+        "code": 0,
+        "setcode": "0x1003"
+      },
+      "limit": "hopt_name",
+      "params": {
+        "card_type": "monster",
+        "select": true,
+        "_index": 0
+      },
+      "source": "manual"
+    },
+    {
+      "kind": "cannot_be_targeted",
+      "trigger": "CONTINUOUS",
+      "limit": "none",
+      "params": {
+        "self_obj": true,
+        "_index": 1
+      },
+      "source": "manual"
+    }
+  ],
+  "summon": {
+    "materials": [
+      {
+        "kind": "archetype",
+        "value": "霆铸",
+        "count": 2,
+        "count_max": 3,
+        "setcode": "0x1003"
+      }
+    ]
+  },
+  "render": {
+    "rarity": "secret",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0.0,
+      "bleed_bottom": 0.0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0.0,
+      "subject_scale": 0.0,
+      "subject_offset_y": 0.0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0.0,
+    "art_scale": 1.0,
+    "art_ring": 0.0,
+    "bezel": 1.0,
+    "font_scale_name": 1.0,
+    "font_scale_text": 1.0,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 霆铸重轨 阿特拉\n     CardForge 2.0 生成 · 卡种=连接（frame=link） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--连接素材条件\n\tLink.AddProcedure(c,s.mat0_0,2,3)\n\tc:EnableReviveLimit()\n\t--连接箭头：左下、下、右下（供「被指向/相邻」类效果引用）\n\ts.link_marker_mask=LINK_MARKER_BOTTOM_LEFT+LINK_MARKER_BOTTOM+LINK_MARKER_BOTTOM_RIGHT\n\t--2. 从墓地把…特殊召唤\n\tlocal e2=Effect.CreateEffect(c)\n\te2:SetDescription(aux.Stringid(id,0))\n\te2:SetCategory(CATEGORY_SPECIAL_SUMMON)\n\te2:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te2:SetProperty(EFFECT_FLAG_DELAY)\n\te2:SetRange(LOCATION_MZONE)\n\te2:SetCode(EVENT_SPSUMMON_SUCCESS)\n\te2:SetCountLimit(1,{id,1})\n\te2:SetTarget(s.tg2)\n\te2:SetOperation(s.op2)\n\tc:RegisterEffect(e2)\n\t--3. …不能成为效果的对象\n\tlocal e3=Effect.CreateEffect(c)\n\te3:SetType(EFFECT_TYPE_SINGLE)\n\te3:SetCode(EFFECT_CANNOT_BE_EFFECT_TARGET)\n\te3:SetProperty(EFFECT_FLAG_SINGLE_RANGE)\n\te3:SetRange(LOCATION_MZONE)\n\te3:SetValue(aux.TRUE)\n\tc:RegisterEffect(e3)\nend\ns.listed_series={0x1003}\n\nfunction s.mat0_0(c)\n\treturn c:IsSetCard(0x1003)\nend\n\nfunction s.fil2(c,e,tp)\n\treturn c:IsSetCard(0x1003) and c:IsType(TYPE_MONSTER) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)\nend\n\nfunction s.tg2(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and Duel.IsExistingMatchingCard(s.fil2,tp,LOCATION_GRAVE,0,1,e:GetHandler(),e,tp) end\n\tDuel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_GRAVE)\nend\n\nfunction s.op2(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil2,tp,LOCATION_GRAVE,0,1,1,e:GetHandler(),e,tp)\n\tif #g>0 then\n\t\tDuel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)\n\tend\nend\n",
+  "strings": [
+    "这张卡特殊召唤成功时才能发动。从自己墓地选「霆铸重轨 阿特拉」以外的1只「霆铸」怪兽特殊召唤。"
+  ],
+  "created": "2026-11-04T01:51:03",
+  "updated": "2026-11-04T01:51:03.649528",
+  "schema_version": 3,
+  "race_bits": 4096,
+  "attr_bits": 16,
+  "type_bits": 67108897,
+  "link_bits": 7,
+  "def_value": 7
+}

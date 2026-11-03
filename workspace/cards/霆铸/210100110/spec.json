@@ -1,0 +1,123 @@
+{
+  "id": 210100110,
+  "name": "霆铸龙王 克罗诺斯",
+  "frame": "fusion",
+  "attribute": "光",
+  "race": "雷族",
+  "level": 8,
+  "atk": 2800,
+  "dfd": 2200,
+  "archetype": "霆铸",
+  "setcode": "0x1003",
+  "text_i18n": {
+    "zh_cn": "「霆铸」怪兽×2\n这张卡用融合召唤以及以下方法才能特殊召唤。\n●把自己场上的上记的卡除外的场合可以从额外卡组特殊召唤。\n①：1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。\n②：这张卡被战斗·效果破坏时才能发动。从自己墓地选「霆铸龙王 克罗诺斯」以外的1只「霆铸」怪兽特殊召唤。\n这个卡名的②的效果1回合只能使用1次。"
+  },
+  "effects": [
+    {
+      "kind": "negate_card",
+      "trigger": "QUICK",
+      "target": {
+        "from_zone": "FIELD",
+        "filter_kind": "any",
+        "count": 1,
+        "count_max": 0,
+        "controller": "opponent",
+        "exclude_self": false,
+        "face_up": true,
+        "code": 0
+      },
+      "limit": "once_per_turn",
+      "params": {
+        "quick": true,
+        "until_end_turn": true,
+        "_index": 0
+      },
+      "source": "manual"
+    },
+    {
+      "kind": "ssummon_grave",
+      "trigger": "WHEN_DESTROYED",
+      "target": {
+        "from_zone": "GRAVE",
+        "filter_kind": "archetype",
+        "filter_value": "霆铸",
+        "count": 1,
+        "count_max": 0,
+        "controller": "self",
+        "exclude_self": true,
+        "face_up": false,
+        "code": 0,
+        "setcode": "0x1003"
+      },
+      "limit": "hopt_name",
+      "params": {
+        "card_type": "monster",
+        "select": true,
+        "destroyed_by": "battle_effect",
+        "_index": 1
+      },
+      "source": "manual"
+    }
+  ],
+  "summon": {
+    "materials": [
+      {
+        "kind": "archetype",
+        "value": "霆铸",
+        "count": 2,
+        "setcode": "0x1003"
+      }
+    ],
+    "methods": [
+      {
+        "action": "banish",
+        "zone": "mz"
+      }
+    ],
+    "limit": "must_be"
+  },
+  "render": {
+    "rarity": "ultra",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0.0,
+      "bleed_bottom": 0.0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0.0,
+      "subject_scale": 0.0,
+      "subject_offset_y": 0.0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0.0,
+    "art_scale": 1.0,
+    "art_ring": 0.0,
+    "bezel": 1.0,
+    "font_scale_name": 1.0,
+    "font_scale_text": 1.0,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 霆铸龙王 克罗诺斯\n     CardForge 2.0 生成 · 卡种=融合（frame=fusion） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n     ⚑ negate_card 的作用区域按对象取 LOCATION_ONFIELD；若只想无效怪兽效果请改挂 EFFECT_DISABLE+MONSTER 限定\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--融合素材条件\n\tFusion.AddProcMix(c,true,true,s.mat0_0,s.mat0_0)\n\tc:EnableReviveLimit()\n\t--额外召唤方法：把上记的卡除外的接触召唤（仍按融合召唤类型结算）\n\tFusion.AddContactProc(c,s.cgrp0_0,s.ctop0_0,nil,nil,SUMMON_TYPE_FUSION)\n\t--召唤条件：只能用本卡种的召唤方式特殊召唤\n\tlocal e_sp=Effect.CreateEffect(c)\n\te_sp:SetType(EFFECT_TYPE_SINGLE)\n\te_sp:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE)\n\te_sp:SetCode(EFFECT_SPSUMMON_CONDITION)\n\te_sp:SetValue(aux.fuslimit)\n\tc:RegisterEffect(e_sp)\n\t--2. …的效果直到回合结束时无效\n\tlocal e2=Effect.CreateEffect(c)\n\te2:SetDescription(aux.Stringid(id,0))\n\te2:SetCategory(CATEGORY_NEGATE)\n\te2:SetType(EFFECT_TYPE_QUICK_O)\n\te2:SetProperty(EFFECT_FLAG_CARD_TARGET)\n\te2:SetRange(LOCATION_MZONE)\n\te2:SetCode(EVENT_FREE_CHAIN)\n\te2:SetCountLimit(1,id)\n\te2:SetTarget(s.tg2)\n\te2:SetOperation(s.op2)\n\tc:RegisterEffect(e2)\n\t--3. 从墓地把…特殊召唤\n\tlocal e3=Effect.CreateEffect(c)\n\te3:SetDescription(aux.Stringid(id,1))\n\te3:SetCategory(CATEGORY_SPECIAL_SUMMON)\n\te3:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)\n\te3:SetProperty(EFFECT_FLAG_DELAY)\n\te3:SetRange(LOCATION_MZONE)\n\te3:SetCode(EVENT_DESTROYED)\n\te3:SetCountLimit(1,{id,1})\n\te3:SetCondition(s.con3)\n\te3:SetTarget(s.tg3)\n\te3:SetOperation(s.op3)\n\tc:RegisterEffect(e3)\nend\ns.listed_series={0x1003}\n\nfunction s.mat0_0(c)\n\treturn c:IsSetCard(0x1003)\nend\n\nfunction s.cfil0_0(c)\n\treturn (c:IsSetCard(0x1003)) and c:IsAbleToRemoveAsCost()\nend\n\nfunction s.cgrp0_0(tp)\n\treturn Duel.GetMatchingGroup(s.cfil0_0,tp,LOCATION_MZONE,LOCATION_MZONE,nil)\nend\n\nfunction s.ctop0_0(g,tp,c)\n\tDuel.Remove(g,POS_FACEUP,REASON_COST|REASON_MATERIAL)\nend\n\nfunction s.fil2(c)\n\treturn c:IsFaceup()\nend\n\nfunction s.tg2(e,tp,eg,ep,ev,re,r,rp,chk,chkc)\n\tif chkc then return chkc:IsOnField() and chkc:IsFaceup() end\n\tif chk==0 then return Duel.IsExistingTarget(s.fil2,tp,0,LOCATION_ONFIELD,1,nil) end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)\n\tlocal g=Duel.SelectTarget(tp,s.fil2,tp,0,LOCATION_ONFIELD,1,1,nil)\n\tDuel.SetOperationInfo(0,CATEGORY_NEGATE,g,1,0,0)\nend\n\nfunction s.op2(e,tp,eg,ep,ev,re,r,rp)\n\tlocal tc=Duel.GetFirstTarget()\n\tif tc and tc:IsFaceup() and tc:IsRelateToEffect(e) then\n\t\tlocal e1=Effect.CreateEffect(e:GetHandler())\n\t\t\te1:SetType(EFFECT_TYPE_SINGLE)\n\t\t\te1:SetCode(EFFECT_DISABLE)\n\t\t\te1:SetReset(RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END)\n\t\t\ttc:RegisterEffect(e1)\n\t\tlocal e2=Effect.CreateEffect(e:GetHandler())\n\t\t\te2:SetType(EFFECT_TYPE_SINGLE)\n\t\t\te2:SetCode(EFFECT_DISABLE_EFFECT)\n\t\t\te2:SetReset(RESET_EVENT+RESETS_STANDARD+RESET_PHASE+PHASE_END)\n\t\t\ttc:RegisterEffect(e2)\n\tend\nend\n\nfunction s.fil3(c,e,tp)\n\treturn c:IsSetCard(0x1003) and c:IsType(TYPE_MONSTER) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)\nend\n\nfunction s.tg3(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0 and Duel.IsExistingMatchingCard(s.fil3,tp,LOCATION_GRAVE,0,1,e:GetHandler(),e,tp) end\n\tDuel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_GRAVE)\nend\n\nfunction s.op3(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)\n\tlocal g=Duel.SelectMatchingCard(tp,s.fil3,tp,LOCATION_GRAVE,0,1,1,e:GetHandler(),e,tp)\n\tif #g>0 then\n\t\tDuel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)\n\tend\nend\n\nfunction s.con3(e,tp,eg,ep,ev,re,r,rp)\n\tlocal c=e:GetHandler()\n\treturn c:IsReason(REASON_DESTROY) and c:IsPreviousLocation(LOCATION_ONFIELD)\nend\n",
+  "strings": [
+    "1回合1次，以对方场上1张表侧表示的卡为对象才能发动。那张卡的效果直到回合结束时无效。这个效果在对方回合也能发动。",
+    "这张卡被战斗·效果破坏时才能发动。从自己墓地选「霆铸龙王 克罗诺斯」以外的1只「霆铸」怪兽特殊召唤。"
+  ],
+  "created": "2026-11-04T01:51:03",
+  "updated": "2026-11-04T01:51:03.496559",
+  "schema_version": 3,
+  "race_bits": 4096,
+  "attr_bits": 16,
+  "type_bits": 97,
+  "link_bits": 0,
+  "def_value": 2200
+}

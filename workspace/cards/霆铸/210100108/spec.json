@@ -1,0 +1,78 @@
+{
+  "id": 210100108,
+  "name": "霆铸炉·磁轨护壁",
+  "frame": "trap",
+  "attribute": "光",
+  "race": "雷族",
+  "level": 0,
+  "atk": 0,
+  "dfd": 0,
+  "trap_kind": "counter",
+  "archetype": "霆铸",
+  "setcode": "0x1003",
+  "text_i18n": {
+    "zh_cn": "①：1回合1次，对方把怪兽的效果发动时，把自己场上1张「霆铸」卡送去墓地才能发动。那个发动无效并破坏。"
+  },
+  "effects": [
+    {
+      "kind": "negate",
+      "trigger": "OPPONENT_ACTIVATE_MONSTER",
+      "cost": {
+        "kind": "send_grave",
+        "zone": "FIELD",
+        "count": 1,
+        "filter_kind": "archetype",
+        "filter_value": "霆铸",
+        "lp": 0
+      },
+      "limit": "once_per_turn",
+      "params": {
+        "_index": 0
+      },
+      "source": "manual"
+    }
+  ],
+  "render": {
+    "rarity": "super",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0.0,
+      "bleed_bottom": 0.0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0.0,
+      "subject_scale": 0.0,
+      "subject_offset_y": 0.0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0.0,
+    "art_scale": 1.0,
+    "art_ring": 0.0,
+    "bezel": 1.0,
+    "font_scale_name": 1.0,
+    "font_scale_text": 1.0,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 霆铸炉·磁轨护壁\n     CardForge 2.0 生成 · 卡种=陷阱（frame=trap） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n     ⚑ negate 的条件函数只判断「发动的不是自己」（怪兽效果类时点会额外认 re:IsMonsterEffect()）；属性/字段/卡种那类限定请人工补写\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--1. 那个发动无效并破坏\n\tlocal e1=Effect.CreateEffect(c)\n\te1:SetDescription(aux.Stringid(id,0))\n\te1:SetCategory(CATEGORY_NEGATE+CATEGORY_DESTROY)\n\te1:SetType(EFFECT_TYPE_QUICK_F)\n\te1:SetProperty(EFFECT_FLAG_DELAY+EFFECT_FLAG_DAMAGE_STEP+EFFECT_FLAG_DAMAGE_CAL)\n\te1:SetCode(EVENT_CHAINING)\n\te1:SetCountLimit(1,id)\n\te1:SetCost(s.cost1)\n\te1:SetCondition(s.con1)\n\te1:SetOperation(s.op1)\n\tc:RegisterEffect(e1)\nend\ns.listed_series={0x1003}\n\nfunction s.con1(e,tp,eg,ep,ev,re,r,rp)\n\treturn ep~=tp and re:IsMonsterEffect()\nend\n\nfunction s.op1(e,tp,eg,ep,ev,re,r,rp)\n\tif Duel.NegateActivation(ev) and re:GetHandler():IsRelateToEffect(re) then\n\t\tDuel.Destroy(eg,REASON_EFFECT)\n\tend\nend\n\nfunction s.cfil1(c)\n\treturn c:IsSetCard(0x1003) and c:IsAbleToGraveAsCost()\nend\n\nfunction s.cost1(e,tp,eg,ep,ev,re,r,rp,chk)\n\tif chk==0 then return Duel.IsExistingMatchingCard(s.cfil1,tp,LOCATION_ONFIELD,0,1,nil) end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)\n\tlocal g=Duel.SelectMatchingCard(tp,s.cfil1,tp,LOCATION_ONFIELD,0,1,1,nil)\n\tDuel.SendtoGrave(g,REASON_COST)\nend\n",
+  "strings": [
+    "1回合1次，对方把怪兽的效果发动时，把自己场上1张「霆铸」卡送去墓地才能发动。那个发动无效并破坏。"
+  ],
+  "created": "2026-11-04T01:51:03",
+  "updated": "2026-11-04T01:51:03.387114",
+  "schema_version": 3,
+  "race_bits": 4096,
+  "attr_bits": 16,
+  "type_bits": 1048580,
+  "link_bits": 0,
+  "def_value": 0
+}

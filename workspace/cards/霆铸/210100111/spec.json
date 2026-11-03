@@ -1,0 +1,97 @@
+{
+  "id": 210100111,
+  "name": "霆铸机神 奥米茄",
+  "frame": "synchro",
+  "attribute": "光",
+  "race": "雷族",
+  "level": 8,
+  "atk": 2800,
+  "dfd": 2000,
+  "archetype": "霆铸",
+  "setcode": "0x1003",
+  "text_i18n": {
+    "zh_cn": "「霆铸」协调＋协调以外的「霆铸」怪兽1～2只\n①：1回合1次，以对方场上1张卡为对象才能发动。把那张卡破坏。这个效果在对方回合也能发动。"
+  },
+  "effects": [
+    {
+      "kind": "destroy",
+      "trigger": "QUICK",
+      "target": {
+        "from_zone": "FIELD",
+        "filter_kind": "any",
+        "count": 1,
+        "count_max": 0,
+        "controller": "opponent",
+        "exclude_self": false,
+        "face_up": false,
+        "code": 0
+      },
+      "limit": "once_per_turn",
+      "params": {
+        "quick": true,
+        "_index": 0
+      },
+      "source": "manual"
+    }
+  ],
+  "summon": {
+    "materials": [
+      {
+        "kind": "archetype",
+        "value": "霆铸",
+        "setcode": "0x1003",
+        "tuner": "tuner"
+      },
+      {
+        "kind": "archetype",
+        "value": "霆铸",
+        "count_max": 2,
+        "setcode": "0x1003",
+        "tuner": "non_tuner"
+      }
+    ]
+  },
+  "render": {
+    "rarity": "ultra",
+    "fullart": {
+      "mode": "none",
+      "bleed_top": 0.0,
+      "bleed_bottom": 0.0,
+      "panel_opacity": 0.86,
+      "name_stroke": 1.6,
+      "fade_px": 0.0,
+      "subject_scale": 0.0,
+      "subject_offset_y": 0.0
+    },
+    "lang_name": "zh_cn",
+    "lang_text": "zh_cn",
+    "lang_flavor": "zh_cn",
+    "art_fit": "cover",
+    "art_offset_y": 0.0,
+    "art_scale": 1.0,
+    "art_ring": 0.0,
+    "bezel": 1.0,
+    "font_scale_name": 1.0,
+    "font_scale_text": 1.0,
+    "text_align": "left",
+    "psct_bold": true,
+    "show_password": true,
+    "show_copyright": true,
+    "show_stamp20": false,
+    "show_laser": true,
+    "preview_width": 480,
+    "output_size": "edopro"
+  },
+  "lua": "--[==[ 霆铸机神 奥米茄\n     CardForge 2.0 生成 · 卡种=同步（frame=synchro） · tier=1\n     由效果 IR 投影而来；效果种类缺失的部分以 -- [CardForge] 注释标出。\n]==]\nlocal s,id=GetID()\nfunction s.initial_effect(c)\n\t--同步素材条件：协调段 + 协调以外段\n\tSynchro.AddProcedure(c,s.mat0_0,1,1,Synchro.NonTuner(s.mat0_1),1,2)\n\tc:EnableReviveLimit()\n\t--2. 把…破坏\n\tlocal e2=Effect.CreateEffect(c)\n\te2:SetDescription(aux.Stringid(id,0))\n\te2:SetCategory(CATEGORY_DESTROY)\n\te2:SetType(EFFECT_TYPE_QUICK_O)\n\te2:SetProperty(EFFECT_FLAG_CARD_TARGET)\n\te2:SetRange(LOCATION_MZONE)\n\te2:SetCode(EVENT_FREE_CHAIN)\n\te2:SetCountLimit(1,id)\n\te2:SetTarget(s.tg2)\n\te2:SetOperation(s.op2)\n\tc:RegisterEffect(e2)\nend\ns.listed_series={0x1003}\n\nfunction s.mat0_0(c)\n\treturn c:IsSetCard(0x1003) and c:IsType(TYPE_TUNER)\nend\n\nfunction s.mat0_1(c)\n\treturn c:IsSetCard(0x1003) and not c:IsType(TYPE_TUNER)\nend\n\nfunction s.fil2(c)\n\treturn c:IsDestructable()\nend\n\nfunction s.tg2(e,tp,eg,ep,ev,re,r,rp,chk,chkc)\n\tif chkc then return chkc:IsLocation(LOCATION_ONFIELD) and s.fil2(chkc) end\n\tif chk==0 then return Duel.IsExistingTarget(s.fil2,tp,0,LOCATION_ONFIELD,1,nil) end\n\tDuel.Hint(HINT_SELECTMSG,tp,HINTMSG_DESTROY)\n\tlocal g=Duel.SelectTarget(tp,s.fil2,tp,0,LOCATION_ONFIELD,1,1,nil)\n\tDuel.SetOperationInfo(0,CATEGORY_DESTROY,g,#g,0,0)\nend\n\nfunction s.op2(e,tp,eg,ep,ev,re,r,rp)\n\tlocal tc=Duel.GetFirstTarget()\n\tif tc and tc:IsRelateToEffect(e) then\n\t\tDuel.Destroy(tc,REASON_EFFECT)\n\tend\nend\n",
+  "strings": [
+    "1回合1次，以对方场上1张卡为对象才能发动。把那张卡破坏。这个效果在对方回合也能发动。"
+  ],
+  "created": "2026-11-04T01:51:03",
+  "updated": "2026-11-04T01:51:03.543966",
+  "schema_version": 3,
+  "race_bits": 4096,
+  "attr_bits": 16,
+  "type_bits": 8225,
+  "link_bits": 0,
+  "def_value": 2000
+}
