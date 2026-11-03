@@ -1046,6 +1046,69 @@ chk("MDPro3 缺脚本的额外卡组卡 → ERROR",
         for i in md_res2.get("issues", [])),
     str([i.get("code") for i in md_res2.get("issues", [])]))
 
+# ══ 13. 卡文素材行 → 结构化素材（缺陷 #37 的出口）════════════════════
+from cardforge.content import summon as CS
+
+
+def _summon_spec(frame, parts, level=8, **kw):
+    sp = CardSpec(id=210000697, name="T融合", frame=frame, attribute="光",
+                  race="战士族", level=level, atk=3000, dfd=(0 if frame == "link" else 2500),
+                  archetype="星奏", setcode="0x1001", **kw)
+    sp.summon = SummonSpec(materials=parts)
+    return sp
+
+
+# 13.1 往返：系统生成的素材行 → 反解 → 再生成，必须逐字一致
+_rt_cases = [
+    ("字段+种族×3", "fusion", [MaterialPart(kind="archetype", value="星奏",
+                                        also=[MaterialPart(kind="race", value="战士族")],
+                                        count=3)], 8),
+    ("单卡名×2 + 种族", "fusion", [MaterialPart(kind="name", value="青眼白龙", count=2),
+                              MaterialPart(kind="race", value="龙族")], 8),
+    ("等级+属性", "fusion", [MaterialPart(kind="level", value=4,
+                                     also=[MaterialPart(kind="attribute", value="光")],
+                                     count=2)], 8),
+    ("区间 2～3", "fusion", [MaterialPart(kind="race", value="战士族",
+                                     count=2, count_max=3)], 8),
+    ("同步 协调+2只以上", "synchro", [
+        MaterialPart(kind="any", value="", tuner="tuner", count=1),
+        MaterialPart(kind="any", value="", tuner="non_tuner", count=2, count_max=99)], 8),
+    ("超量 4星×2", "xyz", [MaterialPart(kind="level", value=4, count=2)], 4),
+    ("连接 2只", "link", [MaterialPart(kind="any", value="", count=2)], 2),
+]
+for _tag, _frame, _parts, _lv in _rt_cases:
+    _sp = _summon_spec(_frame, _parts, _lv)
+    _line = CS.material_line(_sp, "zh_cn")
+    _back, _notes = CS.parse_material_line(_line, _sp, "zh_cn")
+    _sp2 = _summon_spec(_frame, _back, _lv)
+    _line2 = CS.material_line(_sp2, "zh_cn")
+    chk(f"素材行往返一致：{_tag}", bool(_line) and _line == _line2,
+        f"{_line!r} -> {_line2!r}｜notes={_notes}")
+
+# 13.2 具名判定：整段只有引号 = 单卡名（字段一定带「怪兽」）
+_sp = _summon_spec("fusion", [MaterialPart(kind="name", value="青眼白龙", count=2)])
+_back, _ = CS.parse_material_line("「青眼白龙」×2", _sp, "zh_cn")
+chk("整段引号 → 卡名（不是字段）",
+    bool(_back) and _back[0].kind == "name" and _back[0].count == 2,
+    str([(p.kind, p.value, p.count) for p in _back]))
+
+# 13.3 反例：效果文不能被猜成「任意怪兽」（会放行一切素材）
+_sp = _summon_spec("fusion", [])
+_bad, _notes = CS.parse_material_line(
+    "①：这张卡特殊召唤成功的场合才能发动。从卡组抽 1 张卡。", _sp, "zh_cn")
+chk("效果文不产出素材段", not _bad, str([(p.kind, p.value) for p in _bad]))
+chk("效果文必须给出理由", bool(_notes), str(_notes))
+
+# 13.4 「怪兽2只」这种真·任意素材仍然允许
+_back, _ = CS.parse_material_line("怪兽2只", _sp, "zh_cn")
+chk("「怪兽2只」→ any×2",
+    bool(_back) and _back[0].kind == "any" and _back[0].count == 2,
+    str([(p.kind, p.count) for p in _back]))
+
+# 13.5 非中文素材行：明确说只支持中文，不假装能认
+_back, _notes = CS.parse_material_line("2 monsters", _sp, "en")
+chk("英文素材行：空结果 + 说明", not _back and bool(_notes), str(_notes))
+
 Path(ROOT / "_probe/verify_g2.txt").write_text(
     "\n".join(LINES) + "\n\n==== FAIL ====\n" + "\n".join(FAIL) +
     f"\n\n==== WARN({len(WARN)}) ====\n" + "\n".join(WARN) + "\n", encoding="utf-8")

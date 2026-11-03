@@ -407,6 +407,257 @@ def _contact_fusion_duel():
 check("接触召唤上桌（真 ocgcore）", _contact_fusion_duel)
 
 
+# ── 3.6 四类「正规召唤」（缺陷 #37 的验收：空壳卡不许通过）─────────────
+#: 探针魔法：与真实「融合 / 同调 / 升阶 / 连接」魔法用同一条判定链。
+#: IDLE 的 spsummon 列表在本驱动下测不出正规召唤（实测四类全 0，手写官方
+#: 风格脚本同样 0 —— 那是观测盲区），所以改成「谓词 + 执行」两层判据：
+#: 探针只在引擎认为「这张卡可以这样召唤」时才可发动，然后真的把卡召唤上场。
+_SUMMON_PROBE = """local s,id=GetID()
+function s.initial_effect(c)
+	local e1=Effect.CreateEffect(c)
+	e1:SetCategory(CATEGORY_SPECIAL_SUMMON)
+	e1:SetType(EFFECT_TYPE_ACTIVATE)
+	e1:SetCode(EVENT_FREE_CHAIN)
+	e1:SetTarget(s.tg)
+	e1:SetOperation(s.op)
+	c:RegisterEffect(e1)
+end
+function s.filter(c,e,tp)
+	return c:IsCode(%(target)d) and %(pred)s
+end
+function s.tg(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return Duel.IsExistingMatchingCard(s.filter,tp,LOCATION_EXTRA,0,1,nil,e,tp) end
+	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_EXTRA)
+end
+function s.op(e,tp,eg,ep,ev,re,r,rp)
+	local g=Duel.SelectMatchingCard(tp,s.filter,tp,LOCATION_EXTRA,0,1,1,nil,e,tp)
+	if #g==0 then return end
+	local tc=g:GetFirst()
+	local mg=Duel.GetMatchingGroup(nil,tp,LOCATION_MZONE,0,nil)
+	%(exec)s
+end
+"""
+
+_SUMMON_KINDS = {
+    "融合": dict(
+        id=210000051, frame="fusion", level=8,
+        parts=[("archetype", "星奏", 3)],
+        mat_levels=(4, 4, 4), n_mat=3,
+        pred="c:IsCanBeSpecialSummoned(e,SUMMON_TYPE_FUSION,tp,false,false) "
+             "and c:CheckFusionMaterial(Duel.GetFusionMaterial(tp),nil,tp)",
+        exec="local fmg=Duel.SelectFusionMaterial(tp,tc,Duel.GetFusionMaterial(tp),nil,tp)\n"
+             "\tif not fmg or #fmg==0 then return end\n"
+             "\ttc:SetMaterial(fmg)\n"
+             "\tDuel.SendtoGrave(fmg,REASON_EFFECT+REASON_MATERIAL+REASON_FUSION)\n"
+             "\tDuel.BreakEffect()\n"
+             "\tDuel.SpecialSummon(tc,SUMMON_TYPE_FUSION,tp,tp,false,false,POS_FACEUP)\n"
+             "\ttc:CompleteProcedure()"),
+    "同步": dict(
+        id=210000052, frame="synchro", level=8,
+        parts=[("tuner", "", 1), ("non_tuner", "", 2)],
+        # ⚠ 等级必须对得上：协调 2 + 协调以外 3+3 = 8（先前给 4+4+4 时
+        #   IsSynchroSummonable 返回 false 是**正确**行为，不是缺陷）
+        mat_levels=(2, 3, 3), n_mat=3, tuner_first=True,
+        pred="c:IsCanBeSpecialSummoned(e,SUMMON_TYPE_SYNCHRO,tp,false,false) "
+             "and c:IsSynchroSummonable(nil)",
+        exec="if #mg==0 then return end\n"
+             "\ttc:SetMaterial(mg)\n"
+             "\tDuel.SynchroSummon(tp,tc,mg)\n"
+             "\ttc:CompleteProcedure()"),
+    "超量": dict(
+        id=210000053, frame="xyz", level=4,
+        parts=[("level", "", 2)],
+        mat_levels=(4, 4), n_mat=2,
+        pred="c:IsCanBeSpecialSummoned(e,SUMMON_TYPE_XYZ,tp,false,false)",
+        exec="if #mg<2 then return end\n"
+             "\ttc:SetMaterial(mg)\n"
+             "\tDuel.SpecialSummon(tc,SUMMON_TYPE_XYZ,tp,tp,false,false,POS_FACEUP)\n"
+             "\ttc:CompleteProcedure()"),
+    "连接": dict(
+        id=210000054, frame="link", level=2,
+        parts=[("any", "", 2)],
+        mat_levels=(4, 4), n_mat=2,
+        pred="c:IsCanBeSpecialSummoned(e,SUMMON_TYPE_LINK,tp,false,false) "
+             "and c:IsLinkSummonable(nil)",
+        exec="if #mg<2 then return end\n"
+             "\ttc:SetMaterial(mg)\n"
+             "\tDuel.LinkSummon(tp,tc,mg)\n"
+             "\ttc:CompleteProcedure()"),
+}
+
+
+def _proper_summons_duel():
+    """四类正规召唤：引擎认不认 + 真的上不上场（真 ocgcore）。"""
+    from cardforge.duel import bot, engine, ocgcore as oc
+    from cardforge.content.lua import emit
+    from cardforge.core.models import CardSpec, MaterialPart, SummonSpec
+    try:
+        st = engine.detect()
+    except Exception as e:
+        return f"SKIP: 引擎探测失败（{e}）"
+    if getattr(st, "level", "") != "ocgcore":
+        return f"SKIP: 未检测到 ocgcore（{getattr(st, 'reason', '') or '引擎不可用'}）"
+
+    vanilla = "local s,id=GetID()\nfunction s.initial_effect(c)\nend\n"
+    spell_id = 210000055
+    results: list[str] = []
+    fails: list[str] = []
+
+    for name, spec_d in _SUMMON_KINDS.items():
+        tid = spec_d["id"]
+        target = CardSpec(id=tid, name=f"测试{name}", frame=spec_d["frame"],
+                          attribute="光", race="战士族", level=spec_d["level"],
+                          atk=3000, dfd=(0 if spec_d["frame"] == "link" else 2500),
+                          archetype="星奏", setcode="0x1001",
+                          link_markers=(["左下", "下"] if spec_d["frame"] == "link" else []))
+        parts = []
+        for kind, value, count in spec_d["parts"]:
+            if kind in ("tuner", "non_tuner", "any"):
+                parts.append(MaterialPart(kind="any", value="", tuner=kind,
+                                          count=count) if kind != "any"
+                             else MaterialPart(kind="any", value="", count=count))
+            else:
+                parts.append(MaterialPart(kind=kind, value=value, count=count))
+        target.summon = SummonSpec(materials=parts)
+        target.lua = emit.emit_script(target, tier=1)
+
+        mats = []
+        for i, lv in enumerate(spec_d["mat_levels"]):
+            mid = 210000041 + i
+            mats.append(CardSpec(
+                id=mid, name=f"素材{mid}", frame="effect", attribute="光",
+                race="战士族", level=lv, atk=1600, dfd=1200,
+                archetype="星奏", setcode="0x1001",
+                tags=(["tuner"] if (spec_d.get("tuner_first") and i == 0) else []),
+                effects=[], lua=vanilla))
+
+        spell = CardSpec(id=spell_id, name="探针", frame="spell", spell_kind="normal",
+                         attribute="光", race="战士族", level=0, atk=0, dfd=0)
+        spell.lua = _SUMMON_PROBE % {"target": tid, "pred": spec_d["pred"],
+                                     "exec": spec_d["exec"]}
+
+        offered = {"n": 0}
+        orig = bot.SimpleBot._idlecmd
+
+        def spy(self, msg, state, _o=orig, _n=offered):
+            res = _o(self, msg, state)
+            if spell_id in [int(x.get("code") or 0) for x in (msg.get("activate") or [])]:
+                _n["n"] += 1
+            return res
+
+        bot.SimpleBot._idlecmd = spy
+        try:
+            cards = {tid: target, spell_id: spell}
+            for m in mats:
+                cards[m.id] = m
+            info = {"hand": [{"code": spell_id, "team": 0,
+                              "loc": oc.LOCATION_HAND, "pos": oc.POS_FACEUP_ATTACK}],
+                    "field": [{"code": m.id, "team": 0, "seq": i, "pos": 1}
+                              for i, m in enumerate(mats)]}
+            res = bot.run_duel([tid] * 3 + [m.id for m in mats] + [spell_id] * 3,
+                               [89631139, 45467446, 73176492, 77098843],
+                               seed=7, max_steps=500, cards=cards, scenario=info)
+        finally:
+            bot.SimpleBot._idlecmd = orig
+
+        moves = [e for e in (res.get("log") or [])
+                 if int(e.get("id") or 0) == 50 and int(e.get("code") or 0) == tid]
+        landed = [e for e in moves if int(e.get("to_location") or 0) & oc.LOCATION_MZONE]
+        errs = [str(e) for e in (res.get("errors") or [])]
+        if errs:
+            fails.append(f"{name}：引擎报错 {errs[0][:60]}")
+        elif offered["n"] <= 0:
+            fails.append(f"{name}：引擎不认为这张卡可以{name}召唤（谓词从未成立）")
+        elif not landed:
+            fails.append(f"{name}：判定成立但没真的上场")
+        else:
+            results.append(f"{name}谓词{offered['n']}次/上场{len(landed)}次")
+
+    assert not fails, "；".join(fails)
+    return "四类正规召唤均成立：" + "、".join(results)
+
+
+check("融合/同步/超量/连接 正规召唤（真 ocgcore）", _proper_summons_duel)
+
+
+def _shell_fusion_not_summonable():
+    """反向验收（缺陷 #37）：**只填卡文**的融合卡，引擎不许能融合召唤它。
+
+    这是用户报障的原始现象：卡在额外卡组、能被别的卡效果特召，但正规融合
+    召唤的入口不存在。判据与正例完全对称 —— 谓词从未成立即算通过。
+    """
+    from cardforge.duel import bot, engine, ocgcore as oc
+    from cardforge.content.lua import emit
+    from cardforge.core.models import CardSpec, SummonSpec
+    try:
+        st = engine.detect()
+    except Exception as e:
+        return f"SKIP: 引擎探测失败（{e}）"
+    if getattr(st, "level", "") != "ocgcore":
+        return f"SKIP: 未检测到 ocgcore（{getattr(st, 'reason', '') or '引擎不可用'}）"
+
+    vanilla = "local s,id=GetID()\nfunction s.initial_effect(c)\nend\n"
+    tid, spell_id = 210000061, 210000065
+    shell = CardSpec(id=tid, name="空壳融合", frame="fusion", attribute="光",
+                     race="战士族", level=8, atk=3000, dfd=2500,
+                     archetype="星奏", setcode="0x1001",
+                     effects=[{"kind": "", "raw_text": "①：抽 1 张卡。"}])
+    shell.summon = SummonSpec(text_i18n={"zh_cn": "包含「星奏」怪兽的战士族怪兽×3"})
+    shell.lua = emit.emit_script(shell, tier=1)
+    # 注意：脚本的**注释**里就写着「未生成 Fusion.AddProcMix」，所以判据必须走
+    # readiness 的剥注释逻辑，不能直接 `in lua`（这正是缺陷 #37 的盲点）。
+    from cardforge.content.lua import readiness as RDY
+    assert not RDY.analyze_lua(shell.lua)["procs"], "空壳样本不该含可执行的召唤流程"
+
+    mats = [CardSpec(id=210000041 + i, name=f"素材{210000041 + i}", frame="effect",
+                     attribute="光", race="战士族", level=4, atk=1600, dfd=1200,
+                     archetype="星奏", setcode="0x1001", effects=[], lua=vanilla)
+            for i in range(3)]
+    spell = CardSpec(id=spell_id, name="探针", frame="spell", spell_kind="normal",
+                     attribute="光", race="战士族", level=0, atk=0, dfd=0)
+    spell.lua = _SUMMON_PROBE % {
+        "target": tid,
+        "pred": _SUMMON_KINDS["融合"]["pred"],
+        "exec": _SUMMON_KINDS["融合"]["exec"]}
+
+    offered = {"n": 0}
+    orig = bot.SimpleBot._idlecmd
+
+    def spy(self, msg, state):
+        res = orig(self, msg, state)
+        if spell_id in [int(x.get("code") or 0) for x in (msg.get("activate") or [])]:
+            offered["n"] += 1
+        return res
+
+    bot.SimpleBot._idlecmd = spy
+    try:
+        cards = {tid: shell, spell_id: spell}
+        for m in mats:
+            cards[m.id] = m
+        info = {"hand": [{"code": spell_id, "team": 0,
+                          "loc": oc.LOCATION_HAND, "pos": oc.POS_FACEUP_ATTACK}],
+                "field": [{"code": m.id, "team": 0, "seq": i, "pos": 1}
+                          for i, m in enumerate(mats)]}
+        res = bot.run_duel([tid] * 3 + [m.id for m in mats] + [spell_id] * 3,
+                           [89631139, 45467446, 73176492, 77098843],
+                           seed=7, max_steps=400, cards=cards, scenario=info)
+    finally:
+        bot.SimpleBot._idlecmd = orig
+
+    moves = [e for e in (res.get("log") or [])
+             if int(e.get("id") or 0) == 50 and int(e.get("code") or 0) == tid
+             and int(e.get("to_location") or 0) & oc.LOCATION_MZONE]
+    errs = [str(e) for e in (res.get("errors") or [])]
+    assert not errs, f"引擎报错：{errs[:1]}"
+    assert offered["n"] == 0 and not moves, (
+        f"空壳融合卡竟然能被融合召唤（谓词 {offered['n']} 次、上场 {len(moves)} 次）"
+        " —— 说明召唤流程在没有素材条件时被错误地放行了")
+    return "只填卡文的空壳融合卡：引擎全程不提供融合召唤（谓词 0 次、上场 0 次）"
+
+
+check("空壳卡不许被正规召唤（反向，真 ocgcore）", _shell_fusion_not_summonable)
+
+
 # ── 4. 质量门 ────────────────────────────────────────────────────────
 print("\n[4] 质量门")
 

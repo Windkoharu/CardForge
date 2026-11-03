@@ -1376,7 +1376,10 @@ class OcgCore:
         info.con = int(data.get("con", data.get("controller", info.team))) & 0xFF
         info.loc = int(data.get("loc", data.get("location", LOCATION_DECK)))
         info.seq = int(data.get("seq", data.get("sequence", 0)))
-        info.pos = int(data.get("pos", data.get("position", POS_FACEDOWN_DEFENSE)))
+        # ``pos`` 显式给 None（场景里只写 {"code": …} 时的常见形态）要走默认值，
+        # 不能让 int(None) 抛出去 —— 手牌/卡组本来就不需要 pos。
+        pos = data.get("pos", data.get("position"))
+        info.pos = int(POS_FACEDOWN_DEFENSE if pos is None else pos)
         self._lib.OCG_DuelNewCard(self._duel, ctypes.byref(info))
         return code
 

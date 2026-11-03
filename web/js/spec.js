@@ -408,6 +408,44 @@ function summonLimits(base) {
   return Object.keys(table).map((k) => [k, labels[k] || table[k] || k]);
 }
 
+async function inferSummonFromText() {
+  const spec = store.spec;
+  if (!spec) return;
+  const s = summonOf(spec);
+  // 优先用召唤条件的手写覆盖，其次用卡文第一行（素材行就是卡文第一段）
+  const text = (s.text_i18n && s.text_i18n.zh_cn)
+    || (spec.text_i18n && (spec.text_i18n.zh_cn || Object.values(spec.text_i18n)[0]))
+    || '';
+  if (!String(text).trim()) {
+    toast('这张卡还没有卡文可以识别', { kind: 'warn',
+      hint: '先在卡文框写好素材行，例如「包含「星奏」怪兽的战士族怪兽×3」' });
+    return;
+  }
+  const r = await api.post('/api/psct/infer-summon', { spec: strip(spec), text })
+    .catch((e) => ({ ok: false, error: e.message, hint: e.hint }));
+  const notes = (r && r.notes) || [];
+  if (r && r.error) {
+    toast('识别失败：' + r.error, { kind: 'err', hint: r.hint || notes.join('；') });
+    return;
+  }
+  const mats = (r && r.materials) || [];
+  if (!mats.length) {
+    toast('没认出素材条件', { kind: 'warn',
+      hint: notes.join('；') || '这段文本不像素材行，请手工填素材段' });
+    return;
+  }
+  const apply = () => {
+    patchSummon({ materials: mats }, true);
+    toast(`认出 ${mats.length} 段素材` + (notes.length ? `（${notes.length} 条待核对）` : ''),
+      { kind: notes.length ? 'warn' : 'ok', hint: notes.slice(0, 2).join('；') });
+  };
+  if (summonOf(store.spec).materials.length) {
+    askReplaceSummon('用识别结果覆盖当前素材段？', apply);
+  } else {
+    apply();
+  }
+}
+
 function renderSummon() {
   const spec = store.spec;
   const block = $('#b-summon');
@@ -439,6 +477,8 @@ function renderSummon() {
       ensureSummonTemplate(true);
       renderSummon();
     } }, '按卡种填入模板'),
+    h('button.mini-btn.alt', { type: 'button', onclick: inferSummonFromText },
+      '从卡文识别素材'),
     h('span.hint', { text: isSyn
       ? '同调素材 = 协调段 + 协调以外段；数量可以写成「协调2只」'
       : isXyz

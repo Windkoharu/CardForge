@@ -405,6 +405,18 @@
 [PASS] MDPro3 verify 报 MD_LUA_NOT_PLAYABLE
 [PASS] MDPro3 verify 报 MD_EXTRA_NO_PROC
 [PASS] MDPro3 缺脚本的额外卡组卡 → ERROR
+[PASS] 素材行往返一致：字段+种族×3
+[PASS] 素材行往返一致：单卡名×2 + 种族
+[PASS] 素材行往返一致：等级+属性
+[PASS] 素材行往返一致：区间 2～3
+[PASS] 素材行往返一致：同步 协调+2只以上
+[PASS] 素材行往返一致：超量 4星×2
+[PASS] 素材行往返一致：连接 2只
+[PASS] 整段引号 → 卡名（不是字段）
+[PASS] 效果文不产出素材段
+[PASS] 效果文必须给出理由
+[PASS] 「怪兽2只」→ any×2
+[PASS] 英文素材行：空结果 + 说明
 
 ==== FAIL ====
 

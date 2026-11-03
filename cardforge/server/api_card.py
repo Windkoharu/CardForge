@@ -219,6 +219,42 @@ def register(app) -> None:
                        "要让它也变标准，去规格页把那条效果补全（种类/时点/代价/对象）。")
         return out
 
+    @app.post("/api/psct/infer-summon")
+    def psct_infer_summon(req: Request) -> dict:
+        """卡文素材行 → 结构化召唤条件（纯规则，不依赖大模型）。
+
+        为什么需要这个出口（缺陷 #37）：脚本只从**结构化字段**投影，用户只写
+        卡文时导出的卡在真机上既不能正规召唤、效果也不发动。这里把卡文第一行
+        反解回素材段，让"只写了卡文"的卡有一条一键回到可运行状态的路径。
+
+        认不出就返回 ``ok=false`` + ``notes``（**不猜**「任意怪兽」那种放行条件）。
+        """
+        spec = _spec_of(req, allow_missing_text=True)
+        mod = K.require("cardforge.content.summon", "召唤条件模块",
+                        "content/summon.py 尚未实现，此刻无法从卡文反推素材")
+        fn = getattr(mod, "parse_material_line", None)
+        if not callable(fn):
+            raise errors.EnvError("summon.parse_material_line 不可用",
+                                  "确认 content/summon.py 实现完整")
+        lang = req.str_arg("lang", "") or DEFAULT_LANG
+        text = req.str_arg("text") or mod.material_line(spec, lang) or spec.text_in(lang)
+        text = str(text or "").strip()
+        if not text:
+            raise errors.SpecError("没有可识别的素材行",
+                                   "先在卡文框写好第一行素材条件，或带上 text=<素材行>")
+        parts, notes = fn(text.splitlines()[0], spec, lang)
+        mats = [p.to_dict() for p in parts]
+        return {
+            "ok": bool(mats),
+            "materials": mats,
+            "count": len(mats),
+            "notes": notes,
+            "line": text.splitlines()[0].strip(),
+            "lang": lang,
+            "hint": ("核对后「应用」；认出的是素材段，召唤限制与额外方法不受影响"
+                     if mats else "这段没法当素材行反解，请手工填素材段"),
+        }
+
     @app.post("/api/psct/lint")
     def psct_lint(req: Request) -> dict:
         spec = _spec_of(req, allow_missing_text=True)

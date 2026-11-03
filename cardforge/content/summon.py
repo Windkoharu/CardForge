@@ -1180,3 +1180,285 @@ def compose_meta(spec: CardSpec, lang: str = "zh_cn") -> dict:
         "lines": rules.estimate_lines(text, ctx.used_lang),
         "chars": len(text),
     }
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  反向解析：卡文素材行 → 结构化素材（缺陷 #37 的「出口」）
+# ══════════════════════════════════════════════════════════════════════
+# 为什么要有它：脚本只从**结构化字段**投影（这是对的），但用户完全可以只写
+# 卡文。没有这条路，唯一的出口就是「请自己把素材重新填一遍」—— 实测就是被
+# 用户理解成「不能召唤」的那个坑。本函数只做**确定性**的语法反解：
+# 认不出就明说认不出，绝不猜一个「任意怪兽」出来。
+_CN_DIGIT = {"一": "1", "二": "2", "三": "3", "四": "4", "五": "5",
+             "六": "6", "七": "7", "八": "8", "九": "9", "十": "10"}
+
+#: 数量后缀（**必须先剥后缀再解析筛选**，否则「2只」会被当成等级 2）
+_COUNT_SUFFIX: tuple = (
+    (re.compile(r"^(.+?)[×xX]\s*(\d+)\s*[～~\-—]\s*(\d+)\s*只$"), "range_x"),
+    (re.compile(r"^(.+?)[×xX]\s*(\d+)\s*只以上$"), "atleast_x"),
+    (re.compile(r"^(.+?)[×xX]\s*(\d+)$"), "exact_x"),
+    (re.compile(r"^(.+?)(\d+)\s*[～~\-—]\s*(\d+)\s*只$"), "range"),
+    (re.compile(r"^(.+?)(\d+)\s*只以上$"), "atleast"),
+    (re.compile(r"^(.+?)(\d+)\s*只$"), "exact"),
+)
+_RE_LEVEL = re.compile(r"^(\d+)\s*星$")
+_RE_RANK = re.compile(r"^(\d+)\s*阶$")
+_RE_NAMED = re.compile(r"「([^」]+)」")
+_RE_INCLUDING = re.compile(r"^包含(.+?)的(.+)$")
+_BARE_NAME = re.compile(r"^「[^」]+」$")
+
+_term_maps_cache: Optional[tuple] = None
+
+
+def _zh_term_maps() -> tuple:
+    """中文术语 → IR 键的反查表（种族 / 属性 / 卡种），只建一次。"""
+    global _term_maps_cache
+    if _term_maps_cache is not None:
+        return _term_maps_cache
+    races: dict = {}
+    attrs: dict = {}
+    types: dict = {}
+    try:
+        from ..core import constants as _C
+        for key in _C.RACE_MAP:
+            term = L.race_term(str(key), "zh_cn")
+            if term:
+                races[term] = str(key)
+    except Exception:
+        pass
+    try:
+        from ..core import constants as _C
+        for key in _C.ATTRIBUTE_MAP:
+            term = L.attribute_term(str(key), "zh_cn")
+            for cand in (term, str(key), term[:-2] if term.endswith("属性") else term):
+                if cand:
+                    attrs[cand] = str(key)
+    except Exception:
+        pass
+    for key in MATERIAL_TYPE_KEYS:
+        term = L.card_type_term(MATERIAL_TYPE_KEYS[key], "zh_cn")
+        for cand in (term, _zh_type(key)):
+            if not cand:
+                continue
+            types[cand] = key
+            if cand.endswith("怪兽"):
+                types[cand[:-2]] = key
+    _term_maps_cache = (races, attrs, types)
+    return _term_maps_cache
+
+
+def _zh_parse_quals(words: list, notes: list) -> list:
+    """「战士族·4星」这类修饰词 → 条件列表（认不出的进 notes）。"""
+    races, attrs, types = _zh_term_maps()
+    out: list[MaterialPart] = []
+    for w in words:
+        w = str(w or "").strip()
+        if not w:
+            continue
+        # 「战士族怪兽」「光属性怪兽」「4星怪兽」：先剥掉中心词「怪兽」，
+        # 否则永远匹配不上术语表（这是第一版就踩到的坑）。
+        if w.endswith("怪兽"):
+            w = w[: -len("怪兽")].strip()
+        if not w:
+            continue
+        m = _RE_LEVEL.match(w)
+        if m:
+            out.append(MaterialPart(kind="level", value=int(m.group(1))))
+            continue
+        m = _RE_RANK.match(w)
+        if m:
+            out.append(MaterialPart(kind="rank", value=int(m.group(1))))
+            continue
+        if w in attrs:
+            out.append(MaterialPart(kind="attribute", value=attrs[w]))
+            continue
+        if w in races:
+            out.append(MaterialPart(kind="race", value=races[w]))
+            continue
+        if w.endswith("属性") and w[:-2] in attrs:
+            out.append(MaterialPart(kind="attribute", value=attrs[w[:-2]]))
+            continue
+        bare = w[2:] if w.startswith("的") else w
+        if bare in types:
+            out.append(MaterialPart(kind="type", value=types[bare]))
+            continue
+        notes.append(f"「{w}」没认出来（属性/种族/卡种/等级都不匹配），这一段按其余条件处理")
+    return out
+
+
+def _named_kind(name: str, spec: Optional[CardSpec]) -> tuple[str, str]:
+    """「X」该当成**字段**还是**卡名** → ``(kind, 理由)``。
+
+    默认按字段：DIY 卡的素材行九成指本家字段；只有当引号里就是这张卡自己的
+    卡名、或工作区里存在同名系列目录时才明确。判不准时把理由返回给界面。
+    """
+    nm = str(name or "").strip()
+    if not nm:
+        return "archetype", ""
+    if spec is not None:
+        if nm == str(getattr(spec, "archetype", "") or "").strip():
+            return "archetype", ""
+        if nm == str(getattr(spec, "name", "") or "").strip():
+            return "name", "与卡名同名，按「卡名」处理"
+    try:
+        from ..core import paths as _p
+        if (_p.WORKSPACE / "archetypes" / nm).is_dir():
+            return "archetype", ""
+    except Exception:
+        pass
+    return "archetype", f"「{nm}」按字段处理（要指单卡请手动改成「卡名」）"
+
+
+def _zh_parse_named(text: str, spec: Optional[CardSpec], notes: list,
+                    *, bare_name: bool = False) -> list:
+    """引号里的名字 → 具名条件（可多个）。
+
+    ``bare_name=True`` 表示整段就是一个引号（``「青眼白龙」``）—— 官方写法里
+    字段一定带「怪兽」（见 :func:`_zh_named_word`），所以这种形态是**单卡名**。
+    """
+    out: list[MaterialPart] = []
+    names = _RE_NAMED.findall(str(text or ""))
+    for nm in names:
+        if bare_name and len(names) == 1:
+            out.append(MaterialPart(kind="name", value=nm))
+            continue
+        kind, why = _named_kind(nm, spec)
+        if why:
+            notes.append(why)
+        out.append(MaterialPart(kind=kind, value=nm))
+    return out
+
+
+def _zh_parse_part(seg: str, spec: Optional[CardSpec], notes: list) -> Optional[MaterialPart]:
+    """一段素材短语 → :class:`MaterialPart`（无法解析返回 ``None``）。"""
+    text = str(seg or "").strip()
+    if not text:
+        return None
+    lo, hi = 1, 0
+    for rx, kind in _COUNT_SUFFIX:
+        m = rx.match(text)
+        if not m:
+            continue
+        if kind == "range_x":
+            text, lo, hi = m.group(1), int(m.group(2)), int(m.group(3))
+        elif kind == "atleast_x":
+            text, lo, hi = m.group(1), int(m.group(2)), 99
+        elif kind == "exact_x":
+            text, lo = m.group(1), int(m.group(2))
+        elif kind == "range":
+            text, lo, hi = m.group(1), int(m.group(2)), int(m.group(3))
+        elif kind == "atleast":
+            text, lo, hi = m.group(1), int(m.group(2)), 99
+        elif kind == "exact":
+            text, lo = m.group(1), int(m.group(2))
+        break
+
+    part = MaterialPart(kind="any", value="", count=lo, count_max=hi)
+    for prefix, attr in (("衍生物以外的", "exclude_token"),
+                         ("包含连接怪兽的", "include_link"),
+                         ("连接怪兽以外的", "exclude_link")):
+        if text.startswith(prefix):
+            setattr(part, attr, True)
+            text = text[len(prefix):]
+    if text.startswith("协调以外的"):
+        part.tuner = "non_tuner"
+        text = text[len("协调以外的"):]
+    elif text.endswith("的协调"):
+        part.tuner = "tuner"
+        text = text[: -len("的协调")]
+    elif text.endswith("协调"):
+        part.tuner = "tuner"
+        text = text[: -len("协调")]
+
+    named: list = []
+    quals: list = []
+    bare = bool(_BARE_NAME.match(text))
+    m = _RE_INCLUDING.match(text)
+    if m:
+        named = _zh_parse_named(m.group(1), spec, notes)
+        quals = _zh_parse_quals(re.split(r"[·、]", m.group(2)), notes)
+        if not named:
+            notes.append(f"「{text}」里的「包含…的…」没找到字段名，已按普通筛选处理")
+    elif "「" in text:
+        named = _zh_parse_named(text, spec, notes, bare_name=bare)
+        rest = _RE_NAMED.sub("", text)
+        quals = _zh_parse_quals(re.split(r"[·、]", rest), notes)
+    else:
+        quals = _zh_parse_quals(re.split(r"[·、]", text), notes)
+
+    conds = named + quals
+    if not conds:
+        # 只有「怪兽」+ 数量才是合法的「任意 N 只」；其余一律视为没认出来 ——
+        # 绝不把一段乱文本猜成「任意怪兽」，那会生成一个放行一切素材的流程。
+        core = text.strip()
+        if core in ("", "怪兽"):
+            part.kind = "any"
+            part.value = ""
+            return part
+        notes.append(f"「{core}」里没有任何可识别的素材条件"
+                     f"（种族/属性/卡种/等级/字段/卡名都没有），这一段已跳过")
+        return None
+    # 整段就是一个引号名（没有「怪兽」后缀）= 官方写法里的**单卡名**；
+    # 字段一律带「怪兽」（见 _zh_named_word），所以这里能确定性区分。
+    if len(conds) == 1 and _BARE_NAME.match(text) and str(conds[0].kind) == "archetype":
+        conds[0].kind = "name"
+    first = conds[0]
+    part.kind = str(first.kind or "any")
+    part.value = first.value
+    if len(conds) > 1:
+        part.also = [{"kind": str(c.kind or "any"), "value": c.value}
+                     for c in conds[1:]]
+    return part
+
+
+def parse_material_line(text: str, spec: Optional[CardSpec] = None,
+                        lang: str = "zh_cn") -> tuple[list, list]:
+    """卡文素材行 → ``(素材段列表, 提示)``。
+
+    只做**确定性**反解：认不出的部分留在 ``notes`` 里、绝不猜。返回空列表
+    表示「这段没法当素材行处理」，调用方必须让用户手填，不能默默当成通过。
+    """
+    notes: list[str] = []
+    raw = str(text or "").strip()
+    if not raw:
+        return [], ["没有可识别的素材行文本"]
+    if lang != "zh_cn":
+        return [], ["目前只支持中文卡文的反向识别；日文/英文素材行请手填"]
+    if spec is None:
+        return [], ["需要卡片上下文（融合/同步/超量/连接）才能判断素材段"]
+    base = frame_kind(spec)
+    if base == "ritual":
+        return [], ["仪式卡走「降临」行，不按素材段解析"]
+
+    line = raw.splitlines()[0].strip()
+    line = line.translate(_FULLWIDTH)
+    for k, v in _CN_DIGIT.items():
+        line = line.replace(f"{k}只", f"{v}只")
+        line = line.replace(f"{k}星", f"{v}星")
+        line = line.replace(f"{k}阶", f"{v}阶")
+
+    segs = [s for s in re.split(r"[＋+]", line) if s.strip()]
+    if not segs:
+        return [], ["没找到任何素材段"]
+    if base in ("xyz", "link") and len(segs) > 1:
+        notes.append(f"{base} 只支持一组素材条件，只取第一段")
+    if base == "synchro" and len(segs) != 2:
+        notes.append("同步素材应为「协调＋协调以外」两段；当前段数不符，按顺序套用")
+
+    parts: list[MaterialPart] = []
+    for i, seg in enumerate(segs):
+        part = _zh_parse_part(seg, spec, notes)
+        if part is None:
+            notes.append(f"第 {i + 1} 段「{seg.strip()}」解析为空")
+            continue
+        if base == "synchro":
+            part.tuner = "tuner" if i == 0 else "non_tuner"
+            if i == 0 and part.kind == "any" and not part.also:
+                part.count, part.count_max = 1, 0
+        parts.append(part)
+        if base in ("xyz", "link"):
+            break
+
+    if not parts:
+        return [], notes + ["一段素材都没解析出来"]
+    return parts, notes
