@@ -232,6 +232,15 @@ def _safe(s: str, default: str = "CardForge") -> str:
     return ("".join(keep))[:48] or default
 
 
+def _readiness_mod():
+    """惰性拿可运行度判定模块（缺失时返回 None，导出照常进行）。"""
+    try:
+        from ..content.lua import readiness
+        return readiness
+    except Exception:
+        return None
+
+
 def _write_file(path: Path, text: str) -> None:
     """**UTF-8 无 BOM**：MDPro3 自己的 conf/ydk 实测都不带 BOM，
     而 ``.lua`` 带 BOM 会直接让脚本加载失败。"""
@@ -294,10 +303,19 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
 
     # ── 2. script/ ────────────────────────────────────────────────
     (tmp / "script").mkdir(exist_ok=True)
+    ready = _readiness_mod()
     for c in specs:
         lua = str(getattr(c, "lua", "") or "")
         if not lua.strip():
             skipped_no_script.append(int(c.id))
+            # 额外卡组 / 仪式卡没有脚本 = 连出场入口都没有（缺陷 #37）
+            if ready is not None and ready.needs_proc_card(c):
+                issues.append(Issue(
+                    gate="MDPRO", code="MD_EXTRA_SCRIPT_MISSING", level="ERROR",
+                    message=f"卡 {c.id}「{c.name}」是额外卡组/仪式卡，但没有脚本",
+                    hint="这类卡的召唤流程写在脚本里；缺了它进游戏后不能正规召唤、"
+                         "效果也不会发动，只能被别的卡效果特召。先「生成脚本」。",
+                    field="lua"))
             continue
         if lua.startswith("\ufeff"):
             lua = lua.lstrip("\ufeff")
@@ -305,6 +323,14 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
                                 message=f"卡 {c.id} 的脚本原本带 BOM，已剥掉",
                                 hint="带 BOM 的 Lua 在 ocgcore 里直接加载失败",
                                 field="lua"))
+        if ready is not None:
+            try:
+                issues.extend(ready.issues_for(c, lua, gate="MDPRO"))
+            except Exception as e:                  # 判定器出错不阻断打包
+                issues.append(Issue(gate="MDPRO", code="MD_READINESS_CRASH",
+                                    level="WARN",
+                                    message=f"卡 {c.id} 的可运行度判定失败：{e}",
+                                    field="lua"))
         fn = f"c{int(c.id)}.lua"
         _write_text(tmp.joinpath("script", fn).parent and tmp / "script" / fn
                     and Path(tmp / "script" / fn), lua) if False else \
@@ -563,6 +589,7 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
     """
     out: list[Issue] = []
     p = Path(ypk)
+    ready = _readiness_mod()
 
     def iss(code: str, level: str, msg: str, hint: str = "", field: str = "") -> None:
         out.append(Issue(gate="MDPRO", code=code, level=level, message=msg,
@@ -598,6 +625,8 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
                     try:
                         con = sqlite3.connect(tmp)
                         ids = {int(r[0]) for r in con.execute("select id from datas")}
+                        types = {int(r[0]): int(r[1] or 0)
+                                 for r in con.execute("select id, type from datas")}
                         txt = {int(r[0]) for r in con.execute("select id from texts")}
                         con.close()
                         if not ids:
@@ -622,6 +651,26 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
                             iss("MD_SCRIPT_ORPHAN", "WARN",
                                 f"script/c{extra}.lua 在 cdb 里没有对应卡号",
                                 "多余脚本无害，但通常意味着卡号写错了")
+                        # 额外卡组卡：脚本在、但不是「召唤流程脚本」→ 不能正规召唤
+                        if ready is not None:
+                            for sid in sorted(sids & ids):
+                                want = ready.expected_procs(type_bits=types.get(sid, 0))
+                                if not want:
+                                    continue
+                                try:
+                                    body = z.read(f"script/c{sid}.lua").decode(
+                                        "utf-8", "replace")
+                                except KeyError:
+                                    continue
+                                found = ready.find_proc_calls(body)
+                                if not any(n in ready.PROC_CALLS[k]
+                                           for k in want for n in found):
+                                    iss("MD_EXTRA_NO_PROC", "WARN",
+                                        f"卡 {sid} 是{ready.proc_label(want)}卡，"
+                                        f"但脚本里没有对应召唤流程",
+                                        "cdb 判不出「这张卡本来就声明不能特殊召唤」，"
+                                        "所以只报 WARN；若它应当能正规召唤，"
+                                        "请补召唤条件后重新生成脚本。")
                         if pids and len(ids - pids):
                             miss2 = sorted(ids - pids)[:6]
                             iss("MD_PIC_MISSING", "INFO",
@@ -629,12 +678,28 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
                                 "客户端会退回按卡号找 Picture/Art 的插画或显示占位")
                         for lua_name in scripts:
                             if re.fullmatch(r"script/c\d+\.lua", lua_name):
-                                head = z.read(lua_name)[:3]
-                                if head == b"\xef\xbb\xbf":
+                                raw = z.read(lua_name)
+                                if raw[:3] == b"\xef\xbb\xbf":
                                     iss("MD_LUA_BOM", "ERROR",
                                         f"{lua_name} 带 UTF-8 BOM",
                                         "带 BOM 的 Lua 会让这张卡在对局里直接报错",
                                         field="lua")
+                                # 文件在 ≠ 能干活：只有注释的脚本在游戏里是空壳（缺陷 #37）
+                                if ready is not None:
+                                    try:
+                                        info = ready.analyze_lua(
+                                            raw.decode("utf-8", "replace"))
+                                    except Exception:
+                                        info = None
+                                    if info is not None and info["empty_body"]:
+                                        code_id = int(re.match(
+                                            r"script/c(\d+)\.lua", lua_name).group(1))
+                                        iss("MD_LUA_NOT_PLAYABLE", "ERROR",
+                                            f"{lua_name}（卡 {code_id}）只有注释，"
+                                            f"没有一行可执行代码",
+                                            "这张卡进游戏后不能正规召唤、效果也不会发动，"
+                                            "只能被别的卡效果特召。回卡工程补召唤条件与效果种类。",
+                                            field="lua")
                     except sqlite3.Error as e:
                         iss("MD_CDB_BAD", "ERROR", f"cdb 打不开：{e}",
                             "重新导出一次；cdb 必须是标准 SQLite 库")

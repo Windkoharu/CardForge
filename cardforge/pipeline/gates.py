@@ -8,7 +8,7 @@
 | 门 | 位置 | 检查 | 失败处理 |
 |---|---|---|---|
 | G1 | 规格生成后 | 平衡审计 / ATK 惯例 / HOPT / 素材条件 / 字段查重 / 号段冲突 | 告警或拦截，可强制放行但留痕 |
-| G2 | 脚本生成后 | Lua 语法 / UTF-8 无 BOM / API 存在性 / Stringid↔texts 同步 | 回脚本层，或降级重试 |
+| G2 | 脚本生成后 | Lua 语法 / UTF-8 无 BOM / API 存在性 / Stringid↔texts 同步 / **可运行度（有没有真代码）** | 回脚本层，或降级重试 |
 | G3 | 落盘后 | 场景单测 + 整局对战 0 报错 | 无引擎时**降级为静态校验并明确标注** |
 | G4 | 系列批量后 | 方言数 / 属性种族交集 / 启动路径 / 泛用素材 / 角色覆盖率 | 告警，回蓝图 |
 | G5 | 导出打包后 | 文件完整性 / 编码 / 卡号冲突 / cdb 表结构 | **拦截导出** |
@@ -164,6 +164,22 @@ def g2_script(spec: CardSpec, lua: str = "") -> GateReport:
     except Exception as e:
         issues.append(Issue(gate="G2", code="G2_INTERNAL", level="ERROR",
                             message=f"Lua 校验执行失败：{e}", hint="请反馈此问题"))
+
+    # 可运行度：这份脚本在对局里到底有没有行为（缺陷 #37）
+    # 「语法正确但一行代码都没有」是空壳，不是通过 —— 见 content/lua/readiness.py
+    ready = _try_import(".content.lua.readiness") or \
+        _try_import("cardforge.content.lua.readiness")
+    if ready is None:
+        issues.append(Issue(gate="G2", code="G2_NO_READINESS", level="INFO",
+                            message="可运行度判定模块不可用，只做了静态检查",
+                            hint=""))
+    else:
+        try:
+            issues.extend(ready.issues_for(spec, body))
+        except Exception as e:
+            issues.append(Issue(gate="G2", code="G2_READINESS_CRASH", level="WARN",
+                                message=f"可运行度判定失败：{type(e).__name__}: {e}",
+                                hint="这是判定器自身的缺陷，请附 spec.json 反馈"))
     return _report("G2", issues, t0=t0)
 
 

@@ -379,6 +379,32 @@
 [PASS] effects 需要的 24 个具名片段全实现
 [PASS] FRAGMENTS 无孤儿
 走卡种骨架（无片段）的 kind 7：extra_normal_summon、fusion_summon、link_summon、pendulum_summon、ritual_summon、synchro_summon、xyz_summon
+[PASS] 空壳卡：脚本 initial_effect 里没有可执行语句
+[PASS] 空壳卡：G2 判 fail（不许 pass）
+[PASS] 空壳卡：报 G2_NOT_PLAYABLE
+[PASS] 注释里的 Fusion.AddProcMix 不算流程
+[PASS] 注释里的 RegisterEffect 不算注册
+[PASS] 只有注释 → empty_body
+[PASS] 正常融合卡：G2 pass
+[PASS] 正常融合卡：readiness.playable
+[PASS] 同步卡缺素材：G2 fail
+[PASS] 同步卡缺素材：报 G2_EXTRA_NO_PROC
+[PASS] cannot_spsummon 豁免：不报 EXTRA_NO_PROC
+[PASS] cannot_spsummon 豁免：readiness 记下原因
+[PASS] 通常怪兽：G2 pass
+[PASS] 通常怪兽：无需脚本
+[PASS] TYPE_EXTRA_MASK 不含 TYPE_RITUAL
+[PASS] 仪式怪兽判为主卡组卡
+[PASS] 融合仍判为额外卡组
+[PASS] 同步仍判为额外卡组
+[PASS] 超量仍判为额外卡组
+[PASS] 连接仍判为额外卡组
+[PASS] 魔法卡不判为额外卡组
+[PASS] MDPro3 build 拦空壳（MD 编号）
+[PASS] MDPro3 build 不误伤正常卡
+[PASS] MDPro3 verify 报 MD_LUA_NOT_PLAYABLE
+[PASS] MDPro3 verify 报 MD_EXTRA_NO_PROC
+[PASS] MDPro3 缺脚本的额外卡组卡 → ERROR
 
 ==== FAIL ====
 

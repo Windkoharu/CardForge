@@ -73,6 +73,36 @@ def needs_script(spec: CardSpec) -> bool:
     return spec.frame not in _VANILLA_FRAMES
 
 
+#: 靠「召唤流程」上场的卡种 —— 这些卡没有脚本就连出场的入口都没有
+_PROC_BASES: tuple[str, ...] = ("fusion", "synchro", "xyz", "link", "ritual")
+
+
+def _needs_proc_card(spec: CardSpec) -> bool:
+    """额外卡组 / 仪式卡（缺失脚本时必须报 ERROR，不是 WARN）。
+
+    判定口径住在 :mod:`cardforge.content.lua.readiness`（与 G2 共用一份）。
+    """
+    ready = _readiness_mod()
+    if ready is not None:
+        try:
+            return bool(ready.needs_proc_card(spec))
+        except Exception:
+            pass
+    try:
+        return str(spec.frame_def.base) in _PROC_BASES
+    except Exception:
+        return False
+
+
+def _readiness_mod():
+    """惰性拿可运行度判定模块（缺失时返回 None，让导出继续但记 INFO）。"""
+    try:
+        from ..content.lua import readiness
+        return readiness
+    except Exception:
+        return None
+
+
 def needs_script_type(type_bits: int) -> bool:
     """``needs_script`` 的 cdb 行版本（verify 只有 type 位，没有 CardSpec）。"""
     t = int(type_bits or 0)
@@ -421,11 +451,18 @@ def build(
                     lua = ""
         if not lua.strip():
             if needs_script(spec):
+                # 额外卡组 / 仪式卡没有脚本 = **连正规召唤的入口都不存在**，
+                # 只能被别的卡效果特召（缺陷 #37 的用户现象），所以是 ERROR 不是 WARN。
+                lvl = "ERROR" if _needs_proc_card(spec) else "WARN"
+                code = "G5_EXTRA_SCRIPT_MISSING" if lvl == "ERROR" else "G5_SCRIPT_MISSING"
                 issues.append(_issue(
-                    "G5_SCRIPT_MISSING", "WARN",
+                    code, lvl,
                     f"卡 {cid}「{spec.name}」需要脚本，但 spec.lua 是空的",
-                    hint="在卡工程里生成 Lua，或把现成脚本放到 "
-                         f"{paths.rel(src_scripts)}/c{cid}.lua 再用 use_disk_scripts=True。",
+                    hint=("融合/同步/超量/连接/仪式卡没有脚本就没有召唤流程："
+                          "导进游戏后不能正规召唤、效果也不会发动。先「生成脚本」。"
+                          if lvl == "ERROR" else
+                          "在卡工程里生成 Lua，或把现成脚本放到 "
+                          f"{paths.rel(src_scripts)}/c{cid}.lua 再用 use_disk_scripts=True。"),
                     field=str(cid)))
                 skipped.append({"kind": "script", "id": cid, "name": spec.name,
                                 "reason": "spec.lua 为空"})
@@ -436,6 +473,15 @@ def build(
         body = lua.lstrip("\ufeff")
         if not body.endswith("\n"):
             body += "\n"
+        # 可运行度：文件在、语法对，但一行代码都没有的「空壳脚本」不算交付
+        _ready = _readiness_mod()
+        if _ready is not None:
+            try:
+                issues.extend(_ready.issues_for(spec, body, gate="G5"))
+            except Exception as e:                      # 判定器自身出错不阻断打包
+                issues.append(_issue("G5_READINESS_CRASH", "WARN",
+                                     f"卡 {cid} 的可运行度判定失败：{e}",
+                                     field=str(cid)))
         try:
             dst.write_text(body, encoding="utf-8", newline="\n")
             n_scripts += 1
@@ -595,6 +641,10 @@ def verify(pack_dir: str | os.PathLike[str], *, official: OfficialPool | None = 
     ``G5_ID_CONFLICT``          ERROR   卡号与**官方池**冲突
     ``G5_LANG_MISMATCH``        WARN    语言包的卡号集合与基础包不一致
     ``G5_SCRIPT_MISSING``       WARN    需要脚本的卡没有 ``script/c<id>.lua``
+    ``G5_EXTRA_SCRIPT_MISSING`` ERROR   额外卡组/仪式卡没有脚本（连出场入口都没有）
+    ``G5_LUA_NOT_PLAYABLE``     ERROR   ``.lua`` 里除注释外没有一行代码（空壳脚本）
+    ``G5_EXTRA_NO_PROC``        WARN    额外卡组卡脚本里没有对应召唤流程（cdb 判不出意图）
+    ``G5_READINESS_CRASH``      WARN    可运行度判定器自身出错（不阻断打包）
     ``G5_PENDULUM_SCALE``       WARN    灵摆卡的 level 列解出来刻度是 0
     ``G5_LUA_BOM``              ERROR   ``.lua`` 带 UTF-8 BOM（脚本会直接失效）
     ``G5_LUA_ENCODING``         ERROR   ``.lua`` 不是合法 UTF-8
@@ -753,14 +803,49 @@ def _verify_impl(pack_dir: str | os.PathLike[str], official: OfficialPool | None
 
     # ── 脚本 + 灵摆刻度 ──────────────────────────────────────────────
     script_dir = exp / "script"
+    ready = _readiness_mod()
     for f in cdb_files:
         for cid, (tbits, lvl) in sorted(datas_by_cdb.get(f.name, {}).items()):
-            if needs_script_type(tbits) and not (script_dir / f"c{cid}.lua").is_file():
+            lua_path = script_dir / f"c{cid}.lua"
+            if needs_script_type(tbits) and not lua_path.is_file():
+                # 额外卡组/仪式卡缺脚本 = 连出场入口都没有（缺陷 #37），必须拦
+                must_proc = bool(tbits & (C.TYPE_FUSION | C.TYPE_SYNCHRO | C.TYPE_XYZ
+                                          | C.TYPE_LINK | C.TYPE_RITUAL))
                 issues.append(_issue(
-                    "G5_SCRIPT_MISSING", "WARN",
+                    "G5_EXTRA_SCRIPT_MISSING" if must_proc else "G5_SCRIPT_MISSING",
+                    "ERROR" if must_proc else "WARN",
                     f"卡 {cid} 需要脚本，但缺 script/c{cid}.lua",
-                    hint="效果怪/魔陷都靠 c<卡号>.lua 生效；白板卡可忽略本条。",
+                    hint=("融合/同步/超量/连接/仪式卡的召唤流程写在脚本里："
+                          "缺了它进游戏后不能正规召唤、效果也不会发动，只能被别的卡效果特召。"
+                          if must_proc else
+                          "效果怪/魔陷都靠 c<卡号>.lua 生效；白板卡可忽略本条。"),
                     field=str(cid)))
+            elif ready is not None and lua_path.is_file():
+                # 文件在 ≠ 能干活：整份脚本只有注释的卡在游戏里是空壳（缺陷 #37）
+                try:
+                    info = ready.analyze_lua(lua_path.read_text(encoding="utf-8-sig"))
+                except (OSError, UnicodeDecodeError):
+                    info = None
+                if info is not None:
+                    if info["empty_body"] and needs_script_type(tbits):
+                        issues.append(_issue(
+                            "G5_LUA_NOT_PLAYABLE", "ERROR",
+                            f"卡 {cid} 的脚本只有注释，没有一行可执行代码",
+                            hint="这份卡导进游戏后不能正规召唤、效果也不会发动，"
+                                 "只能被别的卡效果特召。回卡工程把召唤条件与效果种类填好再导出。",
+                            field=str(cid)))
+                    want = ready.expected_procs(type_bits=tbits)
+                    if want:
+                        hit = [k for k in want
+                               if any(n in ready.PROC_CALLS[k] for n in info["procs"])]
+                        if not hit:
+                            issues.append(_issue(
+                                "G5_EXTRA_NO_PROC", "WARN",
+                                f"卡 {cid} 是{ready.proc_label(want)}卡，"
+                                f"但脚本里没有对应召唤流程",
+                                hint="CDB 看不出「这张卡本来就声明不能特殊召唤」，"
+                                     "所以只报 WARN；若这卡应当能正规召唤，请补召唤条件后重新生成脚本。",
+                                field=str(cid)))
             info = cdbmod.parse_level_column(lvl, tbits)
             if info["pendulum"] and not info["lscale"]:
                 issues.append(_issue(

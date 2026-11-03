@@ -91,7 +91,10 @@ POS_FACEUP_ATTACK, POS_FACEDOWN_ATTACK = 0x1, 0x2
 POS_FACEUP_DEFENSE, POS_FACEDOWN_DEFENSE = 0x4, 0x8
 
 TYPE_MONSTER, TYPE_SPELL, TYPE_TRAP = 0x1, 0x2, 0x4
-TYPE_EXTRA_MASK = 0x40 | 0x80 | 0x2000 | 0x800000 | 0x4000000  # fusion/ritual/synchro/xyz/link
+#: 真正进**额外卡组**的 type 位：融合 / 同步 / 超量 / 连接。
+#: ⚠ 不要加 ``TYPE_RITUAL(0x80)``：仪式怪兽是**主卡组**卡，靠仪式魔法从手卡
+#: 仪式召唤；把它算成额外卡组会让自制对局把仪式兽塞进额外卡组（缺陷 #38）。
+TYPE_EXTRA_MASK = 0x40 | 0x2000 | 0x800000 | 0x4000000
 
 #: ``QUERY_*``（照 ocgapi_constants.h「Card Queries」逐项核对；本工程只用到其中几个）
 QUERY_CODE = 0x1
@@ -1071,7 +1074,10 @@ def _unpack_setcode(value) -> list[int]:
 
 
 def is_extra_deck_type(type_bits: int) -> bool:
-    """按 ``datas.type`` 位判断是否是额外卡组卡（融合/仪式/同调/超量/连接）。"""
+    """按 ``datas.type`` 位判断是否是**额外卡组**卡（融合/同步/超量/连接）。
+
+    仪式怪兽不算 —— 它在主卡组里，靠仪式魔法从手卡仪式召唤（缺陷 #38）。
+    """
     return bool(int(type_bits or 0) & TYPE_EXTRA_MASK)
 
 

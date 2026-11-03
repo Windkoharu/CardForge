@@ -1,0 +1,8 @@
+融合       可选=0/23  turns=7 err=0
+    ['Fusion.AddProcMix(c,true,true,s.mat0_0,s.mat0_0,s.mat0_0)']
+同步       可选=0/23  turns=7 err=0
+    ['Synchro.AddProcedure(c,s.mat0_0,1,1,Synchro.NonTuner(s.mat0_1),2,2)']
+超量       可选=0/20  turns=7 err=0
+    ['Xyz.AddProcedure(c,s.mat0_0,4,2)']
+连接       可选=0/20  turns=7 err=0
+    ['Link.AddProcedure(c,nil,2,2)']

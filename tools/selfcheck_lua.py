@@ -885,13 +885,17 @@ specs = [
                                      E("gain_atk", "IGNITION", "hopt_name", tgt=T(**MON),
                                        params={"value": 300}, raw="②：怪兽框")],
              pendulum_scale=2, pendulum_effect_indices=[0]),
+    # 额外卡组卡必须带召唤条件 —— 没有流程的融合/超量卡在 G2/G5 会被判
+    # G2_EXTRA_NO_PROC（缺陷 #37），所以这里的样本要按真实卡写
     spec_one(210000608, "xyz", [E("xyz_summon", params={"count": 2, "materials": []}),
                                 E("send_grave", "IGNITION", "once_per_turn", tgt=T(**MON),
-                                  cost=EffectCost(kind="detach"), raw="①：送墓。")], level=4),
+                                  cost=EffectCost(kind="detach"), raw="①：送墓。")], level=4,
+             summon=SummonSpec(materials=[MaterialPart(kind="any", count=2)])),
     spec_one(210000609, "link", [E("link_summon", params={"materials": []}),
                                  E("destroy", "SPECIAL_SUMMON_SUCCESS", "once_per_turn",
                                    tgt=T(**MON), raw="①：破坏。")],
-             level=2, atk=1800, dfd=0, link_markers=["左下", "下"]),
+             level=2, atk=1800, dfd=0, link_markers=["左下", "下"],
+             summon=SummonSpec(materials=[MaterialPart(kind="any", count=2)])),
     spec_one(210000613, "spell", [E("draw", "QUICK", "once_per_turn", params={"count": 1},
                                     raw="①：抽 1 张。")], spell_kind="quick"),
     spec_one(210000616, "trap", [E("negate_effect", "OPPONENT_ACTIVATE", "once_per_turn",
@@ -944,6 +948,103 @@ chk(f"effects 需要的 {len(named)} 个具名片段全实现", not (named - set
 chk("FRAGMENTS 无孤儿", not (set(FR.FRAGMENTS) - named), f"多 {sorted(set(FR.FRAGMENTS) - named)}")
 skeleton = sorted(k for k, v in EF.EFFECT_KINDS.items() if not v.lua_fragment)
 LINES.append(f"走卡种骨架（无片段）的 kind {len(skeleton)}：{'、'.join(skeleton)}")
+
+# ══ 11. 可运行度（缺陷 #37）与额外卡组判定（缺陷 #38）════════════════
+from cardforge.content.lua import readiness as RDY
+from cardforge.duel import ocgcore as OC
+
+# 11.1 空壳：只填卡文（素材只有 text_i18n、效果只有 raw_text）→ 必须拦
+shell = spec_one(
+    210000691, "fusion",
+    [EffectSpec(kind="", raw_text="①：这张卡特殊召唤成功的场合才能发动。从卡组抽 1 张卡。")],
+    summon=SummonSpec(text_i18n={"zh_cn": "包含「星奏」怪兽的魔法师族怪兽×3"}))
+shell.lua = emit.emit_script(shell)
+chk("空壳卡：脚本 initial_effect 里没有可执行语句",
+    RDY.analyze_lua(shell.lua)["empty_body"], shell.lua[:300])
+rep = gates.g2_script(shell)
+codes = {i.code for i in rep.issues if i.level == "ERROR"}
+chk("空壳卡：G2 判 fail（不许 pass）", rep.status == "fail", rep.status)
+chk("空壳卡：报 G2_NOT_PLAYABLE", "G2_NOT_PLAYABLE" in codes, str(sorted(codes)))
+
+# 11.2 关键反例：注释里出现的调用名不能算流程
+comment_only = ("local s,id=GetID()\nfunction s.initial_effect(c)\n"
+                "\t-- [CardForge] 未生成 Fusion.AddProcMix，需人工补写\n"
+                "\t-- [CardForge] 聚合：RegisterEffect 也没有\nend\n")
+_ai = RDY.analyze_lua(comment_only)
+chk("注释里的 Fusion.AddProcMix 不算流程", not _ai["procs"], str(_ai["procs"]))
+chk("注释里的 RegisterEffect 不算注册", _ai["n_register"] == 0, str(_ai["n_register"]))
+chk("只有注释 → empty_body", _ai["empty_body"], str(_ai))
+
+# 11.3 正常卡不许被误杀
+ok_fusion = spec_one(
+    210000692, "fusion", [E("piercing", "CONTINUOUS")],
+    summon=SummonSpec(materials=[MaterialPart(kind="archetype", value="星奏")],
+                      limit="must_be"))
+ok_fusion.lua = emit.emit_script(ok_fusion)
+_rep = gates.g2_script(ok_fusion)
+chk("正常融合卡：G2 pass", _rep.status == "pass",
+    "；".join(f"{i.code}:{i.message}" for i in _rep.issues if i.level == "ERROR"))
+chk("正常融合卡：readiness.playable", RDY.readiness(ok_fusion).playable, "")
+
+# 11.4 额外卡组卡没有流程 → ERROR（这就是「不能正规召唤」的那条）
+no_proc = spec_one(210000693, "synchro", [E("draw", "SPECIAL_SUMMON_SUCCESS",
+                                            raw="①：抽 1 张。")])
+no_proc.lua = emit.emit_script(no_proc)
+_rep = gates.g2_script(no_proc)
+chk("同步卡缺素材：G2 fail", _rep.status == "fail", _rep.status)
+chk("同步卡缺素材：报 G2_EXTRA_NO_PROC",
+    any(i.code == "G2_EXTRA_NO_PROC" and i.level == "ERROR" for i in _rep.issues),
+    str([i.code for i in _rep.issues]))
+
+# 11.5 「不能特殊召唤」是**故意**不生成流程 —— 要豁免，不能误报
+nom = spec_one(210000694, "fusion", [E("piercing", "CONTINUOUS")],
+               summon=SummonSpec(limit="cannot_spsummon"))
+nom.lua = emit.emit_script(nom)
+chk("cannot_spsummon 豁免：不报 EXTRA_NO_PROC",
+    not any(i.code == "G2_EXTRA_NO_PROC" for i in gates.g2_script(nom).issues), "")
+chk("cannot_spsummon 豁免：readiness 记下原因",
+    bool(RDY.readiness(nom).exempt), RDY.readiness(nom).to_dict())
+
+# 11.6 通常怪兽不需要脚本，判定不许报错
+vanilla = spec_one(210000695, "normal", [])
+vanilla.lua = emit.emit_script(vanilla)
+chk("通常怪兽：G2 pass", gates.g2_script(vanilla).status == "pass", "")
+chk("通常怪兽：无需脚本", not RDY.readiness(vanilla).needs_script, "")
+
+# 11.7 缺陷 #38：仪式怪兽是主卡组卡，不许算进额外卡组
+from cardforge.core import constants as _C
+chk("TYPE_EXTRA_MASK 不含 TYPE_RITUAL",
+    not OC.is_extra_deck_type(_C.TYPE_RITUAL), hex(OC.TYPE_EXTRA_MASK))
+chk("仪式怪兽判为主卡组卡",
+    not OC.is_extra_deck_type(_C.TYPE_MONSTER | _C.TYPE_RITUAL), "")
+for bit, name in ((_C.TYPE_FUSION, "融合"), (_C.TYPE_SYNCHRO, "同步"),
+                  (_C.TYPE_XYZ, "超量"), (_C.TYPE_LINK, "连接")):
+    chk(f"{name}仍判为额外卡组", OC.is_extra_deck_type(_C.TYPE_MONSTER | bit), hex(bit))
+chk("魔法卡不判为额外卡组", not OC.is_extra_deck_type(_C.TYPE_SPELL), "")
+
+# ══ 12. MDPro3 导出侧的同一条底线（用户在 MDPro3 里玩）══════════════
+from cardforge.export import mdpro3 as MDP
+md_dir = Path(tempfile.mkdtemp(prefix="mdchk_"))
+md_res = MDP.build([shell, no_proc, ok_fusion], md_dir / "t.ypk", name="CFT",
+                   render_pics=False)
+md_build_errs = {i.get("code") for i in md_res.get("issues", [])
+                 if i.get("level") == "ERROR"}
+chk("MDPro3 build 拦空壳（MD 编号）", "G2_NOT_PLAYABLE" in md_build_errs,
+    str(sorted(md_build_errs)))
+chk("MDPro3 build 不误伤正常卡",
+    not any(i.get("level") == "ERROR" and str(i.get("field")) == str(ok_fusion.id)
+            for i in md_res.get("issues", [])),
+    str([i.get("message") for i in md_res.get("issues", []) if i.get("level") == "ERROR"])[:300])
+md_ver = {i.code for i in MDP.verify(md_dir / "t.ypk")}
+chk("MDPro3 verify 报 MD_LUA_NOT_PLAYABLE", "MD_LUA_NOT_PLAYABLE" in md_ver, str(sorted(md_ver)))
+chk("MDPro3 verify 报 MD_EXTRA_NO_PROC", "MD_EXTRA_NO_PROC" in md_ver, str(sorted(md_ver)))
+# 缺脚本的额外卡组卡：build 直接 ERROR
+md_res2 = MDP.build([spec_one(210000696, "xyz", [E("piercing", "CONTINUOUS")])],
+                    md_dir / "t2.ypk", name="CFT2", render_pics=False)
+chk("MDPro3 缺脚本的额外卡组卡 → ERROR",
+    any(i.get("code") == "MD_EXTRA_SCRIPT_MISSING" and i.get("level") == "ERROR"
+        for i in md_res2.get("issues", [])),
+    str([i.get("code") for i in md_res2.get("issues", [])]))
 
 Path(ROOT / "_probe/verify_g2.txt").write_text(
     "\n".join(LINES) + "\n\n==== FAIL ====\n" + "\n".join(FAIL) +

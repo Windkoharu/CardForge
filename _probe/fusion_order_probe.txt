@@ -1,0 +1,6 @@
+A 现状(Proc→Revive)      可选次数=0/34  上场=0  errors=0
+    ['Fusion.AddProcMix(c,true,true,s.mat0_0,s.mat0_0,s.mat0_0)', 'c:EnableReviveLimit()']
+B 官方顺序(Revive→Proc)    可选次数=0/34  上场=0  errors=0
+    ['c:EnableReviveLimit()', 'Fusion.AddProcMix(c,true,true,s.mat0_0,s.mat0_0,s.mat0_0)']
+C 不写 EnableReviveLimit 可选次数=0/34  上场=0  errors=0
+    ['Fusion.AddProcMix(c,true,true,s.mat0_0,s.mat0_0,s.mat0_0)']
