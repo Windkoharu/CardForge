@@ -63,7 +63,14 @@ cases = [
      "\taux.EnablePendulumAttribute(c)", False),
     ("\taux.AddEquipProcedure(c,0,s.eqfil1)",
      "\taux.AddEquipSpellEffect(c,true,true,s.eqfil1)  "
-     "-- [CardForge#48] 装备限制数按旧接口默认 1", False),
+     "-- [CardForge#48] 装备四合一；限制数取默认 1（旧接口 eqlimit 只收自定义函数，"
+     "卡面无「多装备」字段）", False),
+    ("\tFusion.AddProcMixRepUnfix(c,true,true,{s.f,2,4})",
+     "\taux.AddFusionProcMixRep(c,false,true,s.f,2,4)", False),
+    ("\tFusion.AddProcMixRepUnfix(c,true,true,{s.f1,2,3},{s.f2,1,1})",
+     "\taux.AddFusionProcMixRep(c,false,true,s.f1,2,3,s.f2)", False),
+    ("\tFusion.AddProcMixRepUnfix(c,true,true,{s.f1,1,1},{s.f2,1,1})",
+     "\taux.AddFusionProcMix(c,false,true,s.f1,s.f2)", False),
     ("\te1:SetCountLimit(1,{id,3},EFFECT_COUNT_CODE_OATH)",
      "\te1:SetCountLimit(1,id+3)", True),
     ("\te1:SetValue(aux.lnklimit)", "\te1:SetValue(aux.linklimit)", False),
@@ -102,7 +109,7 @@ check("接触融合还原为 aux.AddContactFusionProcedure(c,过滤,区1,区2,�
 
 # 降级：必须注释掉 + 硬 ERROR note
 for src, why in [
-    ("\tFusion.AddProcMixRepUnfix(c,true,true,{s.f,2,4})", "多段可变数量"),
+    ("\tFusion.AddProcMixRepUnfix(c,true,true,{s.f1,2,3},{s.f2,1,2})", "两段以上浮动"),
     ("\tSynchro.AddProcedure(c,s.f1,1,2,Synchro.NonTuner(s.f2),1,3)", "协调数量浮动"),
     ("\tRitual.AddProc(c,s.f,4)", "旧接口名单里没有"),
 ]:
@@ -110,6 +117,40 @@ for src, why in [
     check(f"降级 {src.strip()[:44]!r}",
           out.lstrip().startswith("-- [CardForge#48]")
           and any(n.level == "ERROR" for n in notes))
+
+# OATH/DUEL 一决斗限次 → FlagEffect 整决斗计数（结构注入，官方 reset=0 写法）
+OATH = ("""function s.initial_effect(c)
+\tlocal e1=Effect.CreateEffect(c)
+\te1:SetType(EFFECT_TYPE_ACTIVATE)
+\te1:SetCountLimit(1,{id,1},EFFECT_COUNT_CODE_{code})
+\te1:SetTarget(s.tg1)
+\te1:SetOperation(s.op1)
+\tc:RegisterEffect(e1)
+end
+function s.tg1(e,tp,eg,ep,ev,re,r,rp,chk)
+\tif chk==0 then return Duel.IsExistingMatchingCard(aux.TRUE,tp,LOCATION_DECK,0,1,nil) end
+\tDuel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)
+end
+function s.op1(e,tp,eg,ep,ev,re,r,rp)
+\tlocal c=e:GetHandler()
+\tDuel.SendtoGrave(c,REASON_EFFECT)
+end
+""")
+for code in ("OATH", "DUEL"):
+    out, notes = tr(OATH.replace("{code}", code))
+    check(f"{code} 一决斗限次改写成 FlagEffect",
+          "SetCountLimit" not in out
+          and f"-- [CardForge#48] {code} 一决斗限次→FlagEffect" in out
+          and "return (Duel.IsExistingMatchingCard(aux.TRUE,tp,LOCATION_DECK,0,1,nil))"
+              " and Duel.GetFlagEffect(tp,id+1)==0 end" in out
+          and out.splitlines()[out.splitlines().index("function s.op1(e,tp,eg,ep,ev,re,r,rp)") + 1]
+          == "\tDuel.RegisterFlagEffect(tp,id+1,0,0,1)"
+          and "\tlocal c=e:GetHandler()" in out          # 插入不得踩掉原有行
+          and any(n.level == "INFO" and n.code == "MD_DIALECT_OATH_FLAG" for n in notes)
+          and not any(n.level in ("WARN", "ERROR") for n in notes),
+          out)
+    out_again, _ = tr(out)
+    check(f"{code} 注入后幂等", out_again == out)
 
 # ══════════════════════════════════════════════════════════════════════
 print("── 2. 负面用例：原样 EDOPro 必须被 lint 判 ERROR ──")

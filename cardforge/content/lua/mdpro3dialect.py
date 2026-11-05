@@ -101,7 +101,9 @@ class _Api:
 #      EDOPro 的 (notg,nodbg) 与 (sub,insf) 语义不同，必须换值不能只改名。
 #  Fusion.AddProcMixRep(c,true,true,F,lo,hi,…) aux.AddFusionProcMixRep(c,false,true,F,lo,hi,…)
 #      客户端签名 (fcard,sub,insf,fun1,minc,maxc,…) —— 尾部与 EDOPro 对齐。
-#  Fusion.AddProcMixRepUnfix(…)                （无等价：降级）
+#  Fusion.AddProcMixRepUnfix(c,tt,{F,lo,hi}…)  ≤1 段浮动 → 摊平成旧 MixRep：
+#      aux.AddFusionProcMixRep(c,false,true,F,lo,hi,其余固定段各 1 张)；
+#      库体 material_count 只容一段浮动 → ≥2 段浮动仍是硬限制（降级）。
 #  Synchro.AddProcedure(c,F1,1,1,
 #      Synchro.NonTuner(F2),lo2,hi2)           aux.AddSynchroProcedure(c,F1,aux.NonTuner(F2),lo2,hi2)
 #  Synchro.AddProcedure(c,F1,N,N,              aux.AddSynchroMixProcedure(c,aux.Tuner(F1)×N,nil…,
@@ -121,9 +123,12 @@ class _Api:
 #  aux.AddEquipProcedure(c,0,F)                aux.AddEquipSpellEffect(c,true,true,F)
 #      旧装备魔法四合一（发动+目标+EQUIP_LIMIT）；eqlimit 取默认 1。
 #  SetCountLimit(1,{id,N})                     SetCountLimit(1,id+N)
-#      旧核的计数字段是整数（官方 1398 张用 id+N）；带
-#      EFFECT_COUNT_CODE_OATH/DUEL 的第三参没有 → 去掉并 WARN（语义降级：
-#      新核的「同盟计数」在旧核没有对应物）。
+#      旧核的计数字段是整数（官方 1398 张用 id+N）。
+#  SetCountLimit(1,{id,N},EFFECT_COUNT_CODE_OATH|DUEL)
+#      结构可辨（SetTarget/SetOperation + 单行 chk==0）→ 改写为旧核
+#      FlagEffect 整决斗计数（官方同款：tg 查 GetFlagEffect(tp,id+N)、
+#      op 登记 RegisterFlagEffect(tp,id+N,0,0,1)，reset=0 整决斗不清）；
+#      认不出结构或限 N≠1 次 → 退回 id+N「每回合」近似 + WARN。
 #  aux.lnklimit                                aux.linklimit（客户端就叫这个）
 #  Card.AddCannotBeNormalSummoned(c)           EFFECT_CANNOT_SUMMON + EFFECT_CANNOT_MSET
 #  Card.AddCannotBeSpecialSummoned(c)          EFFECT_CANNOT_SPECIAL_SUMMON      两枚
@@ -134,7 +139,7 @@ class _Api:
 
 _RE_MIX = re.compile(r"^(\t*)Fusion\.AddProcMix\(c,true,true,(.+)\)\s*$")
 _RE_MIX_REP = re.compile(r"^(\t*)Fusion\.AddProcMixRep\(c,true,true,(.+)\)\s*$")
-_RE_UNFIX = re.compile(r"^(\t*)Fusion\.AddProcMixRepUnfix\(")
+_RE_UNFIX = re.compile(r"^(\t*)Fusion\.AddProcMixRepUnfix\(c,true,true,(.+)\)\s*$")
 _RE_SYNC = re.compile(
     r"^(\t*)Synchro\.AddProcedure\(c,([^,]+),(\d+),(\d+),"
     r"Synchro\.NonTuner\((.+)\),(\d+),(\d+)\)\s*$")
@@ -153,6 +158,10 @@ _RE_RITUAL_EQ = re.compile(r"^(\t*)Ritual\.AddProcEqual\(c,([^,]+)(?:,(\d+))?\)\
 _RE_ANYPROC = re.compile(
     r"^(\s*)(Fusion|Synchro|Xyz|Link|Ritual|Pendulum|Counter|Skill)\.([\w.]+)\(")
 _RE_LIMIT = re.compile(r"SetCountLimit\((\d+),\{id,(\d+)\}(,EFFECT_COUNT_CODE_\w+)?\)")
+_RE_OATH = re.compile(
+    r"^(\t*)(\w+):SetCountLimit\((\d+),\{id,(\d+)\},EFFECT_COUNT_CODE_(OATH|DUEL)\)\s*$")
+_RE_SETTGT = re.compile(r"^\s*(\w+):Set(Target|Operation)\(s\.(\w+)\)\s*$")
+_RE_CREATE_EFF = re.compile(r"^\s*local \w+=Effect\.CreateEffect\(")
 _RE_LNKLIMIT = re.compile(r"\baux\.lnklimit\b")
 
 _MUSTLIM = {"Fusion": "fuslimit", "Synchro": "synlimit", "Xyz": "xyzlimit",
@@ -188,6 +197,137 @@ def _effect_block(indent: str, var: str, codes: list, value: Optional[str] = Non
     return "\n".join(lines)
 
 
+def _split_top(s: str) -> list[str]:
+    """按最外层逗号拆参数（过滤函数调用里的逗号不算）。"""
+    parts: list[str] = []
+    depth: int = 0
+    cur: list[str] = []
+    for ch in s:
+        if ch in "({[":
+            depth += 1
+        elif ch in ")}]":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append("".join(cur).strip())
+            cur = []
+        else:
+            cur.append(ch)
+    if "".join(cur).strip():
+        parts.append("".join(cur).strip())
+    return parts
+
+
+def _flatten_unfix(body: str) -> str:
+    """Unfix 的 {过滤,min,max} 段 → 旧 MixRep：至多一段浮动，固定段须是 1 张。
+
+    旧库 AddFusionProcMixRep(fcard,sub,insf,fun1,minc,maxc,...) 的
+    material_count={#fun+minc-1,#fun+maxc-1} —— 全卡只有 fun1 一段浮动，
+    变参槽每段固定 1 张。旧 MixRep 与 EDOPro 段序一致，素材不分顺序，
+    所以浮动段挪到首位即可，段间先后不影响语义。
+    """
+    segs: list[tuple[str, int, int]] = []
+    for part in _split_top(body):
+        inner = _split_top(part[1:-1]) if part.startswith("{") and part.endswith("}") else []
+        if len(inner) != 3 or not (inner[1].isdigit() and inner[2].isdigit()):
+            return ""
+        segs.append((inner[0], int(inner[1]), int(inner[2])))
+    if not segs:
+        return ""
+    var = [g for g in segs if g[1] != g[2]]
+    if len(var) > 1 or any(g[1] != 1 for g in segs if g not in var):
+        return ""
+    if not var:
+        return "aux.AddFusionProcMix(c,false,true," + ",".join(g[0] for g in segs) + ")"
+    (f, lo, hi), = var
+    tail = "".join(f",{g[0]}" for g in segs if g not in var)
+    return f"aux.AddFusionProcMixRep(c,false,true,{f},{lo},{hi}{tail})"
+
+
+def _oath_to_flag(text: str, notes: list) -> str:
+    """SetCountLimit(1,{id,K},EFFECT_COUNT_CODE_OATH|DUEL) → FlagEffect 整决斗计数。
+
+    旧方言的「一决斗一次」官方写法就是这对函数（客户端 13572 张普查：
+    每回合的登记带 RESET_PHASE+PHASE_END，一决斗的 reset 传 0，永不重开，
+    范本 c61822419：chk==0 查 Duel.GetFlagEffect(tp,id)==0、
+    op 里 Duel.RegisterFlagEffect(tp,id,0,0,1)）。
+    只动结构可辨认的：eN 的 SetTarget/SetOperation 指到 s.xxxN，
+    tg 函数体里有单行 `if chk==0 then return <表达式> end`；
+    任一条不满足就整段不动（行级规则会退回每回合近似 + WARN）。
+    """
+    if "EFFECT_COUNT_CODE_OATH" not in text and "EFFECT_COUNT_CODE_DUEL" not in text:
+        return text
+    lines = text.splitlines()
+    targets: list[dict] = []
+    for i, ln in enumerate(lines):
+        m = _RE_OATH.match(ln.rstrip("\r"))
+        if not m or m.group(3) != "1":       # 限 N>1 次的登记口径没把握，不碰
+            continue
+        indent, evar, _, k, code = m.groups()
+        tg = op = ""
+        for ln2 in lines[i + 1:]:            # 同一效果块内找 tg/op 函数名
+            st = ln2.rstrip("\r")
+            if _RE_CREATE_EFF.match(st) or st.startswith("function "):
+                break                        # 已越出本效果的块
+            mm = _RE_SETTGT.match(st)
+            if mm and mm.group(1) == evar:
+                if mm.group(2) == "Target" and not tg:
+                    tg = mm.group(3)
+                elif mm.group(2) == "Operation" and not op:
+                    op = mm.group(3)
+                if tg and op:
+                    break
+        if tg and op:
+            targets.append({"i": i, "indent": indent, "k": k, "code": code,
+                            "tg": tg, "op": op, "src": ln.strip()})
+    if not targets:
+        return text
+    # 手写脚本若把同一个 tg/op 函数给多个效果共用，注入会互相踩——放弃注入走近似
+    names = [p["tg"] for p in targets] + [p["op"] for p in targets]
+    if len(set(names)) != len(names):
+        return text
+    done: list[dict] = []
+    for p in targets:
+        pat = re.compile(rf"^function s\.({re.escape(p['tg'])}|{re.escape(p['op'])})\(")
+        cur = ""
+        for j, ln in enumerate(lines):
+            fm = pat.match(ln)
+            if fm:
+                cur = fm.group(1)
+                if cur == p["op"] and "op_j" not in p:
+                    p["op_j"] = j
+                continue
+            if cur == p["tg"] and "tg_j" not in p:
+                cm = re.match(r"^(\t+)if chk==0 then return (.+) end$", ln)
+                if cm:
+                    p["tg_j"], p["tg_indent"], p["tg_cond"] = j, cm.group(1), cm.group(2)
+            elif ln == "end":
+                cur = ""
+        if "tg_j" in p and "op_j" in p:
+            done.append(p)
+    if not done:
+        return text
+    edits: list[tuple[int, bool, list[str]]] = []   # (行号, 是否替换原行, 新行)
+    for p in done:
+        lab = f"id+{p['k']}"
+        notes.append(Note("INFO", "MD_DIALECT_OATH_FLAG",
+                          f"「{p['src']}」→ FlagEffect 整决斗计数：{p['tg']} 里查 "
+                          f"Duel.GetFlagEffect(tp,{lab})==0，{p['op']} 开头登记 "
+                          "Duel.RegisterFlagEffect(tp,…,0,0,1)（官方 reset=0 整决斗写法）",
+                          "两个口径小注：①计数在效果「结算」时登记（旧官方同款行为；"
+                          "被无效则不占次），新核是在发动时占次；②DUEL 本来就是按玩家、"
+                          "与 FlagEffect 一致，OATH 在团体决斗里是队友共享，这里按"
+                          "玩家各自记（1v1 无差别）。见 docs/03 缺陷 #48。"))
+        edits.append((p["i"], True, [f"{p['indent']}-- [CardForge#48] {p['code']} 一决斗限次"
+                                     f"→FlagEffect（s.{p['tg']} 查 / s.{p['op']} 登记）"]))
+        edits.append((p["tg_j"], True,
+                      [f"{p['tg_indent']}if chk==0 then return ({p['tg_cond']})"
+                       f" and Duel.GetFlagEffect(tp,{lab})==0 end"]))
+        edits.append((p["op_j"] + 1, False, [f"\tDuel.RegisterFlagEffect(tp,{lab},0,0,1)"]))
+    for pos, replace, new in sorted(edits, key=lambda e: -e[0]):
+        lines[pos:pos + 1 if replace else pos] = new
+    return "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  translate
 # ══════════════════════════════════════════════════════════════════════
@@ -197,6 +337,9 @@ def translate(lua: str) -> tuple[str, list[Note]]:
     if not text.strip():
         return text, []
     notes: list[Note] = []
+
+    # 跨决斗限次先做全脚本改写（要在逐行规则之前，注入点在函数体里）
+    text = _oath_to_flag(text, notes)
 
     # 接触召唤：先扫出组函数体，把「组函数名」还原成旧接口要的「卡片过滤+区域」
     groups: dict[str, tuple[str, str, str]] = {}
@@ -219,8 +362,14 @@ def translate(lua: str) -> tuple[str, list[Note]]:
             continue
         m = _RE_UNFIX.match(s)
         if m:
-            out_lines.append(_degrade(m.group(1), "旧核没有多段可变数量的融合素材接口"
-                                  "（AddFusionProcMixRep 只支持一段可变）", s, notes))
+            flat = _flatten_unfix(m.group(2))
+            if flat:
+                out_lines.append(f"{m.group(1)}{flat}")
+            else:
+                out_lines.append(_degrade(m.group(1),
+                    "旧 AddFusionProcMixRep 全卡只容一段浮动（库体 material_count 一段"
+                    " minc..maxc），固定变参槽每段 1 张——两段以上浮动没有等价写法",
+                    s, notes))
             continue
         m = _RE_SYNC.match(s)
         if m:
@@ -254,7 +403,8 @@ def translate(lua: str) -> tuple[str, list[Note]]:
         m = _RE_EQUIP.match(s)
         if m:
             out_lines.append(f"{m.group(1)}aux.AddEquipSpellEffect(c,true,true,{m.group(3)})"
-                             f"  -- [CardForge#48] 装备限制数按旧接口默认 1")
+                             f"  -- [CardForge#48] 装备四合一；限制数取默认 1"
+                             f"（旧接口 eqlimit 只收自定义函数，卡面无「多装备」字段）")
             continue
         m = _RE_CONTACT.match(s)
         if m:
