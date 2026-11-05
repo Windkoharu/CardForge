@@ -264,6 +264,13 @@ label.lbl > span { letter-spacing: .03em; }
 }
 .notice b { color: var(--paper); }
 .notice.bad { border-color: #d05a5244; background: #d05a520d; }
+/* 「这张卡还不能用」告警条：语义色更醒目一点（缺陷 #37 的出口） */
+#playable-banner { margin-top: 0; margin-bottom: var(--sp-3); }
+#playable-banner[hidden] { display: none; }
+#playable-banner b { color: #ff9c94; }
+.playable-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center;
+  margin-top: var(--sp-2); }
+.playable-actions .hint { font-size: 11px; }
 .notice.warn { border-color: #d9a13b44; background: #d9a13b0d; }
 .notice.ok { border-color: #4caf7d44; background: #4caf7d0d; }
 .notice code, .footnote code { font-family: var(--font-code); font-size: 11px;

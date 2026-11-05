@@ -35,10 +35,57 @@ export function initSpec() {
   $('#btn-preview-now').addEventListener('click', () => schedulePreview(0));
   $('#btn-add-effect').addEventListener('click', addEffect);
   $('#btn-infer-effect').addEventListener('click', inferFromText);
+  // G2 跑完之后再重画一次「可运行度」告警条（门报告是异步回来的）
+  window.addEventListener('cardforge:gate-done', (e) => {
+    if (!e.detail || e.detail.gate === 'G2') renderPlayableBanner();
+  });
+}
+
+/* ══════════════ 「这张卡还不能用」告警条 ══════════════ */
+/** 把 G2 的可运行度 Issue 翻译成一个显眼的红条 + 直达按钮。
+ *
+ *  为什么要有它（缺陷 #37）：G2 把空壳卡判 pass 时，用户唯一能看到的只有
+ *  「没有素材条件」这种旁注；现在 G2 会拦，但拦完还得让人**知道去哪补**。
+ *  事实只从 report.issues 取，不在这里猜原因。
+ */
+const PLAYABLE_CODES = ['G2_NOT_PLAYABLE', 'G2_EXTRA_NO_PROC', 'G2_EFFECT_NOT_EMITTED'];
+
+function renderPlayableBanner() {
+  const box = $('#playable-banner');
+  if (!box) return;
+  const rep = store.gates && store.gates.G2;
+  const issues = ((rep && rep.issues) || []).filter((i) => PLAYABLE_CODES.includes(i.code));
+  box.hidden = true;
+  clear(box);
+  if (!issues.length) return;
+
+  box.appendChild(h('b', { text: '这张卡在对局里还不能用：' }));
+  const msgs = [...new Set(issues.map((i) => i.message))];
+  for (const m of msgs) box.appendChild(h('div', { text: m }));
+
+  const wantSummon = issues.some((i) => ['G2_NOT_PLAYABLE', 'G2_EXTRA_NO_PROC'].includes(i.code));
+  const wantEffect = issues.some((i) => ['G2_NOT_PLAYABLE', 'G2_EFFECT_NOT_EMITTED'].includes(i.code));
+  const acts = h('div.playable-actions');
+  if (wantSummon) {
+    acts.appendChild(h('button.mini-btn.alt', { type: 'button', onclick: () => {
+      $('#b-summon').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } }, '去召唤条件'));
+    acts.appendChild(h('button.mini-btn.alt', { type: 'button', onclick: inferSummonFromText },
+      '从卡文识别素材'));
+  }
+  if (wantEffect) {
+    acts.appendChild(h('button.mini-btn', { type: 'button', onclick: () => {
+      $('#f-effects').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } }, '去效果'));
+  }
+  acts.appendChild(h('span.hint', { text: '填好后重新生成脚本，再导出扩展包' }));
+  box.appendChild(acts);
+  box.hidden = false;
 }
 
 /* ══════════════ 表单渲染 ══════════════ */
 function renderForm() {
+  renderPlayableBanner();
   const spec = store.spec;
   if (!spec) {
     ['f-basic', 'f-monster', 'f-spell', 'f-belong', 'f-effects', 'f-summon']
