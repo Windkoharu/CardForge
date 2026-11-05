@@ -102,14 +102,17 @@ class _Api:
 #  Fusion.AddProcMixRep(c,true,true,F,lo,hi,…) aux.AddFusionProcMixRep(c,false,true,F,lo,hi,…)
 #      客户端签名 (fcard,sub,insf,fun1,minc,maxc,…) —— 尾部与 EDOPro 对齐。
 #  Fusion.AddProcMixRepUnfix(…)                （无等价：降级）
-#  Synchro.AddProcedure(c,F1,1,m1,
+#  Synchro.AddProcedure(c,F1,1,1,
 #      Synchro.NonTuner(F2),lo2,hi2)           aux.AddSynchroProcedure(c,F1,aux.NonTuner(F2),lo2,hi2)
-#      客户端签名 (c,f1,f2,minc,maxc)，协调兽固定 1 只；lo1>1 无等价 → 降级。
+#  Synchro.AddProcedure(c,F1,N,N,              aux.AddSynchroMixProcedure(c,aux.Tuner(F1)×N,nil…,
+#      Synchro.NonTuner(F2),lo2,hi2) N=2,3          aux.NonTuner(F2),lo2,hi2)（官方 c16172067）
+#      数量浮动（1~2 只协调）无等价 → 降级。
 #  Xyz.AddProcedure(c,F,lv,ct[,nil,nil,mc])    aux.AddXyzProcedure(c,F,lv,ct[,nil,nil,mc])
 #      位置前缀完全兼容（官方样本 maxct 可为 99）；Xyz.InfiniteMats → 99。
 #  Link.AddProcedure(c,F,lo,hi[,gf])           aux.AddLinkProcedure(c,F,lo,hi[,gf])
-#  Ritual.AddProcGreater(c,F,lv)               （客户端仪式流程在**仪式魔法**侧；
-#                                               怪兽侧无等价 → 降级并说明）
+#  Ritual.AddProcGreater(c,F,lv)               aux.AddRitualProcGreater2(c,F)+WARN
+#  Ritual.AddProcEqual(c,F[,lv])               aux.AddRitualProcEqual2(c,F)+WARN
+#      怪兽侧旧入口即 *Proc*2 族（官方 c34767865 等）；等级门槛取自身等级。
 #  Fusion.AddContactProc(c,G,OP,nil,nil,SUMMON_TYPE_FUSION)
 #        G = function(tp) return Duel.GetMatchingGroup(F,tp,L1,L2,nil) end
 #                                  ↓ 取 F/L1/L2（旧接口是「卡片级过滤+区域对」）
@@ -146,6 +149,9 @@ _RE_GRP = re.compile(
     r"function (s\.cgrp[\w.]+)\(tp\)\s*\n\s*return Duel\.GetMatchingGroup\("
     r"([^,]+),tp,([^,]+),([^,]+),nil\)\s*\nend")
 _RE_RITUAL = re.compile(r"^(\t*)Ritual\.AddProcGreater\(c,([^,]+),(\d+)\)\s*$")
+_RE_RITUAL_EQ = re.compile(r"^(\t*)Ritual\.AddProcEqual\(c,([^,]+)(?:,(\d+))?\)\s*$")
+_RE_ANYPROC = re.compile(
+    r"^(\s*)(Fusion|Synchro|Xyz|Link|Ritual|Pendulum|Counter|Skill)\.([\w.]+)\(")
 _RE_LIMIT = re.compile(r"SetCountLimit\((\d+),\{id,(\d+)\}(,EFFECT_COUNT_CODE_\w+)?\)")
 _RE_LNKLIMIT = re.compile(r"\baux\.lnklimit\b")
 
@@ -219,11 +225,18 @@ def translate(lua: str) -> tuple[str, list[Note]]:
         m = _RE_SYNC.match(s)
         if m:
             t, f1, lo1, hi1, f2, lo2, hi2 = m.groups()
-            if lo1 != "1":
-                out_lines.append(_degrade(t, f"旧核同步固定 1 只协调（本卡 {lo1} 只）", s, notes))
-            else:
+            if lo1 == "1" and hi1 == "1":
                 out_lines.append(f"{t}aux.AddSynchroProcedure(c,{f1},"
                                  f"aux.NonTuner({f2}),{lo2},{hi2})")
+            elif lo1 == hi1 and lo1 in ("2", "3"):
+                # 固定 N 只协调：官方旧写法是给每只协调开一个必选槽
+                # （官方范本 c16172067：aux.Tuner,aux.Tuner,nil,aux.NonTuner(nil),1,99）
+                slots = ",".join([f"aux.Tuner({f1})"] * int(lo1)) + ",nil" * (3 - int(lo1))
+                out_lines.append(f"{t}aux.AddSynchroMixProcedure(c,{slots},"
+                                 f"aux.NonTuner({f2}),{lo2},{hi2})")
+            else:
+                out_lines.append(_degrade(t, f"旧流程协调数量只能固定（本卡 {lo1}~{hi1} 只浮动）；"
+                                          "固定 1/2/3 只都可以翻译", s, notes))
             continue
         m = _RE_XYZ.match(s)
         if m:
@@ -255,8 +268,26 @@ def translate(lua: str) -> tuple[str, list[Note]]:
             continue
         m = _RE_RITUAL.match(s)
         if m:
-            out_lines.append(_degrade(m.group(1), "旧客户端的仪式流程写在**仪式魔法**脚本里"
-                                      "（Auxiliary.AddRitualProc*），怪兽侧没有等价入口", s, notes))
+            # 旧方言怪兽侧入口就是 *Proc*2 族（官方范本 c34767865 / c41085464）；
+            # 等级判定改为「素材总等级 ≥ 这张卡自身等级」。
+            t, filt, lv = m.groups()
+            out_lines.append(f"{t}aux.AddRitualProcGreater2(c,{filt})")
+            notes.append(Note("WARN", "MD_DIALECT_RITUAL_LV",
+                              f"「{s.strip()}」译成 aux.AddRitualProcGreater2：旧接口的等级门槛"
+                              f"是这张卡自身等级，显式等级 {lv} 不再单独生效",
+                              "生成卡的仪式等级本来就等于自身等级，语义一致；"
+                              "手写脚本若两者不同，请改回与自身等级一致。见 docs/03 缺陷 #48。"))
+            continue
+        m = _RE_RITUAL_EQ.match(s)
+        if m:
+            t, filt, lv = m.groups()
+            out_lines.append(f"{t}aux.AddRitualProcEqual2(c,{filt})")
+            notes.append(Note("WARN", "MD_DIALECT_RITUAL_LV",
+                              f"「{s.strip()}」译成 aux.AddRitualProcEqual2：旧接口按"
+                              f"「素材总等级 = 这张卡自身等级」取等"
+                              + (f"，显式等级 {lv} 不再单独生效" if lv else ""),
+                              "与自身等级一致时语义相同；不一致请手工改脚本。"
+                              "见 docs/03 缺陷 #48。"))
             continue
         if "SetCountLimit" in s and "{id," in s:
             def _cl(mm: re.Match) -> str:
@@ -275,6 +306,16 @@ def translate(lua: str) -> tuple[str, list[Note]]:
             # 旧核没有 Card.IsMonsterEffect（ocgcore 符号与官方 13572 张双重确认）；
             # 「以怪兽卡身份发动的效果」在旧方言用 IsHasType（二进制里有该绑定）。
             s = s.replace(":IsMonsterEffect()", ":IsHasType(TYPE_MONSTER)")
+
+        # 兜底：翻译表没覆盖的新方言表调用（如 Xyz.AddProcedureLevelFree、
+        # Ritual.AddProc 变体）绝不原样打包——注释掉并硬报错，保住脚本其余部分。
+        m = _RE_ANYPROC.match(s)
+        if m:
+            out_lines.append(_degrade(
+                m.group(1), f"旧方言没有 {m.group(2)}.{m.group(3)} 的翻译规则"
+                "（翻译表里没有，白名单按新方言表判死）", s, notes,
+                code="MD_DIALECT_UNTRANSLATED"))
+            continue
 
         if (m := re.match(r"^(\t*)Card\.AddCannotBeNormalSummoned\(c\)\s*$", s)):
             ev_n += 1

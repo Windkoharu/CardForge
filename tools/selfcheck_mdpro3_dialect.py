@@ -45,6 +45,16 @@ cases = [
      "\taux.AddFusionProcMixRep(c,false,true,s.f,2,4,s.a,s.b)", False),
     ("\tSynchro.AddProcedure(c,s.f1,1,1,Synchro.NonTuner(s.f2),1,3)",
      "\taux.AddSynchroProcedure(c,s.f1,aux.NonTuner(s.f2),1,3)", False),
+    ("\tSynchro.AddProcedure(c,s.f1,2,2,Synchro.NonTuner(s.f2),1,3)",
+     "\taux.AddSynchroMixProcedure(c,aux.Tuner(s.f1),aux.Tuner(s.f1),nil,"
+     "aux.NonTuner(s.f2),1,3)", False),
+    ("\tSynchro.AddProcedure(c,s.f1,3,3,Synchro.NonTuner(s.f2),0,2)",
+     "\taux.AddSynchroMixProcedure(c,aux.Tuner(s.f1),aux.Tuner(s.f1),aux.Tuner(s.f1),"
+     "aux.NonTuner(s.f2),0,2)", False),
+    ("\tRitual.AddProcGreater(c,aux.TRUE,4)",
+     "\taux.AddRitualProcGreater2(c,aux.TRUE)", True),
+    ("\tRitual.AddProcEqual(c,s.rf,4)",
+     "\taux.AddRitualProcEqual2(c,s.rf)", True),
     ("\tXyz.AddProcedure(c,s.f,8,2,nil,nil,Xyz.InfiniteMats)",
      "\taux.AddXyzProcedure(c,s.f,8,2,nil,nil,99)", False),
     ("\tLink.AddProcedure(c,s.f,2,3,s.lchk1)",
@@ -90,11 +100,11 @@ check("接触融合还原为 aux.AddContactFusionProcedure(c,过滤,区1,区2,�
       "s.ctop0_0)" in out and not any(n.level == "ERROR" for n in notes),
       out)
 
-# 降级三件套：必须注释掉 + 硬 ERROR note
+# 降级：必须注释掉 + 硬 ERROR note
 for src, why in [
     ("\tFusion.AddProcMixRepUnfix(c,true,true,{s.f,2,4})", "多段可变数量"),
-    ("\tSynchro.AddProcedure(c,s.f1,2,2,Synchro.NonTuner(s.f2),1,3)", "固定 1 只协调"),
-    ("\tRitual.AddProcGreater(c,aux.TRUE,4)", "仪式魔法"),
+    ("\tSynchro.AddProcedure(c,s.f1,1,2,Synchro.NonTuner(s.f2),1,3)", "协调数量浮动"),
+    ("\tRitual.AddProc(c,s.f,4)", "旧接口名单里没有"),
 ]:
     out, notes = tr(src)
     check(f"降级 {src.strip()[:44]!r}",
