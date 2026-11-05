@@ -1119,7 +1119,8 @@ def cmd_mdpro3(args) -> int:
     try:
         res = mdpro3.build(cards, out, name=args.name, author=args.author or "",
                            langs=tuple(args.lang or ["zh_cn"]), deck=deck,
-                           render_pics=not args.no_pics)
+                           render_pics=not args.no_pics,
+                           keep_edopro=bool(getattr(args, "keep_edopro", False)))
     except Exception as e:
         return _die(errors.CardForgeError(f"打包失败：{e}",
                                           "确认输出目录可写"), args.json)
@@ -1130,7 +1131,7 @@ def cmd_mdpro3(args) -> int:
         o.warn(f"这些卡没有脚本，进游戏只能看不能用：{res['cards_without_script']}")
     bad = [i for i in res["issues"] if i["level"] == "ERROR"]
     for i in res["issues"]:
-        (o.bad if i.level == "ERROR" else o.warn)(f"{i.code} {i.message}")
+        (o.bad if i["level"] == "ERROR" else o.warn)(f"{i['code']} {i['message']}")
     rep = mdpro3.verify(res["path"], deep=bool(getattr(args, "deep_check", False)))
     o.say(f"包自检 — {'通过' if not any(i.level=='ERROR' for i in rep) else '有错误'}"
           f"（{len(rep)} 条）")
@@ -1234,6 +1235,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--deck", help="附带一个已保存的卡组作为演示卡组")
     sp.add_argument("--out", help="输出 .ypk 路径")
     sp.add_argument("--no-pics", action="store_true", help="不渲染卡图（快，但游戏里没图）")
+    sp.add_argument("--keep-edopro", action="store_true",
+                    help="不打新方言→MDPro3 旧方言的投影（默认会翻译，客户端才认；"
+                         "确认目标客户端吃得下 EDOPro 方言时才用）")
     sp.add_argument("--detect", action="store_true", help="只探测本机 MDPro 客户端")
     sp.add_argument("--deep", action="store_true", help="探测时多扫一层目录（慢）")
     sp.add_argument("--verify", help="校验一个已有的 .ypk")

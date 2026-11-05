@@ -41,13 +41,17 @@ __all__ = [
 #  召唤流程调用表（片段里的唯一出口，改片段时这张表要跟着改）
 # ══════════════════════════════════════════════════════════════════════
 PROC_CALLS: dict[str, tuple[str, ...]] = {
+    # 两套方言都收（缺陷 #48）：EDOPro 新方言是工作区脚本的原样，
+    # aux.* 旧方言是 MDPro3 包里翻译后的样子（mdpro3dialect.translate）。
     "fusion": ("Fusion.AddProcMix", "Fusion.AddProcMixRep",
-               "Fusion.AddProcMixRepUnfix", "Fusion.AddContactProc"),
+               "Fusion.AddProcMixRepUnfix", "Fusion.AddContactProc",
+               "aux.AddFusionProcMix", "aux.AddFusionProcMixRep",
+               "aux.AddContactFusionProcedure"),
     "synchro": ("Synchro.AddProcedure", "aux.AddSynchroProcedure"),
-    "xyz": ("Xyz.AddProcedure",),
-    "link": ("Link.AddProcedure",),
+    "xyz": ("Xyz.AddProcedure", "aux.AddXyzProcedure"),
+    "link": ("Link.AddProcedure", "aux.AddLinkProcedure"),
     "ritual": ("Ritual.AddProcGreater", "Ritual.AddProcEqual", "Ritual.AddProc"),
-    "pendulum": ("Pendulum.AddProcedure",),
+    "pendulum": ("Pendulum.AddProcedure", "aux.EnablePendulumAttribute"),
 }
 
 #: frame 的 ``base`` → 该卡种必须出现的流程种类

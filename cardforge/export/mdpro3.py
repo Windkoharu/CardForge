@@ -242,6 +242,15 @@ def _readiness_mod():
         return None
 
 
+def _dialect_mod():
+    """惰性拿 MDPro3 旧方言模块（缺陷 #48；缺失时返回 None，导出照常进行）。"""
+    try:
+        from ..content.lua import mdpro3dialect
+        return mdpro3dialect
+    except Exception:
+        return None
+
+
 def _write_file(path: Path, text: str) -> None:
     """**UTF-8 无 BOM**：MDPro3 自己的 conf/ydk 实测都不带 BOM，
     而 ``.lua`` 带 BOM 会直接让脚本加载失败。"""
@@ -262,13 +271,18 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
           counters: Mapping[Any, Any] | None = None,
           pic_source: Mapping[int, str | os.PathLike[str]] | None = None,
           render_pics: bool = True, compression: int = zipfile.ZIP_DEFLATED,
-          readme: bool = True) -> dict:
+          readme: bool = True, keep_edopro: bool = False) -> dict:
     """产出一个可直接被 MDPro3 「导入」的 ``.ypk``。
 
     :param pic_source: ``{卡号: 图片路径}``。给了就用现成的图；
         没给且 ``render_pics`` 为真时，用渲染器现场出 704×1024 整卡图。
     :param render_pics: 关掉可以显著加快打包（卡包里就没有卡图，
         MDPro3 会按卡号去 ``Picture/Art`` 找插画，找不到显示占位）。
+    :param keep_edopro: 默认 **False**：打包时把脚本逐行翻译成 MDPro3 客户端
+        认得的旧方言（``aux.*``）。客户端没有 ProjectIgnis 的 ``Fusion.*``
+        这套新方言，脚本会在 ``initial_effect`` 第一行中止——召唤流程与效果
+        全都不注册（缺陷 #48）。置 True 保留 EDOPro 原文（仅当你确认目标
+        客户端吃得下新方言时用；EDOPro 导出路径本来就不经过这里）。
     """
     specs = [c for c in (cards or []) if c is not None]
     if not specs:
@@ -305,6 +319,18 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
     # ── 2. script/ ────────────────────────────────────────────────
     (tmp / "script").mkdir(exist_ok=True)
     ready = _readiness_mod()
+    # 方言投影（缺陷 #48）：客户端只认 aux.* 旧方言，打包前逐行翻译 + 对账
+    md = None if keep_edopro else _dialect_mod()
+    md_api = None
+    if md is not None:
+        try:
+            md_api = md.load_api()
+        except Exception as e:
+            issues.append(Issue(
+                gate="MDPRO", code="MD_DIALECT_API", level="ERROR",
+                message=f"MDPro3 符号对账白名单读不出来：{e}",
+                hint="本包只做固定表翻译、跳过符号对账；"
+                     "重跑 tools/extract_mdpro3_api.py 可恢复", field="lua"))
     for c in specs:
         lua = str(getattr(c, "lua", "") or "")
         if not lua.strip():
@@ -332,9 +358,37 @@ def build(cards: Iterable[CardSpec], out_path: str | os.PathLike[str], *,
                                     level="WARN",
                                     message=f"卡 {c.id} 的可运行度判定失败：{e}",
                                     field="lua"))
+        if md is not None:
+            # 缺陷 #48：EDOPro 新方言 → MDPro3 旧方言，随后与客户端符号白名单对账。
+            try:
+                lua_md, dnotes = md.translate(lua)
+                for nt in dnotes:
+                    issues.append(Issue(gate="MDPRO", code=nt.code, level=nt.level,
+                                        message=f"卡 {c.id}「{c.name}」方言改写：{nt.msg}",
+                                        hint=nt.hint, field="lua"))
+                if md_api is not None:
+                    for pr in md.lint(lua_md, md_api):
+                        issues.append(Issue(gate="MDPRO", code=pr.code, level=pr.level,
+                                            message=f"卡 {c.id} 方言对账：{pr.msg}",
+                                            hint=pr.hint, field="lua"))
+                lua = lua_md
+            except Exception as e:
+                issues.append(Issue(gate="MDPRO", code="MD_DIALECT_CRASH", level="ERROR",
+                                    message=f"卡 {c.id} 方言改写异常：{e}",
+                                    hint="请反馈这条；本卡按 EDOPro 原文打包，"
+                                         "在 MDPro3 上脚本会中止（不能召唤、效果不发动）",
+                                    field="lua"))
         fn = f"c{int(c.id)}.lua"
         _write_file(tmp / "script" / fn, lua)
         written["script"].append(f"script/{fn}")
+
+    if md is not None and written["script"]:
+        issues.append(Issue(
+            gate="MDPRO", code="MD_DIALECT_APPLIED", level="INFO",
+            message=f"{len(written['script'])} 张脚本已投影为 MDPro3 旧方言"
+                    "（Fusion.* 这类 EDOPro 新方言调用客户端不认，缺陷 #48）",
+            hint="想让卡包保留 EDOPro 原文就加 --keep-edopro；EDOPro 导出不受影响",
+            field="lua"))
 
     # ── 3. pics/ ──────────────────────────────────────────────────
     (tmp / "pics").mkdir(exist_ok=True)
@@ -589,6 +643,15 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
     out: list[Issue] = []
     p = Path(ypk)
     ready = _readiness_mod()
+    md = _dialect_mod()
+    md_api = None
+    if md is not None:
+        try:
+            md_api = md.load_api()
+        except Exception as e:
+            out.append(Issue(gate="MDPRO", code="MD_DIALECT_API", level="WARN",
+                             message=f"符号对账白名单不可用，方言检查跳过：{e}",
+                             hint="重跑 tools/extract_mdpro3_api.py 刷新", field="lua"))
 
     def iss(code: str, level: str, msg: str, hint: str = "", field: str = "") -> None:
         out.append(Issue(gate="MDPRO", code=code, level=level, message=msg,
@@ -686,6 +749,19 @@ def verify(ypk: str | os.PathLike[str], *, official_dir: str | os.PathLike[str] 
                                         f"{lua_name} 带 UTF-8 BOM",
                                         "带 BOM 的 Lua 会让这张卡在对局里直接报错",
                                         field="lua")
+                                # 方言对账（缺陷 #48）：脚本在、代码也在，但调的是
+                                # 客户端没有的符号 = 运行时 nil = 「空壳卡」。
+                                # SA人类 的包正是这样通过了旧自检的。
+                                if md is not None and md_api is not None:
+                                    try:
+                                        probs = md.lint(
+                                            raw.decode("utf-8", "replace"), md_api)
+                                    except Exception:
+                                        probs = []
+                                    for pr in probs[:8]:
+                                        iss(pr.code, pr.level,
+                                            f"{lua_name}: {pr.msg}", pr.hint,
+                                            field="lua")
                                 # 文件在 ≠ 能干活：只有注释的脚本在游戏里是空壳（缺陷 #37）
                                 if ready is not None:
                                     try:
@@ -760,6 +836,47 @@ def _deep_checks(p: Path, *, issu, client: Optional[Path]) -> None:
     5. ``strings.conf`` 行格式抽查（``!setname``/``!counter`` 的值必须是 hex）。
     """
     checked: list[str] = []
+    # 目标客户端是 MDPro4：官方 FAQ 明说「旧自定义包不保证兼容」，且公开文档
+    # 从未描述过 MDPro4 的扩展包格式（2026-11 网络调查，docs/03 缺陷 #48）。
+    # 我们照 MDPro3 规格打包，但要诚实告知这是「未验证」行为。
+    if client is not None and (client / "MDPro4.exe").exists():
+        issu("MD4_UNVERIFIED", "WARN",
+             "目标客户端是 MDPro4：它的扩展包格式没有任何公开文档，官方 FAQ "
+             "明说「旧自定义包不保证兼容」；本包按 MDPro3 规格产出",
+             "MDPro4 导入若无反应，不是包坏了而是它不认这种包——回 MDPro3 使用，"
+             "或按 MDPro4 的最小形态（cdb + c<id>.lua + 卡图）手工摆放；"
+             "脚本方言两边一致（都是旧 aux.* 方言），不用改")
+    # 方言白名单快照 vs 客户端当前脚本库（客户端会随更新换库）
+    if client is not None:
+        md = _dialect_mod()
+        api = None
+        if md is not None:
+            try:
+                api = md.load_api()
+            except Exception:
+                api = None
+        if api is not None:
+            import hashlib
+            sz = client / "Data" / "script.zip"
+            if sz.exists():
+                try:
+                    with zipfile.ZipFile(sz) as cz:
+                        got = set(cz.namelist())
+                        for name, meta in (api.get("source") or {}).get(
+                                "libs", {}).items():
+                            if name not in got:
+                                issu("MD_API_STALE", "WARN",
+                                     f"客户端 script.zip 里已没有 {name}",
+                                     "脚本库结构变了；重跑 tools/extract_mdpro3_api.py "
+                                     "刷新 data/mdpro3_api.json")
+                            elif hashlib.sha1(cz.read(name)).hexdigest() != meta.get("sha1"):
+                                issu("MD_API_STALE", "WARN",
+                                     f"客户端的 {name} 与内置符号白名单快照不一致",
+                                     "MDPro3 更新过脚本库；重跑 "
+                                     "tools/extract_mdpro3_api.py 刷新 "
+                                     "data/mdpro3_api.json，否则方言对账可能过时")
+                except (zipfile.BadZipFile, OSError):
+                    pass
     with zipfile.ZipFile(p) as z:
         names = [n for n in z.namelist() if not n.endswith("/")]
         roots = [n for n in names if "/" not in n]
